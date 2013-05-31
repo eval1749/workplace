@@ -33,6 +33,16 @@ private enum State {
     Start,
 }
 
+private struct MoveTask {
+    public FileInfo oldFile;
+    public FileInfo newFile;
+
+    public MoveTask(FileInfo oldFile, FileInfo newFile) {
+      this.oldFile = oldFile;
+      this.newFile = newFile;
+    }
+}
+
 private static List<Int32> Normalize(String name) {
   var state = State.NotDigit;
   var accmulator = 0;
@@ -86,6 +96,7 @@ private static void DoRename(String prefix, String dirPath) {
     files.Add(new FileInfo(filePath));
   files.Sort(CompareFileNames);
 
+  var pendings = new Stack<MoveTask>();
   int counter = 0;
   foreach (var fileInfo in files) {
     var oldFile = fileInfo;
@@ -114,8 +125,21 @@ private static void DoRename(String prefix, String dirPath) {
             prefix,
             ++counter,
             oldFile.Extension));
-    if (oldFile != newFile)
-      oldFile.MoveTo(newFile.FullName);
+    if (oldFile != newFile) {
+      try {
+        oldFile.MoveTo(newFile.FullName);
+      } catch (IOException ex) {
+        if (ex.HResult == -2147024713) // 0x800700b7
+          pendings.Push(new MoveTask(oldFile, newFile));
+        else
+          throw;
+      }
+    }
+  }
+
+  while (pendings.Count > 0) {
+    var task = pendings.Pop();
+    task.oldFile.MoveTo(task.newFile.FullName);
   }
 
   Console.WriteLine("{0} files", counter);
