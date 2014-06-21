@@ -1,6 +1,6 @@
 // @(#)$Id$
 
-// csc.exe rz.cs /debug /r:System.IO.Compression.FileSystem.dll
+// csc.exe rz2.cs /debug /r:System.IO.Compression.FileSystem.dll
 using System;
 using System.Collections.Generic;
 using System.Drawing;
@@ -109,13 +109,13 @@ private static void DoRename(String prefix, String dirPath) {
       continue;
     }
 
-    if (oldFile.Extension == ".bmp" || oldFile.Extension == ".tif") {
+    if (oldFile.Extension == ".jpg" || oldFile.Extension == ".tif") {
       var bmp = Image.FromFile(oldFile.FullName);
       var tempFile = new FileInfo(
-          String.Format("{0}\\{1}.jpg",
+          String.Format("{0}\\{1}.png",
             oldFile.DirectoryName,
             oldFile.Name.Substring(0, oldFile.Name.Length - 4)));
-      bmp.Save(tempFile.FullName, ImageFormat.Jpeg);
+      bmp.Save(tempFile.FullName, ImageFormat.Png);
       bmp.Dispose();
       Console.WriteLine("Convert to JPEG: {0}", oldFile.Name);
       oldFile.Delete();
@@ -123,7 +123,7 @@ private static void DoRename(String prefix, String dirPath) {
     }
 
     var newFile = new FileInfo(
-        String.Format("{0}\\{1}{2:D3}{3}",
+        String.Format("{0}\\{1}{2:D3}{3}", 
             oldFile.DirectoryName,
             prefix,
             ++counter,
