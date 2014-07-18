@@ -6,11 +6,14 @@
 #include <dcomp.h>
 #include <d3d11.h>
 #include <d2d1.h>
+#include <dwmapi.h>
 
 #include <iostream>
 
 #pragma comment(lib, "d2d1.lib")
+#pragma comment(lib, "d3d11.lib")
 #pragma comment(lib, "dcomp.lib")
+#pragma comment(lib, "dwmapi.lib")
 #pragma comment(lib, "dwrite.lib")
 #pragma comment(lib, "gdi32.lib")
 #pragma comment(lib, "ole32.lib")
@@ -133,6 +136,10 @@ class ComInitializer {
   }
 };
 
+//////////////////////////////////////////////////////////////////////
+//
+// Window
+//
 class Window {
   protected: class Creator {
     public: Creator(Window* window);
@@ -144,6 +151,8 @@ class Window {
 
   protected: Window();
   protected: ~Window();
+
+  public: operator HWND() const { return hwnd_; }
 
   protected: static LPWSTR GetWindowClass();
   private: static Window* GetWindowFromHwnd(HWND hwnd);
@@ -285,6 +294,25 @@ void MyApp::Run() {
 
 // Window
 LRESULT MyApp::OnMessage(UINT message, WPARAM wParam, LPARAM lParam) {
+  switch (message) {
+    case WM_ACTIVATE: {
+        MARGINS margins;
+        margins.cxLeftWidth = 0;
+        margins.cxRightWidth = 0;
+        margins.cyBottomHeight = 0;
+        margins.cyTopHeight = -1;
+        COM_VERIFY(::DwmExtendFrameIntoClientArea(*this, &margins));
+        break;
+    }
+    case WM_PAINT: {
+      PAINTSTRUCT ps;
+      auto const hdc = ::BeginPaint(*this, &ps);
+      ::FillRect(hdc, &ps.rcPaint,
+                 static_cast<HBRUSH>(::GetStockObject(BLACK_BRUSH)));
+      ::EndPaint(*this, &ps);
+      return 1;
+    }
+  }
   return Window::OnMessage(message, wParam, lParam);
 }
 
