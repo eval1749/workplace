@@ -1,17 +1,29 @@
+// C4530 L1: C++ exception handler used, but unwind semantics are not enabled.
+// Specify /EHsc
+#pragma warning(disable: 4530)
+
 #define UNICODE
 #define WIN32_LEAN_AND_MEAN
 #define WINVER 0x0700
 #define _WIN32_WINNT 0x0700
 #include <windows.h>
+#undef max
+#undef min
 #include <dcomp.h>
 #include <d3d11.h>
 #include <d2d1.h>
 #include <d2d1helper.h>
 #include <dwmapi.h>
+#include <dwrite.h>
 
+#include <algorithm>
 #include <iostream>
+#include <limits>
+#include <list>
 #include <memory>
+#include <string>
 #include <sstream>
+#include <unordered_set>
 
 #pragma comment(lib, "d2d1.lib")
 #pragma comment(lib, "d3d11.lib")
@@ -38,6 +50,13 @@ EXTERN_C IMAGE_DOS_HEADER __ImageBase;
   } \
 }
 
+#define WIN32_VERIFY(expr) { \
+  if (!(expr)) { \
+    auto const last_error = ::GetLastError(); \
+    DVLOG(ERROR) << "Faild: " << #expr << " err=" << last_error; \
+  } \
+}
+
 #define DCHECK(expr) (Check(__FILE__, __LINE__, #expr, (expr)))
 
 std::ostream& Check(const char* file_name, int line_number,
@@ -53,6 +72,54 @@ std::ostream& Check(const char* file_name, int line_number,
   return std::cerr;
 }
 
+namespace base {
+typedef wchar_t char16;
+typedef std::wstring string16;
+typedef std::char_traits<wchar_t> string16_char_traits;
+}  // base
+
+//////////////////////////////////////////////////////////////////////
+//
+// LARGE_INTEGER
+//
+LARGE_INTEGER operator+(const LARGE_INTEGER& large1,
+                        const LARGE_INTEGER& large2) {
+  LARGE_INTEGER result;
+  result.QuadPart = large1.QuadPart - large2.QuadPart;
+  return result;
+}
+
+LARGE_INTEGER operator-(const LARGE_INTEGER& large1,
+                        const LARGE_INTEGER& large2) {
+  LARGE_INTEGER result;
+  result.QuadPart = large1.QuadPart - large2.QuadPart;
+  return result;
+}
+
+LARGE_INTEGER operator*(const LARGE_INTEGER& large1,
+                        const LARGE_INTEGER& large2) {
+  LARGE_INTEGER result;
+  result.QuadPart = large1.QuadPart * large2.QuadPart;
+  return result;
+}
+
+LARGE_INTEGER operator*(const LARGE_INTEGER& large1, int int2) {
+  LARGE_INTEGER result;
+  result.QuadPart = large1.QuadPart * int2;
+  return result;
+}
+
+LARGE_INTEGER operator/(const LARGE_INTEGER& large1,
+                        const LARGE_INTEGER& large2) {
+  LARGE_INTEGER result;
+  result.QuadPart = large1.QuadPart / large2.QuadPart;
+  return result;
+}
+
+//////////////////////////////////////////////////////////////////////
+//
+// ComPtr
+//
 template<class T> class ComPtr {
   private: T* ptr_;
   public: explicit ComPtr(T* ptr = nullptr) : ptr_(ptr) {}
@@ -65,10 +132,7 @@ template<class T> class ComPtr {
     other.ptr_ = nullptr;
   }
   public: ~ComPtr() {
-    if (ptr_) {
-      ptr_->Release();
-      ptr_ = nullptr;
-    }
+    reset();
   }
   public: operator T*() const { return ptr_; }
   public: explicit operator bool() const { return ptr_; }
@@ -160,6 +224,28 @@ class ComInitializer {
   }
 };
 
+class SingletonBase {
+  protected: SingletonBase() = default;
+  protected: ~SingletonBase() = default;
+};
+
+std::vector<SingletonBase*>* all_singletons;
+
+template<class T>
+class Singleton : public SingletonBase {
+  public: static T* instance() {
+    static T* instance;
+    if (!instance) {
+      instance = new T();
+      all_singletons->push_back(instance);
+    }
+    return instance;
+  }
+};
+
+#define DECLARE_SINGLETON_CLASS(name) \
+  friend class Singleton<name>
+
 namespace gfx {
 class Brush final {
   private: ComPtr<ID2D1SolidColorBrush> brush_;
@@ -176,7 +262,6 @@ Brush::Brush(ID2D1RenderTarget* render_target, D2D1::ColorF color) {
 
 }  // namespace gfx
 
-
 namespace cc {
 
 //////////////////////////////////////////////////////////////////////
@@ -188,26 +273,29 @@ namespace cc {
 //  - D3D11 Device
 //  - Composition Device
 //
-class Factory final {
+class Factory final : public Singleton<Factory> {
+  DECLARE_SINGLETON_CLASS(Factory);
+
   private: ComPtr<ID2D1Factory1> d2d_factory_;
   private: ComPtr<ID3D11Device> d3d_device_;
+  private: ComPtr<IDWriteFactory> dwrite_factory_;
 
   public: Factory();
   public: ~Factory();
 
   public: ID2D1Factory1* d2d_factory() const { return d2d_factory_; }
   public: ID3D11Device* d3d_device() const { return d3d_device_; }
-  public: static Factory* instance();
+  public: IDWriteFactory* dwrite() const { return dwrite_factory_; }
 
   public: ComPtr<IDCompositionDesktopDevice> CreateCompositionDevice();
 };
 
-namespace {
-Factory* single_instance;
-}
-
 Factory::Factory() {
-  single_instance = this;
+  // Create DWrite factory.
+  COM_VERIFY(::DWriteCreateFactory(
+      DWRITE_FACTORY_TYPE_SHARED,
+      __uuidof(IDWriteFactory),
+      dwrite_factory_.locationUnknown()));
 
   // Create Direct 2D factory.
   COM_VERIFY(::D2D1CreateFactory(D2D1_FACTORY_TYPE_SINGLE_THREADED,
@@ -230,13 +318,8 @@ Factory::Factory() {
 }
 
 Factory::~Factory(){
-  single_instance = nullptr;
   d2d_factory_.MustBeNoOtherUse();
   d3d_device_.MustBeNoOtherUse();
-}
-
-Factory* Factory::instance() {
-  return single_instance;
 }
 
 ComPtr<IDCompositionDesktopDevice> Factory::CreateCompositionDevice() {
@@ -254,7 +337,8 @@ ComPtr<IDCompositionDesktopDevice> Factory::CreateCompositionDevice() {
 //
 // Layer
 //
-class Layer final {
+class Layer {
+  private: D2D1_RECT_F bounds_;
   private: ComPtr<ID2D1DeviceContext> d2d_device_context_;
   private: ComPtr<IDXGISwapChain1> swap_chain_;
   private: ComPtr<IDCompositionVisual2> visual_;
@@ -264,6 +348,7 @@ class Layer final {
 
   public: operator IDCompositionVisual2*() const { return visual_; }
 
+  public: const D2D1_RECT_F& bounds() const { return bounds_; }
   public: ID2D1DeviceContext* d2d_device_context() const {
     return d2d_device_context_;
   }
@@ -365,6 +450,11 @@ void Layer::Present() {
 }
 
 void Layer::Resize(int width, int height) {
+  bounds_.left = 0.0f;
+  bounds_.top = 0.0f;
+  bounds_.right = static_cast<float>(width);
+  bounds_.bottom = static_cast<float>(height);
+
   swap_chain_.reset(CreateSwapChain(width, height));
   swap_chain_.MustBeNoOtherUse();
   COM_VERIFY(visual_->SetContent(swap_chain_));
@@ -522,19 +612,250 @@ void Window::WillDestroy() {
 
 //////////////////////////////////////////////////////////////////////
 //
+// Animator
+//
+class Animator {
+  protected: Animator() = default;
+  protected: virtual ~Animator() = default;
+
+  public: virtual void DoAnimate() = 0;
+};
+
+//////////////////////////////////////////////////////////////////////
+//
+// Scheduler
+//
+class Scheduler final : public Singleton<Scheduler> {
+  private: std::unordered_set<Animator*> animators_;
+
+  public: Scheduler();
+  public: ~Scheduler();
+
+  public: void Add(Animator* animator);
+  private: void DidFireTimer();
+
+  private: static void CALLBACK TimerProc(HWND hwnd, UINT message,
+                                          UINT_PTR timer_id, DWORD time);
+};
+
+Scheduler::Scheduler() {
+  ::SetTimer(nullptr, reinterpret_cast<UINT_PTR>(this), 1,
+             Scheduler::TimerProc);
+}
+
+Scheduler::~Scheduler() {
+}
+
+void Scheduler::Add(Animator* animator) {
+  animators_.insert(animator);
+}
+
+void Scheduler::DidFireTimer() {
+  for (auto const animator : animators_) {
+    animator->DoAnimate();
+  }
+}
+
+void CALLBACK Scheduler::TimerProc(HWND, UINT, UINT_PTR, DWORD) {
+  Scheduler::instance()->DidFireTimer();
+}
+
+//////////////////////////////////////////////////////////////////////
+//
+// Sampling
+//
+class Sampling {
+  private: float maximum_;
+  private: float minimum_;
+  private: size_t max_samples_;
+  private: std::list<float> samples_;
+
+  public: Sampling(size_t max_samples);
+  public: ~Sampling() = default;
+
+  public: float last() const { return samples_.back(); }
+  public: float maximum() const { return maximum_; }
+  public: float minimum() const { return minimum_; }
+
+  public: void AddSample(float);
+  public: void Paint(ID2D1RenderTarget* canvas, const gfx::Brush& brush,
+                     const D2D1_RECT_F& bounds) const;
+};
+
+Sampling::Sampling(size_t max_samples) :
+    maximum_(0.0f),
+    minimum_(0.0f),
+    max_samples_(max_samples), samples_(max_samples) {
+}
+
+void Sampling::AddSample(float sample) {
+  auto const discard_sample = samples_.front();
+  samples_.pop_front();
+  samples_.push_back(sample);
+  if (discard_sample != maximum_ && discard_sample != minimum_)
+    return;
+  maximum_ = std::numeric_limits<float>::min();
+  minimum_ = std::numeric_limits<float>::max();
+  for (auto const sample : samples_) {
+    maximum_ = std::max(maximum_, sample);
+    minimum_ = std::min(minimum_, sample);
+  }
+}
+
+void Sampling::Paint(ID2D1RenderTarget* canvas, const gfx::Brush& brush,
+                     const D2D1_RECT_F& bounds) const {
+  auto const maximum = maximum_ * 1.1f;
+  auto const minimum = minimum_ * 0.9f;
+  if (maximum == minimum)
+    return;
+  auto const scale = (bounds.bottom - bounds.top) / (maximum - minimum_);
+  auto  last_point = D2D1::Point2F(
+      bounds.left, bounds.bottom - (samples_.front() - minimum_) * scale);
+  auto x_step = (bounds.right - bounds.left) / samples_.size();
+  auto sum = 0.0f;
+  for (auto const sample : samples_) {
+    sum += sample;
+    auto const curr_point = D2D1::Point2F(
+        last_point.x + x_step, bounds.bottom - (sample - minimum_) * scale);
+    canvas->DrawLine(last_point, curr_point, brush, 1.0f);
+    last_point = curr_point;
+  }
+  auto const avg = sum / samples_.size();
+  auto const avg_y = bounds.bottom - (avg - minimum_) * scale;
+  canvas->DrawLine(D2D1::Point2F(bounds.left, avg_y),
+                   D2D1::Point2F(bounds.right, avg_y),
+                   brush, 2.0f);
+  COM_VERIFY(canvas->Flush());
+}
+
+//////////////////////////////////////////////////////////////////////
+//
+// StatusLayer
+//
+class StatusLayer : public cc::Layer {
+  private: ComPtr<IDCompositionDesktopDevice> composition_device_;
+  private: DCOMPOSITION_FRAME_STATISTICS last_stats_;
+  private: uint32_t last_tick_count_;
+  private: Sampling sample_duration_;
+  private: Sampling sample_last_frame_;
+  private: Sampling sample_next_frame_;
+  private: Sampling sample_tick_;
+  private: ComPtr<IDWriteTextFormat> text_format_;
+  private: ComPtr<IDWriteTextLayout> text_layout_;
+
+  public: StatusLayer(IDCompositionDesktopDevice* composition_device);
+  public: virtual ~StatusLayer();
+
+  public: void DoAnimate();
+};
+
+StatusLayer::StatusLayer(IDCompositionDesktopDevice* composition_device)
+    : Layer(composition_device), composition_device_(composition_device),
+      last_tick_count_(::GetTickCount()), sample_duration_(100),
+      sample_last_frame_(100), sample_next_frame_(100), sample_tick_(100) {
+  COM_VERIFY(composition_device_->GetFrameStatistics(&last_stats_));
+
+  auto const font_size = 13;
+  COM_VERIFY(cc::Factory::instance()->dwrite()->CreateTextFormat(
+    L"Consolas", nullptr, DWRITE_FONT_WEIGHT_REGULAR, DWRITE_FONT_STYLE_NORMAL,
+    DWRITE_FONT_STRETCH_NORMAL, font_size, L"en-us", &text_format_));
+}
+
+StatusLayer::~StatusLayer() {
+}
+
+void StatusLayer::DoAnimate() {
+  auto const tick_count = ::GetTickCount();
+  DCOMPOSITION_FRAME_STATISTICS stats;
+  COM_VERIFY(composition_device_->GetFrameStatistics(&stats));
+
+  auto const canvas = d2d_device_context();
+  canvas->BeginDraw();
+  canvas->Clear(D2D1::ColorF(0, 0, 0, 0.5));
+
+  // Update samples
+  sample_tick_.AddSample(tick_count - last_tick_count_);
+  sample_duration_.AddSample(
+    ((stats.currentTime - last_stats_.currentTime) * 1000 /
+     stats.timeFrequency).QuadPart);
+  sample_last_frame_.AddSample(
+    ((stats.lastFrameTime - last_stats_.lastFrameTime) * 1000 /
+     stats.timeFrequency).QuadPart);
+  sample_next_frame_.AddSample(
+    ((stats.nextEstimatedFrameTime - last_stats_.nextEstimatedFrameTime) *
+     1000 / stats.timeFrequency).QuadPart);
+  last_stats_ = stats;
+  last_tick_count_ = tick_count;
+
+  // Paint graph
+  sample_duration_.Paint(canvas,
+      gfx::Brush(canvas, D2D1::ColorF(D2D1::ColorF::Red, 0.5f)),
+      D2D1::RectF(bounds().left, bounds().bottom - 20,
+                  bounds().right, bounds().bottom));
+  sample_last_frame_.Paint(canvas,
+      gfx::Brush(canvas, D2D1::ColorF(D2D1::ColorF::Yellow, 0.5f)),
+      D2D1::RectF(bounds().left, bounds().bottom - 40,
+                  bounds().right, bounds().bottom - 20));
+  sample_last_frame_.Paint(canvas,
+      gfx::Brush(canvas, D2D1::ColorF(D2D1::ColorF::Blue, 0.5f)),
+      D2D1::RectF(bounds().left, bounds().bottom - 60,
+                  bounds().right, bounds().bottom - 40));
+  sample_tick_.Paint(canvas,
+      gfx::Brush(canvas, D2D1::ColorF(D2D1::ColorF::White, 0.5f)),
+      D2D1::RectF(bounds().left, bounds().bottom - 80,
+                  bounds().right, bounds().bottom - 60));
+
+  // Samples values
+  std::basic_ostringstream<base::char16> stream;
+  stream << L"Tick=" << sample_tick_.minimum() << L" " <<
+      sample_tick_.maximum() << L" " << sample_tick_.last() << std::endl;
+  stream << L"LastFrameTime=" << sample_last_frame_.minimum() <<
+      L" " << sample_last_frame_.maximum() <<
+      L" " << sample_last_frame_.last() << std::endl;
+  stream << L"CurrentTime=" << sample_duration_.minimum() <<
+      L" " << sample_duration_.minimum() <<
+      L" " << sample_duration_.last() << std::endl;
+  stream << L"NextFrame=" << sample_next_frame_.minimum() <<
+      L" " << sample_next_frame_.maximum() <<
+      L" " << sample_next_frame_.last() << std::endl;
+  stream << L"rate=" << stats.currentCompositionRate.Numerator <<
+      L"/" << stats.currentCompositionRate.Denominator << std::endl;
+  stream << L"hz=" << stats.timeFrequency.QuadPart << std::endl;
+
+  const auto text = stream.str();
+
+  text_layout_.reset();
+  COM_VERIFY(cc::Factory::instance()->dwrite()->CreateTextLayout(
+      text.data(), static_cast<UINT>(text.length()), text_format_,
+      bounds().right - bounds().left, bounds().bottom - bounds().top,
+      &text_layout_));
+
+  gfx::Brush text_brush(canvas, D2D1::ColorF::LightGray);
+  canvas->DrawTextLayout(D2D1::Point2F(5.0f, 5.0f), text_layout_, text_brush,
+                         D2D1_DRAW_TEXT_OPTIONS_CLIP);
+
+  COM_VERIFY(canvas->EndDraw());
+  Present();
+}
+
+//////////////////////////////////////////////////////////////////////
+//
 // MyApp
 //
-class MyApp : public Window {
+class MyApp : public Window, private Animator {
   private: ComPtr<IDCompositionDesktopDevice> composition_device_;
   private: ComPtr<IDCompositionTarget> composition_target_;
 
   private: std::unique_ptr<cc::Layer> root_layer_;
-  private: std::unique_ptr<cc::Layer> status_layer_;
+  private: std::unique_ptr<StatusLayer> status_layer_;
 
   public: MyApp();
   public: virtual ~MyApp();
 
   public: void Run();
+
+  // Animator
+  private: virtual void DoAnimate() override;
 
   // Window
   private: virtual void DidCreate() override;
@@ -549,7 +870,6 @@ MyApp::MyApp() {
 
 MyApp::~MyApp() {
 }
-
 
 void MyApp::Run() {
   float dpi_x, dpi_y;
@@ -571,14 +891,21 @@ void MyApp::Run() {
   if (!hwnd)
     return;
   ::ShowWindow(hwnd, SW_SHOWNORMAL);
+  Scheduler::instance()->Add(this);
   Window::Run();
+}
+
+// Animator
+void MyApp::DoAnimate() {
+  status_layer_->DoAnimate();
 }
 
 // Window
 void MyApp::DidCreate() {
-  composition_device_.reset(cc::Factory::instance()->CreateCompositionDevice());
+  Window::DidCreate();
+  composition_device_ = cc::Factory::instance()->CreateCompositionDevice();
   root_layer_.reset(new cc::Layer(composition_device_));
-  status_layer_.reset(new cc::Layer(composition_device_));
+  status_layer_.reset(new StatusLayer(composition_device_));
   root_layer_->AppendChild(status_layer_.get());
 
   COM_VERIFY(composition_device_->CreateTargetForHwnd(
@@ -599,8 +926,8 @@ void MyApp::DidResize() {
   root_layer_->Resize(width, height);
 
   // Reset status visual
-  auto const status_width = width - 100.0f;
-  auto const status_height = 50.0f;
+  auto const status_width = 240.0f;;
+  auto const status_height = 200.0f;
   status_layer_->Resize(status_width, status_height);
   status_layer_->SetLeftTop(20, height / 2);
 
@@ -612,15 +939,6 @@ void MyApp::DidResize() {
     COM_VERIFY(rotate_transform->SetCenterY(status_height / 2));
     COM_VERIFY(rotate_transform->SetAngle(-5));
     COM_VERIFY(status_layer_->visual()->SetTransform(rotate_transform));
-  }
-
-  // Paint status visual
-  {
-    auto const canvas = status_layer_->d2d_device_context();
-    canvas->BeginDraw();
-    canvas->Clear(D2D1::ColorF(0, 0, 0, 0.5));
-    COM_VERIFY(canvas->EndDraw());
-    status_layer_->Present();
   }
 
   // Paint root visual
@@ -707,9 +1025,10 @@ void MyApp::WillDestroy() {
 // WinMain
 //
 int WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
+  std::vector<SingletonBase*> singletons;
+  all_singletons = &singletons;
   ::AllocConsole();
   ComInitializer com_initializer;
-  cc::Factory cc_factory;
   MyApp my_app;
   my_app.Run();
   return 0;
