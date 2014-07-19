@@ -358,6 +358,7 @@ class Layer {
   }
   protected: bool is_active() const { return is_active_; }
   protected: bool is_swap_chain_ready() const;
+  public: IDXGISwapChain2* swap_chain() const { return swap_chain_; }
   public: IDCompositionVisual2* visual() const { return visual_; }
 
   public: void AppendChild(Layer* new_child);
@@ -822,6 +823,9 @@ class CartoonLayer : public cc::Layer {
   };
 
   private: std::vector<std::unique_ptr<Ball>> balls_;
+  private: uint32_t last_tick_count_;
+  private: DXGI_FRAME_STATISTICS last_stats_;
+  private: ComPtr<IDWriteTextFormat> text_format_;
 
   public: CartoonLayer(IDCompositionDesktopDevice* composition_device);
   public: virtual ~CartoonLayer();
@@ -880,21 +884,32 @@ void CartoonLayer::Ball::DoAnimate(ID2D1RenderTarget* canvas,
   canvas->Flush();
 }
 
+//////////////////////////////////////////////////////////////////////
+//
+// CartoonLayer
+//
 CartoonLayer::CartoonLayer(IDCompositionDesktopDevice* composition_device)
-    : Layer(composition_device), balls_(4) {
-  auto const tick_count = ::GetTickCount();
+    : Layer(composition_device), balls_(4),
+      last_tick_count_(::GetTickCount()) {
+  last_stats_ = {0};
+
   balls_[0].reset(new Ball(0.0f, 10.0f,
                            D2D1::Point2F(10, 10), D2D1::Point2F(1.3, 1.2),
-                           tick_count));
+                           last_tick_count_));
   balls_[1].reset(new Ball(30.0f, 10.0f,
                            D2D1::Point2F(90, 10), D2D1::Point2F(-2.0, 1.5),
-                           tick_count));
+                           last_tick_count_));
   balls_[2].reset(new Ball(90.0f, 15.0f,
                            D2D1::Point2F(30, 90), D2D1::Point2F(1.0, -1.0),
-                           tick_count));
+                           last_tick_count_));
   balls_[3].reset(new Ball(180.0f, 20.0f,
                            D2D1::Point2F(90, 90), D2D1::Point2F(-1.0, -1.0),
-                           tick_count));
+                           last_tick_count_));
+
+  auto const font_size = 13;
+  COM_VERIFY(cc::Factory::instance()->dwrite()->CreateTextFormat(
+    L"Consolas", nullptr, DWRITE_FONT_WEIGHT_REGULAR, DWRITE_FONT_STYLE_NORMAL,
+    DWRITE_FONT_STRETCH_NORMAL, font_size, L"en-us", &text_format_));
 }
 
 CartoonLayer::~CartoonLayer() {
@@ -905,14 +920,47 @@ bool CartoonLayer::DoAnimate(uint32_t tick_count) {
     return false;
   if (!is_swap_chain_ready())
     return false;
+
   auto const canvas = d2d_device_context();
   canvas->BeginDraw();
   canvas->Clear(D2D1::ColorF(D2D1::ColorF::White));
   for (auto& ball : balls_) {
     ball->DoAnimate(canvas, bounds(), tick_count);
   }
+
+  DXGI_FRAME_STATISTICS stats = {0};
+  // Ignore errors. |GetFrameStatistics()| returns
+  // DXGI_ERROR_FRAME_STATISTICS_DISJOINT.
+  swap_chain()->GetFrameStatistics(&stats);
+
+  std::basic_ostringstream<base::char16> stream;
+  stream << L"TickCount=" << tick_count - last_tick_count_ << std::endl;
+  stream << L"PresentCount=" <<
+      stats.PresentCount - last_stats_.PresentCount << std::endl;
+  stream << L"PresentRefreshCount=" <<
+      stats.PresentRefreshCount - last_stats_.PresentRefreshCount << std::endl;
+  stream << L"SyncQPCTime=" <<
+      stats.SyncQPCTime.QuadPart -
+          last_stats_.SyncQPCTime.QuadPart << std::endl;
+  stream << L"SyncGPUTime=" <<
+      stats.SyncGPUTime.QuadPart -
+          last_stats_.SyncGPUTime.QuadPart << std::endl;
+
+  const auto text = stream.str();
+  ComPtr<IDWriteTextLayout> text_layout_;
+  COM_VERIFY(cc::Factory::instance()->dwrite()->CreateTextLayout(
+      text.data(), static_cast<UINT>(text.length()), text_format_,
+      bounds().right - bounds().left, bounds().bottom - bounds().top,
+      &text_layout_));
+
+  gfx::Brush text_brush(canvas, D2D1::ColorF(D2D1::ColorF::Black, 0.5f));
+  canvas->DrawTextLayout(D2D1::Point2F(5.0f, 5.0f), text_layout_, text_brush,
+                         D2D1_DRAW_TEXT_OPTIONS_CLIP);
   COM_VERIFY(canvas->EndDraw());
   Present();
+
+  last_stats_ = stats;
+  last_tick_count_ = tick_count;
   return true;
 }
 
