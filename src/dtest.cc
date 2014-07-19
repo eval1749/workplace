@@ -285,7 +285,8 @@ class SizeF final {
   public: SizeF(float x, float y);
   public: SizeF();
 
-  public: operator D2D1_SIZE_F() const { return size_; }
+  public: operator const D2D1_SIZE_F&() const { return size_; }
+  public: operator D2D1_SIZE_F() { return size_; }
 
   public: SizeF operator+(const SizeF& other) const;
   public: SizeF operator+(float value) const;
@@ -386,7 +387,8 @@ class PointF final {
   public: PointF(float x, float y);
   public: PointF();
 
-  public: operator D2D1_POINT_2F() const { return point_; }
+  public: operator const D2D1_POINT_2F&() const { return point_; }
+  public: operator D2D1_POINT_2F&() { return point_; }
 
   public: PointF operator+(const SizeF& size) const;
   public: PointF operator-(const SizeF& size) const;
@@ -493,7 +495,8 @@ class RectF final {
   public: RectF(const PointF& left_top, const SizeF& size);
   public: RectF();
 
-  public: operator D2D1_RECT_F() const { return rect_; }
+  public: operator const D2D1_RECT_F&() const { return rect_; }
+  public: operator D2D1_RECT_F&() { return rect_; }
 
   public: RectF operator+(const SizeF& size) const;
   public: RectF operator-(const SizeF& size) const;
