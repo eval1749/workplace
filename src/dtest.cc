@@ -251,11 +251,19 @@ namespace gfx {
 class Brush final {
   private: ComPtr<ID2D1SolidColorBrush> brush_;
 
+  public: Brush(ID2D1RenderTarget* render_target, D2D1::ColorF::Enum color,
+                float alpha = 1.0f);
   public: Brush(ID2D1RenderTarget* render_target, D2D1::ColorF color);
   public: ~Brush() = default;
 
   public: operator ID2D1SolidColorBrush*() const { return brush_; }
 };
+
+Brush::Brush(ID2D1RenderTarget* render_target, D2D1::ColorF::Enum name,
+             float alpha) {
+  COM_VERIFY(render_target->CreateSolidColorBrush(D2D1::ColorF(name, alpha),
+                                                  &brush_));
+}
 
 Brush::Brush(ID2D1RenderTarget* render_target, D2D1::ColorF color) {
   COM_VERIFY(render_target->CreateSolidColorBrush(color, &brush_));
@@ -336,7 +344,7 @@ ComPtr<IDCompositionDesktopDevice> Factory::CreateCompositionDevice() {
 
 //////////////////////////////////////////////////////////////////////
 //
-// Layer
+// cc::Layer
 //
 class Layer {
   private: D2D1_RECT_F bounds_;
@@ -802,9 +810,93 @@ void Sampling::Paint(ID2D1RenderTarget* canvas, const gfx::Brush& brush,
 
 //////////////////////////////////////////////////////////////////////
 //
-// CartoonLayer
+// Card
 //
-class CartoonLayer : public cc::Layer {
+class Card : public cc::Layer {
+  private: mutable D2D1_RECT_F content_bounds_;
+  private: float shadow_height_;
+  private: float shadow_width_;
+
+  protected: Card(IDCompositionDesktopDevice* composition_device);
+  protected: virtual ~Card() = default;
+
+  public: D2D1_RECT_F& content_bounds() const;
+
+  protected: void PaintBackground(ID2D1RenderTarget* canvas) const;
+
+  // cc::Layer
+  private: virtual void DidInactive() override;
+};
+
+Card::Card(IDCompositionDesktopDevice* composition_device)
+    : Layer(composition_device), shadow_height_(10), shadow_width_(10) {
+}
+
+D2D1_RECT_F& Card::content_bounds() const {
+  content_bounds_ = bounds();
+  content_bounds_.right -= shadow_width_;
+  content_bounds_.bottom -= shadow_height_;
+  return content_bounds_;
+}
+
+void Card::PaintBackground(ID2D1RenderTarget* canvas) const {
+  canvas->Clear(D2D1::ColorF(D2D1::ColorF::White, 0.0f));
+  auto shadow_bounds = content_bounds();
+  shadow_bounds.left += shadow_width_;
+  shadow_bounds.top += shadow_height_;
+  shadow_bounds.right += shadow_width_;
+  shadow_bounds.bottom += shadow_width_;
+  canvas->FillRoundedRectangle(D2D1::RoundedRect(shadow_bounds, 2.0f, 2.0f),
+                               gfx::Brush(canvas, D2D1::ColorF::Black, 0.1f));
+  canvas->FillRoundedRectangle(D2D1::RoundedRect(content_bounds(), 2.0f, 2.0f),
+                               gfx::Brush(canvas, D2D1::ColorF::White));
+}
+
+// cc::Layer
+void Card::DidInactive() {
+  Layer::DidInactive();
+
+  auto const bounds = content_bounds();
+
+  // Paint "Paused" in center of layer.
+  auto const font_size = 40;
+  ComPtr<IDWriteTextFormat> text_format;
+  COM_VERIFY(cc::Factory::instance()->dwrite()->CreateTextFormat(
+    L"Verdana", nullptr, DWRITE_FONT_WEIGHT_REGULAR, DWRITE_FONT_STYLE_NORMAL,
+    DWRITE_FONT_STRETCH_NORMAL, font_size, L"en-us", &text_format));
+
+  base::string16 text(L"Paused");
+  ComPtr<IDWriteTextLayout> text_layout;
+  COM_VERIFY(cc::Factory::instance()->dwrite()->CreateTextLayout(
+      text.data(), static_cast<UINT>(text.length()), text_format,
+      bounds.right - bounds.left, bounds.bottom - bounds.top,
+      &text_layout));
+
+  DWRITE_TEXT_METRICS text_metrics;
+  COM_VERIFY(text_layout->GetMetrics(&text_metrics));
+
+  auto const text_origin = D2D1::Point2F(
+    bounds.left + ((bounds.right - bounds.left) - text_metrics.width) / 2,
+    bounds.top + ((bounds.bottom - bounds.top) - text_metrics.height) / 2);
+
+  auto const canvas = d2d_device_context();
+  canvas->BeginDraw();
+
+  canvas->FillRectangle(bounds,
+    gfx::Brush(canvas, D2D1::ColorF(D2D1::ColorF::Black, 0.6f)));
+
+  gfx::Brush text_brush(canvas, D2D1::ColorF(D2D1::ColorF::White, 0.9f));
+  canvas->DrawTextLayout(text_origin, text_layout, text_brush);
+
+  COM_VERIFY(canvas->EndDraw());
+  Present();
+}
+
+//////////////////////////////////////////////////////////////////////
+//
+// CartoonCard
+//
+class CartoonCard : public Card {
   private: class Ball {
     private: float angle_;
     private: D2D1_POINT_2F center_;
@@ -827,20 +919,19 @@ class CartoonLayer : public cc::Layer {
   private: DXGI_FRAME_STATISTICS last_stats_;
   private: ComPtr<IDWriteTextFormat> text_format_;
 
-  public: CartoonLayer(IDCompositionDesktopDevice* composition_device);
-  public: virtual ~CartoonLayer();
+  public: CartoonCard(IDCompositionDesktopDevice* composition_device);
+  public: virtual ~CartoonCard();
 
-  // Layer
-  private: virtual void DidInactive() override;
+  // cc::Layer
   private: virtual bool DoAnimate(uint32_t tick_count) override;
 };
 
 //////////////////////////////////////////////////////////////////////
 //
-// CartoonLayer
+// CartoonCard
 //
-CartoonLayer::CartoonLayer(IDCompositionDesktopDevice* composition_device)
-    : Layer(composition_device), balls_(4),
+CartoonCard::CartoonCard(IDCompositionDesktopDevice* composition_device)
+    : Card(composition_device), balls_(4),
       last_tick_count_(::GetTickCount()) {
   last_stats_ = {0};
 
@@ -863,56 +954,19 @@ CartoonLayer::CartoonLayer(IDCompositionDesktopDevice* composition_device)
     DWRITE_FONT_STRETCH_NORMAL, font_size, L"en-us", &text_format_));
 }
 
-CartoonLayer::~CartoonLayer() {
+CartoonCard::~CartoonCard() {
 }
 
-void CartoonLayer::DidInactive() {
-  Layer::DidInactive();
-
-  // Paint "Paused" in center of layer.
-  auto const font_size = 40;
-  ComPtr<IDWriteTextFormat> text_format;
-  COM_VERIFY(cc::Factory::instance()->dwrite()->CreateTextFormat(
-    L"Verdana", nullptr, DWRITE_FONT_WEIGHT_REGULAR, DWRITE_FONT_STYLE_NORMAL,
-    DWRITE_FONT_STRETCH_NORMAL, font_size, L"en-us", &text_format));
-
-  base::string16 text(L"Paused");
-  ComPtr<IDWriteTextLayout> text_layout;
-  COM_VERIFY(cc::Factory::instance()->dwrite()->CreateTextLayout(
-      text.data(), static_cast<UINT>(text.length()), text_format,
-      bounds().right - bounds().left, bounds().bottom - bounds().top,
-      &text_layout));
-
-  DWRITE_TEXT_METRICS text_metrics;
-  COM_VERIFY(text_layout->GetMetrics(&text_metrics));
-
-  auto const text_origin = D2D1::Point2F(
-    bounds().left + ((bounds().right - bounds().left) - text_metrics.width) / 2,
-    bounds().top + ((bounds().bottom - bounds().top) - text_metrics.height) / 2);
-
-  auto const canvas = d2d_device_context();
-  canvas->BeginDraw();
-
-  canvas->FillRectangle(bounds(),
-    gfx::Brush(canvas, D2D1::ColorF(D2D1::ColorF::Black, 0.6f)));
-
-  gfx::Brush text_brush(canvas, D2D1::ColorF(D2D1::ColorF::White, 0.9f));
-  canvas->DrawTextLayout(text_origin, text_layout, text_brush);
-  
-  COM_VERIFY(canvas->EndDraw());
-  Present();
-}
-
-bool CartoonLayer::DoAnimate(uint32_t tick_count) {
+bool CartoonCard::DoAnimate(uint32_t tick_count) {
   if (!is_active())
     return false;
   if (!is_swap_chain_ready())
     return false;
   auto const canvas = d2d_device_context();
   canvas->BeginDraw();
-  canvas->Clear(D2D1::ColorF(D2D1::ColorF::White));
+  PaintBackground(canvas);
   for (auto& ball : balls_) {
-    ball->DoAnimate(canvas, bounds(), tick_count);
+    ball->DoAnimate(canvas, content_bounds(), tick_count);
   }
 
   DXGI_FRAME_STATISTICS stats = {0};
@@ -937,7 +991,8 @@ bool CartoonLayer::DoAnimate(uint32_t tick_count) {
   ComPtr<IDWriteTextLayout> text_layout;
   COM_VERIFY(cc::Factory::instance()->dwrite()->CreateTextLayout(
       text.data(), static_cast<UINT>(text.length()), text_format_,
-      bounds().right - bounds().left, bounds().bottom - bounds().top,
+      content_bounds().right - content_bounds().left,
+      content_bounds().bottom - content_bounds().top,
       &text_layout));
 
   gfx::Brush text_brush(canvas, D2D1::ColorF(D2D1::ColorF::Black, 0.5f));
@@ -953,9 +1008,9 @@ bool CartoonLayer::DoAnimate(uint32_t tick_count) {
 
 //////////////////////////////////////////////////////////////////////
 //
-// CartoonLayer::Ball
+// CartoonCard::Ball
 //
-CartoonLayer::Ball::Ball(float angle, float size,
+CartoonCard::Ball::Ball(float angle, float size,
                          const D2D1_POINT_2F& center,
                          const D2D1_POINT_2F& motion, uint32_t tick_count)
     : angle_(angle), center_(center), motion_(motion), size_(size),
@@ -963,7 +1018,7 @@ CartoonLayer::Ball::Ball(float angle, float size,
   motion_.x = motion_.y = 1;
 }
 
-void CartoonLayer::Ball::DoAnimate(ID2D1RenderTarget* canvas,
+void CartoonCard::Ball::DoAnimate(ID2D1RenderTarget* canvas,
                                    const D2D1_RECT_F& bounds,
                                    uint32_t tick_count) {
   if (tick_count_ == tick_count)
@@ -1126,7 +1181,7 @@ class MyApp : public Window, private Animator {
   private: ComPtr<IDCompositionDesktopDevice> composition_device_;
   private: ComPtr<IDCompositionTarget> composition_target_;
   private: uint32_t last_animate_tick_;
-  private: std::unique_ptr<CartoonLayer> cartoon_layer_;
+  private: std::unique_ptr<CartoonCard> cartoon_layer_;
   private: std::unique_ptr<cc::Layer> root_layer_;
   private: std::unique_ptr<StatusLayer> status_layer_;
 
@@ -1199,7 +1254,7 @@ void MyApp::DidCreate() {
   Window::DidCreate();
   composition_device_ = cc::Factory::instance()->CreateCompositionDevice();
   root_layer_.reset(new cc::Layer(composition_device_));
-  cartoon_layer_.reset(new CartoonLayer(composition_device_));
+  cartoon_layer_.reset(new CartoonCard(composition_device_));
   status_layer_.reset(new StatusLayer(composition_device_));
   root_layer_->AppendChild(status_layer_.get());
   root_layer_->AppendChild(cartoon_layer_.get());
@@ -1224,7 +1279,6 @@ void MyApp::DidResize() {
   auto const pane_height = (height - splitter_height - tab_height) / 2;
 
   root_layer_->Resize(width, height);
-
 
   // Resize status visual
   {
@@ -1264,6 +1318,7 @@ void MyApp::DidResize() {
                            pane_bounds[0].bottom - pane_bounds[0].top);
     cartoon_layer_->SetLeftTop(pane_bounds[0].left, pane_bounds[0].top);
 
+#if 0
     gfx::Brush white_brush(canvas,
                             D2D1::ColorF(D2D1::ColorF::White, 0.3f));
 
@@ -1281,6 +1336,7 @@ void MyApp::DidResize() {
       ellipse.radiusY = pane_height / 3;
       canvas->FillEllipse(ellipse, green_brush);
     }
+#endif
 
     COM_VERIFY(canvas->EndDraw());
     root_layer_->Present();
