@@ -340,7 +340,9 @@ ComPtr<IDCompositionDesktopDevice> Factory::CreateCompositionDevice() {
 //
 class Layer {
   private: D2D1_RECT_F bounds_;
+  private: std::vector<Layer*> child_layers_;
   private: ComPtr<ID2D1DeviceContext> d2d_device_context_;
+  private: bool is_active_;
   private: ComPtr<IDXGISwapChain2> swap_chain_;
   private: HANDLE swap_chain_waitable_;
   private: ComPtr<IDCompositionVisual2> visual_;
@@ -354,22 +356,24 @@ class Layer {
   public: ID2D1DeviceContext* d2d_device_context() const {
     return d2d_device_context_;
   }
+  protected: bool is_active() const { return is_active_; }
   protected: bool is_swap_chain_ready() const;
   public: IDCompositionVisual2* visual() const { return visual_; }
 
   public: void AppendChild(Layer* new_child);
-
   private: ComPtr<ID2D1DeviceContext> CreateD2DDeviceContext(
       IDXGISwapChain2* swap_chain, int width, int height);
   private: ComPtr<IDXGISwapChain2> CreateSwapChain(int width, int height);
-
+  public: void DidActive();
+  public: void DidInactive();
+  public: virtual bool DoAnimate(uint32_t tick_count);
   public: void Present();
   public: void Resize(int width, int height);
   public: void SetLeftTop(float left, float top);
 };
 
 Layer::Layer(IDCompositionDesktopDevice* composition_device)
-    : swap_chain_waitable_(nullptr) {
+    : is_active_(false), swap_chain_waitable_(nullptr) {
   COM_VERIFY(composition_device->CreateVisual(&visual_));
   COM_VERIFY(visual_->SetBitmapInterpolationMode(
       DCOMPOSITION_BITMAP_INTERPOLATION_MODE_LINEAR));
@@ -395,6 +399,7 @@ bool Layer::is_swap_chain_ready() const {
 }
 
 void Layer::AppendChild(Layer* new_child) {
+  child_layers_.push_back(new_child);
   COM_VERIFY(visual_->AddVisual(new_child->visual_, true, nullptr));
 }
 
@@ -464,6 +469,32 @@ ComPtr<IDXGISwapChain2> Layer::CreateSwapChain(int width, int height) {
   return swap_chain2;
 }
 
+void Layer::DidActive() {
+  if (is_active_)
+    return;
+  is_active_ = true;
+  for (auto const child : child_layers_) {
+    child->DidActive();
+  }
+}
+
+void Layer::DidInactive() {
+  if (!is_active_)
+    return;
+  is_active_ = false;
+  for (auto const child : child_layers_) {
+    child->DidInactive();
+  }
+}
+
+bool Layer::DoAnimate(uint32_t tick_count) {
+  auto animated = false;
+  for (auto const child : child_layers_) {
+    animated |= child->DoAnimate(tick_count);
+  }
+  return animated;
+}
+
 void Layer::Present() {
   DXGI_PRESENT_PARAMETERS present_params = {0};
   COM_VERIFY(swap_chain_->Present1(1, 0, &present_params));
@@ -513,7 +544,9 @@ class Window {
   public: const RECT& bounds() const { return bounds_; }
   public: bool is_active() const { return is_active_; }
 
+  protected: virtual void DidActive();
   protected: virtual void DidCreate();
+  protected: virtual void DidInactive();
   protected: virtual void DidResize();
 
   protected: static LPWSTR GetWindowClass();
@@ -551,7 +584,15 @@ Window::Window() : hwnd_(nullptr), is_active_(false) {
 Window::~Window() {
 }
 
+void Window::DidActive() {
+  is_active_ = true;
+}
+
 void Window::DidCreate() {
+}
+
+void Window::DidInactive() {
+  is_active_ = true;
 }
 
 void Window::DidResize() {
@@ -593,6 +634,10 @@ LRESULT Window::OnMessage(UINT message, WPARAM wParam, LPARAM lParam) {
   switch (message) {
     case WM_ACTIVATE:
       is_active_ = wParam != WA_INACTIVE;
+      if (is_active_)
+        DidActive();
+      else
+        DidInactive();
       return 0;
     case WM_CREATE:
       ::GetClientRect(*this, &bounds_);
@@ -756,6 +801,123 @@ void Sampling::Paint(ID2D1RenderTarget* canvas, const gfx::Brush& brush,
 
 //////////////////////////////////////////////////////////////////////
 //
+// CartoonLayer
+//
+class CartoonLayer : public cc::Layer {
+  private: class Ball {
+    private: float angle_;
+    private: D2D1_POINT_2F center_;
+    private: D2D1_POINT_2F motion_;
+    private: float size_;
+    private: uint32_t tick_count_;
+
+    public: Ball(float angle, float size, const D2D1_POINT_2F& center,
+                 const D2D1_POINT_2F& motion,
+                 uint32_t tick_count);
+    public: ~Ball() = default;
+
+    public: void DoAnimate(ID2D1RenderTarget* canvas,
+                           const D2D1_RECT_F& bounds,
+                           uint32_t tick_count);
+  };
+
+  private: std::vector<std::unique_ptr<Ball>> balls_;
+
+  public: CartoonLayer(IDCompositionDesktopDevice* composition_device);
+  public: virtual ~CartoonLayer();
+
+  private: virtual bool DoAnimate(uint32_t tick_count) override;
+};
+
+CartoonLayer::Ball::Ball(float angle, float size,
+                         const D2D1_POINT_2F& center,
+                         const D2D1_POINT_2F& motion, uint32_t tick_count)
+    : angle_(angle), center_(center), motion_(motion), size_(size),
+      tick_count_(tick_count) {
+  motion_.x = motion_.y = 1;
+}
+
+void CartoonLayer::Ball::DoAnimate(ID2D1RenderTarget* canvas,
+                                   const D2D1_RECT_F& bounds,
+                                   uint32_t tick_count) {
+  if (tick_count_ == tick_count)
+    return;
+  auto const tick_delta = std::max((tick_count - tick_count_) / 16, 1u);
+  tick_count_ = tick_count;
+  for (auto count = 0u; count < tick_delta; ++count) {
+    center_.x += motion_.x;
+    center_.y += motion_.y;
+    if (center_.x - size_ < bounds.left ||
+        center_.x + size_ > bounds.right) {
+      motion_.x = -motion_.x;
+      center_.x += motion_.x;
+    }
+    if (center_.y - size_ < bounds.top ||
+        center_.y + size_ > bounds.bottom) {
+      motion_.y = -motion_.y;
+      center_.y += motion_.y;
+    }
+  }
+
+  angle_ = ::fmod(angle_ + tick_delta, 360.0f);
+
+  canvas->SetTransform(D2D1::Matrix3x2F::Rotation(angle_, center_));
+
+  D2D1_ELLIPSE ellipse;
+  ellipse.point = center_;
+  ellipse.radiusX = size_;
+  ellipse.radiusY = size_;
+  canvas->FillEllipse(ellipse,
+      gfx::Brush(canvas, D2D1::ColorF(D2D1::ColorF::Blue, 0.5)));
+
+  auto const rect_size = size_ * 0.5f;
+  canvas->FillRectangle(
+      D2D1::RectF(center_.x - rect_size, center_.y - rect_size,
+                  center_.x + rect_size, center_.y + rect_size),
+      gfx::Brush(canvas, D2D1::ColorF(D2D1::ColorF::Green, 0.7f)));
+
+  canvas->SetTransform(D2D1::IdentityMatrix());
+  canvas->Flush();
+}
+
+CartoonLayer::CartoonLayer(IDCompositionDesktopDevice* composition_device)
+    : Layer(composition_device), balls_(4) {
+  auto const tick_count = ::GetTickCount();
+  balls_[0].reset(new Ball(0.0f, 10.0f,
+                           D2D1::Point2F(10, 10), D2D1::Point2F(1.3, 1.2),
+                           tick_count));
+  balls_[1].reset(new Ball(30.0f, 10.0f,
+                           D2D1::Point2F(90, 10), D2D1::Point2F(-2.0, 1.5),
+                           tick_count));
+  balls_[2].reset(new Ball(90.0f, 15.0f,
+                           D2D1::Point2F(30, 90), D2D1::Point2F(1.0, -1.0),
+                           tick_count));
+  balls_[3].reset(new Ball(180.0f, 20.0f,
+                           D2D1::Point2F(90, 90), D2D1::Point2F(-1.0, -1.0),
+                           tick_count));
+}
+
+CartoonLayer::~CartoonLayer() {
+}
+
+bool CartoonLayer::DoAnimate(uint32_t tick_count) {
+  if (!is_active())
+    return false;
+  if (!is_swap_chain_ready())
+    return false;
+  auto const canvas = d2d_device_context();
+  canvas->BeginDraw();
+  canvas->Clear(D2D1::ColorF(D2D1::ColorF::White));
+  for (auto& ball : balls_) {
+    ball->DoAnimate(canvas, bounds(), tick_count);
+  }
+  COM_VERIFY(canvas->EndDraw());
+  Present();
+  return true;
+}
+
+//////////////////////////////////////////////////////////////////////
+//
 // StatusLayer
 //
 class StatusLayer : public cc::Layer {
@@ -772,7 +934,7 @@ class StatusLayer : public cc::Layer {
   public: StatusLayer(IDCompositionDesktopDevice* composition_device);
   public: virtual ~StatusLayer();
 
-  public: void DoAnimate();
+  private: virtual bool DoAnimate(uint32_t tick_count) override;
 };
 
 StatusLayer::StatusLayer(IDCompositionDesktopDevice* composition_device)
@@ -790,10 +952,9 @@ StatusLayer::StatusLayer(IDCompositionDesktopDevice* composition_device)
 StatusLayer::~StatusLayer() {
 }
 
-void StatusLayer::DoAnimate() {
+bool StatusLayer::DoAnimate(uint32_t tick_count) {
   if (!is_swap_chain_ready())
-    return;
-  auto const tick_count = ::GetTickCount();
+    return false;
   DCOMPOSITION_FRAME_STATISTICS stats;
   COM_VERIFY(composition_device_->GetFrameStatistics(&stats));
 
@@ -864,6 +1025,7 @@ void StatusLayer::DoAnimate() {
 
   COM_VERIFY(canvas->EndDraw());
   Present();
+  return true;
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -874,6 +1036,7 @@ class MyApp : public Window, private Animator {
   private: ComPtr<IDCompositionDesktopDevice> composition_device_;
   private: ComPtr<IDCompositionTarget> composition_target_;
   private: uint32_t last_animate_tick_;
+  private: std::unique_ptr<CartoonLayer> cartoon_layer_;
   private: std::unique_ptr<cc::Layer> root_layer_;
   private: std::unique_ptr<StatusLayer> status_layer_;
 
@@ -886,7 +1049,9 @@ class MyApp : public Window, private Animator {
   private: virtual void DoAnimate() override;
 
   // Window
+  private: virtual void DidActive() override;
   private: virtual void DidCreate() override;
+  private: virtual void DidInactive() override;
   private: virtual void DidResize() override;
   private: virtual LRESULT OnMessage(UINT message, WPARAM wParam,
                                      LPARAM lParam) override;
@@ -931,22 +1096,32 @@ void MyApp::DoAnimate() {
   if (!is_active() && delta < kBackgroundAnimate)
     return;
   last_animate_tick_ = tick_count;
-  status_layer_->DoAnimate();
+  root_layer_->DoAnimate(tick_count);
 }
 
 // Window
+void MyApp::DidActive() {
+  root_layer_->DidActive();
+}
+
 void MyApp::DidCreate() {
   Window::DidCreate();
   composition_device_ = cc::Factory::instance()->CreateCompositionDevice();
   root_layer_.reset(new cc::Layer(composition_device_));
+  cartoon_layer_.reset(new CartoonLayer(composition_device_));
   status_layer_.reset(new StatusLayer(composition_device_));
   root_layer_->AppendChild(status_layer_.get());
+  root_layer_->AppendChild(cartoon_layer_.get());
 
   COM_VERIFY(composition_device_->CreateTargetForHwnd(
       *this, true, &composition_target_));
   COM_VERIFY(composition_target_->SetRoot(root_layer_->visual()));
 
   DidResize();
+}
+
+void MyApp::DidInactive() {
+  root_layer_->DidInactive();
 }
 
 void MyApp::DidResize() {
@@ -959,13 +1134,14 @@ void MyApp::DidResize() {
 
   root_layer_->Resize(width, height);
 
-  // Reset status visual
-  auto const status_width = 240.0f;;
-  auto const status_height = 200.0f;
-  status_layer_->Resize(status_width, status_height);
-  status_layer_->SetLeftTop(20, height / 2);
 
+  // Resize status visual
   {
+    auto const status_width = 240.0f;;
+    auto const status_height = 200.0f;
+    status_layer_->Resize(status_width, status_height);
+    status_layer_->SetLeftTop(20, height / 2);
+
     // Setup transform for status visual
     ComPtr<IDCompositionRotateTransform> rotate_transform;
     COM_VERIFY(composition_device_->CreateRotateTransform(&rotate_transform));
@@ -991,6 +1167,11 @@ void MyApp::DidResize() {
     pane_bounds[1].right = width;
     pane_bounds[1].top = pane_bounds[0].bottom + splitter_height;
     pane_bounds[1].bottom = height;
+
+  // Resize cartoon visual
+    cartoon_layer_->Resize(pane_bounds[0].right - pane_bounds[0].left,
+                           pane_bounds[0].bottom - pane_bounds[0].top);
+    cartoon_layer_->SetLeftTop(pane_bounds[0].left, pane_bounds[0].top);
 
     gfx::Brush white_brush(canvas,
                             D2D1::ColorF(D2D1::ColorF::White, 0.3f));
