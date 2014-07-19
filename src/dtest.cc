@@ -199,7 +199,7 @@ class Factory final {
   public: ID3D11Device* d3d_device() const { return d3d_device_; }
   public: static Factory* instance();
 
-  public: ComPtr<IDCompositionDevice> CreateCompositionDevice();
+  public: ComPtr<IDCompositionDesktopDevice> CreateCompositionDevice();
 };
 
 namespace {
@@ -239,14 +239,14 @@ Factory* Factory::instance() {
   return single_instance;
 }
 
-ComPtr<IDCompositionDevice> Factory::CreateCompositionDevice() {
+ComPtr<IDCompositionDesktopDevice> Factory::CreateCompositionDevice() {
   ComPtr<IDXGIDevice> dxgi_device;
   COM_VERIFY(dxgi_device.QueryFrom(d3d_device_));
 
   // Create Direct Composition device.
-  ComPtr<IDCompositionDevice> composition_device;
-  COM_VERIFY(::DCompositionCreateDevice(dxgi_device,
-      __uuidof(IDCompositionDevice), composition_device.location()));
+  ComPtr<IDCompositionDesktopDevice> composition_device;
+  COM_VERIFY(::DCompositionCreateDevice2(dxgi_device,
+      __uuidof(IDCompositionDesktopDevice), composition_device.location()));
   return composition_device;
 }
 
@@ -257,17 +257,17 @@ ComPtr<IDCompositionDevice> Factory::CreateCompositionDevice() {
 class Layer final {
   private: ComPtr<ID2D1DeviceContext> d2d_device_context_;
   private: ComPtr<IDXGISwapChain1> swap_chain_;
-  private: ComPtr<IDCompositionVisual> visual_;
+  private: ComPtr<IDCompositionVisual2> visual_;
 
-  public: Layer(IDCompositionDevice* composition_device);
+  public: Layer(IDCompositionDesktopDevice* composition_device);
   public: ~Layer();
 
-  public: operator IDCompositionVisual*() const { return visual_; }
+  public: operator IDCompositionVisual2*() const { return visual_; }
 
   public: ID2D1DeviceContext* d2d_device_context() const {
     return d2d_device_context_;
   }
-  public: IDCompositionVisual* visual() const { return visual_; }
+  public: IDCompositionVisual2* visual() const { return visual_; }
 
   public: void AppendChild(Layer* new_child);
 
@@ -280,7 +280,7 @@ class Layer final {
   public: void SetLeftTop(float left, float top);
 };
 
-Layer::Layer(IDCompositionDevice* composition_device) {
+Layer::Layer(IDCompositionDesktopDevice* composition_device) {
   COM_VERIFY(composition_device->CreateVisual(&visual_));
   COM_VERIFY(visual_->SetBitmapInterpolationMode(
       DCOMPOSITION_BITMAP_INTERPOLATION_MODE_LINEAR));
@@ -525,7 +525,7 @@ void Window::WillDestroy() {
 // MyApp
 //
 class MyApp : public Window {
-  private: ComPtr<IDCompositionDevice> composition_device_;
+  private: ComPtr<IDCompositionDesktopDevice> composition_device_;
   private: ComPtr<IDCompositionTarget> composition_target_;
 
   private: std::unique_ptr<cc::Layer> root_layer_;
