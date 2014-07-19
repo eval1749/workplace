@@ -248,6 +248,10 @@ class Singleton : public SingletonBase {
   friend class Singleton<name>
 
 namespace gfx {
+//////////////////////////////////////////////////////////////////////
+//
+// Brush
+//
 class Brush final {
   private: ComPtr<ID2D1SolidColorBrush> brush_;
 
@@ -267,6 +271,86 @@ Brush::Brush(ID2D1RenderTarget* render_target, D2D1::ColorF::Enum name,
 
 Brush::Brush(ID2D1RenderTarget* render_target, D2D1::ColorF color) {
   COM_VERIFY(render_target->CreateSolidColorBrush(color, &brush_));
+}
+
+//////////////////////////////////////////////////////////////////////
+//
+// PointF
+//
+class PointF final {
+  private: D2D1_POINT_2F point_;
+
+  public: PointF(const PointF& other);
+  public: PointF(const D2D1_POINT_2F& point);
+  public: PointF(float x, float y);
+  public: PointF();
+
+  public: operator D2D1_POINT_2F() const { return point_; }
+
+  public: PointF& operator=(float new_value);
+  public: PointF& operator+=(const PointF& other);
+  public: PointF& operator+=(float new_value);
+  public: PointF& operator-=(const PointF& other);
+  public: PointF& operator-=(float new_value);
+
+  public: bool operator==(const PointF& other) const;
+  public: bool operator!=(const PointF& other) const;
+
+  public: float x() { return point_.x; }
+  public: void set_x(float new_x) { point_.x = new_x; }
+  public: float y() { return point_.y; }
+  public: void set_y(float new_y) { point_.y = new_y; }
+};
+
+PointF::PointF(const PointF& other) : point_(other.point_) {
+}
+
+PointF::PointF(const D2D1_POINT_2F& point) : point_(point) {
+}
+
+PointF::PointF(float x, float y) {
+  point_.x = x;
+  point_.y = y;
+}
+
+PointF::PointF() : PointF(0.0f, 0.0f) {
+}
+
+PointF& PointF::operator=(float new_value) {
+  point_.x = point_.y = new_value;
+  return *this;
+}
+
+PointF& PointF::operator+=(const PointF& other) {
+  point_.x += other.point_.x;
+  point_.y += other.point_.y;
+  return *this;
+}
+
+PointF& PointF::operator+=(float new_value) {
+  point_.x += new_value;
+  point_.y += new_value;
+  return *this;
+}
+
+PointF& PointF::operator-=(const PointF& other) {
+  point_.x += other.point_.x;
+  point_.y += other.point_.y;
+  return *this;
+}
+
+PointF& PointF::operator-=(float new_value) {
+  point_.x -= new_value;
+  point_.y -= new_value;
+  return *this;
+}
+
+bool PointF::operator==(const PointF& other) const {
+  return point_.x == other.point_.x && point_.y == other.point_.y;
+}
+
+bool PointF::operator!=(const PointF& other) const {
+  return !operator==(other);
 }
 
 }  // namespace gfx
@@ -789,21 +873,21 @@ void Sampling::Paint(ID2D1RenderTarget* canvas, const gfx::Brush& brush,
   if (maximum == minimum)
     return;
   auto const scale = (bounds.bottom - bounds.top) / (maximum - minimum_);
-  auto  last_point = D2D1::Point2F(
+  auto  last_point = gfx::PointF(
       bounds.left, bounds.bottom - (samples_.front() - minimum_) * scale);
   auto x_step = (bounds.right - bounds.left) / samples_.size();
   auto sum = 0.0f;
   for (auto const sample : samples_) {
     sum += sample;
-    auto const curr_point = D2D1::Point2F(
-        last_point.x + x_step, bounds.bottom - (sample - minimum_) * scale);
+    auto const curr_point = gfx::PointF(
+        last_point.x() + x_step, bounds.bottom - (sample - minimum_) * scale);
     canvas->DrawLine(last_point, curr_point, brush, 1.0f);
     last_point = curr_point;
   }
   auto const avg = sum / samples_.size();
   auto const avg_y = bounds.bottom - (avg - minimum_) * scale;
-  canvas->DrawLine(D2D1::Point2F(bounds.left, avg_y),
-                   D2D1::Point2F(bounds.right, avg_y),
+  canvas->DrawLine(gfx::PointF(bounds.left, avg_y),
+                   gfx::PointF(bounds.right, avg_y),
                    brush, 2.0f);
   COM_VERIFY(canvas->Flush());
 }
@@ -875,7 +959,7 @@ void Card::DidInactive() {
   DWRITE_TEXT_METRICS text_metrics;
   COM_VERIFY(text_layout->GetMetrics(&text_metrics));
 
-  auto const text_origin = D2D1::Point2F(
+  auto const text_origin = gfx::PointF(
     bounds.left + ((bounds.right - bounds.left) - text_metrics.width) / 2,
     bounds.top + ((bounds.bottom - bounds.top) - text_metrics.height) / 2);
 
@@ -899,13 +983,13 @@ void Card::DidInactive() {
 class CartoonCard : public Card {
   private: class Ball {
     private: float angle_;
-    private: D2D1_POINT_2F center_;
-    private: D2D1_POINT_2F motion_;
+    private: gfx::PointF center_;
+    private: gfx::PointF motion_;
     private: float size_;
     private: uint32_t tick_count_;
 
-    public: Ball(float angle, float size, const D2D1_POINT_2F& center,
-                 const D2D1_POINT_2F& motion,
+    public: Ball(float angle, float size, const gfx::PointF& center,
+                 const gfx::PointF& motion,
                  uint32_t tick_count);
     public: ~Ball() = default;
 
@@ -936,16 +1020,16 @@ CartoonCard::CartoonCard(IDCompositionDesktopDevice* composition_device)
   last_stats_ = {0};
 
   balls_[0].reset(new Ball(0.0f, 10.0f,
-                           D2D1::Point2F(10, 10), D2D1::Point2F(1.3, 1.2),
+                           gfx::PointF(10, 10), gfx::PointF(1.3, 1.2),
                            last_tick_count_));
   balls_[1].reset(new Ball(30.0f, 10.0f,
-                           D2D1::Point2F(90, 10), D2D1::Point2F(-2.0, 1.5),
+                           gfx::PointF(90, 10), gfx::PointF(-2.0, 1.5),
                            last_tick_count_));
   balls_[2].reset(new Ball(90.0f, 15.0f,
-                           D2D1::Point2F(30, 90), D2D1::Point2F(1.0, -1.0),
+                           gfx::PointF(30, 90), gfx::PointF(1.0, -1.0),
                            last_tick_count_));
   balls_[3].reset(new Ball(180.0f, 20.0f,
-                           D2D1::Point2F(90, 90), D2D1::Point2F(-1.0, -1.0),
+                           gfx::PointF(90, 90), gfx::PointF(-1.0, -1.0),
                            last_tick_count_));
 
   auto const font_size = 13;
@@ -996,7 +1080,7 @@ bool CartoonCard::DoAnimate(uint32_t tick_count) {
       &text_layout));
 
   gfx::Brush text_brush(canvas, D2D1::ColorF(D2D1::ColorF::Black, 0.5f));
-  canvas->DrawTextLayout(D2D1::Point2F(5.0f, 5.0f), text_layout, text_brush,
+  canvas->DrawTextLayout(gfx::PointF(5.0f, 5.0f), text_layout, text_brush,
                          D2D1_DRAW_TEXT_OPTIONS_CLIP);
   COM_VERIFY(canvas->EndDraw());
   Present();
@@ -1011,11 +1095,11 @@ bool CartoonCard::DoAnimate(uint32_t tick_count) {
 // CartoonCard::Ball
 //
 CartoonCard::Ball::Ball(float angle, float size,
-                         const D2D1_POINT_2F& center,
-                         const D2D1_POINT_2F& motion, uint32_t tick_count)
+                         const gfx::PointF& center,
+                         const gfx::PointF& motion, uint32_t tick_count)
     : angle_(angle), center_(center), motion_(motion), size_(size),
       tick_count_(tick_count) {
-  motion_.x = motion_.y = 1;
+  motion_ = 1.0f;
 }
 
 void CartoonCard::Ball::DoAnimate(ID2D1RenderTarget* canvas,
@@ -1026,17 +1110,16 @@ void CartoonCard::Ball::DoAnimate(ID2D1RenderTarget* canvas,
   auto const tick_delta = std::max((tick_count - tick_count_) / 16, 1u);
   tick_count_ = tick_count;
   for (auto count = 0u; count < tick_delta; ++count) {
-    center_.x += motion_.x;
-    center_.y += motion_.y;
-    if (center_.x - size_ < bounds.left ||
-        center_.x + size_ > bounds.right) {
-      motion_.x = -motion_.x;
-      center_.x += motion_.x;
+    center_ += motion_;
+    if (center_.x() - size_ < bounds.left ||
+        center_.x() + size_ > bounds.right) {
+      motion_.set_x(-motion_.x());
+      center_ += gfx::PointF(motion_.x(), 0.0f);
     }
-    if (center_.y - size_ < bounds.top ||
-        center_.y + size_ > bounds.bottom) {
-      motion_.y = -motion_.y;
-      center_.y += motion_.y;
+    if (center_.y() - size_ < bounds.top ||
+        center_.y() + size_ > bounds.bottom) {
+      motion_.set_y(-motion_.y());
+      center_ += gfx::PointF(0.0f, motion_.y());
     }
   }
 
@@ -1053,8 +1136,8 @@ void CartoonCard::Ball::DoAnimate(ID2D1RenderTarget* canvas,
 
   auto const rect_size = size_ * 0.5f;
   canvas->FillRectangle(
-      D2D1::RectF(center_.x - rect_size, center_.y - rect_size,
-                  center_.x + rect_size, center_.y + rect_size),
+      D2D1::RectF(center_.x() - rect_size, center_.y() - rect_size,
+                  center_.x() + rect_size, center_.y() + rect_size),
       gfx::Brush(canvas, D2D1::ColorF(D2D1::ColorF::Green, 0.7f)));
 
   canvas->SetTransform(D2D1::IdentityMatrix());
@@ -1165,7 +1248,7 @@ bool StatusLayer::DoAnimate(uint32_t tick_count) {
       &text_layout_));
 
   gfx::Brush text_brush(canvas, D2D1::ColorF::LightGray);
-  canvas->DrawTextLayout(D2D1::Point2F(5.0f, 5.0f), text_layout_, text_brush,
+  canvas->DrawTextLayout(gfx::PointF(5.0f, 5.0f), text_layout_, text_brush,
                          D2D1_DRAW_TEXT_OPTIONS_CLIP);
 
   COM_VERIFY(canvas->EndDraw());
@@ -1330,7 +1413,7 @@ void MyApp::DidResize() {
       auto const pane_height = pane_bounds[i].bottom - pane_bounds[i].top;
       auto const pane_width = pane_bounds[i].right - pane_bounds[i].left;
       D2D1_ELLIPSE ellipse;
-      ellipse.point = D2D1::Point2F(pane_bounds[i].left + pane_width / 2,
+      ellipse.point = gfx::PointF(pane_bounds[i].left + pane_width / 2,
                                     pane_bounds[i].top + pane_height / 2);
       ellipse.radiusX = pane_width / 3;
       ellipse.radiusY = pane_height / 3;
