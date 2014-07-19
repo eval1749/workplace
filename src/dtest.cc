@@ -275,86 +275,6 @@ Brush::Brush(ID2D1RenderTarget* render_target, D2D1::ColorF color) {
 
 //////////////////////////////////////////////////////////////////////
 //
-// PointF
-//
-class PointF final {
-  private: D2D1_POINT_2F point_;
-
-  public: PointF(const PointF& other);
-  public: PointF(const D2D1_POINT_2F& point);
-  public: PointF(float x, float y);
-  public: PointF();
-
-  public: operator D2D1_POINT_2F() const { return point_; }
-
-  public: PointF& operator=(float new_value);
-  public: PointF& operator+=(const PointF& other);
-  public: PointF& operator+=(float new_value);
-  public: PointF& operator-=(const PointF& other);
-  public: PointF& operator-=(float new_value);
-
-  public: bool operator==(const PointF& other) const;
-  public: bool operator!=(const PointF& other) const;
-
-  public: float x() { return point_.x; }
-  public: void set_x(float new_x) { point_.x = new_x; }
-  public: float y() { return point_.y; }
-  public: void set_y(float new_y) { point_.y = new_y; }
-};
-
-PointF::PointF(const PointF& other) : point_(other.point_) {
-}
-
-PointF::PointF(const D2D1_POINT_2F& point) : point_(point) {
-}
-
-PointF::PointF(float x, float y) {
-  point_.x = x;
-  point_.y = y;
-}
-
-PointF::PointF() : PointF(0.0f, 0.0f) {
-}
-
-PointF& PointF::operator=(float new_value) {
-  point_.x = point_.y = new_value;
-  return *this;
-}
-
-PointF& PointF::operator+=(const PointF& other) {
-  point_.x += other.point_.x;
-  point_.y += other.point_.y;
-  return *this;
-}
-
-PointF& PointF::operator+=(float new_value) {
-  point_.x += new_value;
-  point_.y += new_value;
-  return *this;
-}
-
-PointF& PointF::operator-=(const PointF& other) {
-  point_.x += other.point_.x;
-  point_.y += other.point_.y;
-  return *this;
-}
-
-PointF& PointF::operator-=(float new_value) {
-  point_.x -= new_value;
-  point_.y -= new_value;
-  return *this;
-}
-
-bool PointF::operator==(const PointF& other) const {
-  return point_.x == other.point_.x && point_.y == other.point_.y;
-}
-
-bool PointF::operator!=(const PointF& other) const {
-  return !operator==(other);
-}
-
-//////////////////////////////////////////////////////////////////////
-//
 // SizeF
 //
 class SizeF final {
@@ -367,6 +287,11 @@ class SizeF final {
 
   public: operator D2D1_SIZE_F() const { return size_; }
 
+  public: SizeF operator+(const SizeF& other) const;
+  public: SizeF operator+(float value) const;
+  public: SizeF operator-(const SizeF& other) const;
+  public: SizeF operator-(float value) const;
+
   public: SizeF& operator=(float new_value);
   public: SizeF& operator+=(const SizeF& other);
   public: SizeF& operator+=(float new_value);
@@ -376,10 +301,10 @@ class SizeF final {
   public: bool operator==(const SizeF& other) const;
   public: bool operator!=(const SizeF& other) const;
 
-  public: float width() { return size_.width; }
-  public: void set_width(float new_width) { size_.width = new_width; }
-  public: float height() { return size_.height; }
+  public: float height() const { return size_.height; }
   public: void set_height(float new_height) { size_.height = new_height; }
+  public: float width() const { return size_.width; }
+  public: void set_width(float new_width) { size_.width = new_width; }
 };
 
 SizeF::SizeF(const SizeF& other) : size_(other.size_) {
@@ -394,6 +319,22 @@ SizeF::SizeF(float width, float height) {
 }
 
 SizeF::SizeF() : SizeF(0.0f, 0.0f) {
+}
+
+SizeF SizeF::operator+(const SizeF& other) const {
+  return SizeF(width() + other.width(), height() + other.height());
+}
+
+SizeF SizeF::operator+(float value) const {
+  return SizeF(width() + value, height() + value);
+}
+
+SizeF SizeF::operator-(const SizeF& other) const {
+  return SizeF(width() - other.width(), height() - other.height());
+}
+
+SizeF SizeF::operator-(float value) const {
+  return SizeF(width() - value, height() - value);
 }
 
 SizeF& SizeF::operator=(float new_value) {
@@ -431,6 +372,223 @@ bool SizeF::operator==(const SizeF& other) const {
 
 bool SizeF::operator!=(const SizeF& other) const {
   return !operator==(other);
+}
+
+//////////////////////////////////////////////////////////////////////
+//
+// PointF
+//
+class PointF final {
+  private: D2D1_POINT_2F point_;
+
+  public: PointF(const PointF& other);
+  public: PointF(const D2D1_POINT_2F& point);
+  public: PointF(float x, float y);
+  public: PointF();
+
+  public: operator D2D1_POINT_2F() const { return point_; }
+
+  public: PointF operator+(const SizeF& size) const;
+  public: PointF operator-(const SizeF& size) const;
+
+  public: PointF& operator=(float new_value);
+  public: PointF& operator+=(const PointF& other);
+  public: PointF& operator+=(const SizeF& other);
+  public: PointF& operator+=(float new_value);
+  public: PointF& operator-=(const PointF& other);
+  public: PointF& operator-=(const SizeF& other);
+  public: PointF& operator-=(float new_value);
+
+  public: bool operator==(const PointF& other) const;
+  public: bool operator!=(const PointF& other) const;
+
+  public: float x() const { return point_.x; }
+  public: void set_x(float new_x) { point_.x = new_x; }
+  public: float y() const { return point_.y; }
+  public: void set_y(float new_y) { point_.y = new_y; }
+};
+
+PointF::PointF(const PointF& other) : point_(other.point_) {
+}
+
+PointF::PointF(const D2D1_POINT_2F& point) : point_(point) {
+}
+
+PointF::PointF(float x, float y) {
+  point_.x = x;
+  point_.y = y;
+}
+
+PointF::PointF() : PointF(0.0f, 0.0f) {
+}
+
+PointF PointF::operator+(const SizeF& size) const {
+  return PointF(x() + size.width(), y() + size.height());
+}
+
+PointF PointF::operator-(const SizeF& size) const {
+  return PointF(x() - size.width(), y() - size.height());
+}
+
+PointF& PointF::operator=(float new_value) {
+  point_.x = point_.y = new_value;
+  return *this;
+}
+
+PointF& PointF::operator+=(const PointF& other) {
+  point_.x += other.point_.x;
+  point_.y += other.point_.y;
+  return *this;
+}
+
+PointF& PointF::operator+=(const SizeF& size) {
+  point_.x += size.width();
+  point_.y += size.height();
+  return *this;
+}
+
+PointF& PointF::operator+=(float new_value) {
+  point_.x += new_value;
+  point_.y += new_value;
+  return *this;
+}
+
+PointF& PointF::operator-=(const PointF& other) {
+  point_.x -= other.point_.x;
+  point_.y -= other.point_.y;
+  return *this;
+}
+
+PointF& PointF::operator-=(const SizeF& size) {
+  point_.x -= size.width();
+  point_.y -= size.height();
+  return *this;
+}
+
+PointF& PointF::operator-=(float new_value) {
+  point_.x -= new_value;
+  point_.y -= new_value;
+  return *this;
+}
+
+bool PointF::operator==(const PointF& other) const {
+  return point_.x == other.point_.x && point_.y == other.point_.y;
+}
+
+bool PointF::operator!=(const PointF& other) const {
+  return !operator==(other);
+}
+
+//////////////////////////////////////////////////////////////////////
+//
+// RectF
+//
+class RectF final {
+  private: D2D1_RECT_F rect_;
+
+  public: RectF(const RectF& other);
+  public: RectF(const D2D1_RECT_F& rect);
+  public: RectF(float left, float top, float right, float bottom);
+  public: RectF(const PointF& left_top, const PointF& right_bottom);
+  public: RectF(const PointF& left_top, const SizeF& size);
+  public: RectF();
+
+  public: operator D2D1_RECT_F() const { return rect_; }
+
+  public: RectF operator+(const SizeF& size) const;
+  public: RectF operator-(const SizeF& size) const;
+
+  public: RectF& operator+=(const SizeF& size);
+  public: RectF& operator+=(float new_value);
+  public: RectF& operator-=(const SizeF& size);
+  public: RectF& operator-=(float new_value);
+
+  public: bool operator==(const RectF& other) const;
+  public: bool operator!=(const RectF& other) const;
+
+  public: float bottom() const { return rect_.bottom; }
+  public: float left() const { return rect_.left; }
+  public: PointF left_top() const { return PointF(left(), top()); }
+  public: float height() const { return rect_.bottom - rect_.top; }
+  public: float right() const { return rect_.right; }
+  public: PointF right_bottom() const { return PointF(right(), bottom()); }
+  public: SizeF size() const { return SizeF(width(), height()); }
+  public: float top() const { return rect_.top; }
+  public: float width() const { return rect_.right - rect_.left; }
+
+  public: RectF Shift(const SizeF& size) const;
+};
+
+RectF::RectF(const RectF& other) : rect_(other.rect_) {
+}
+
+RectF::RectF(const D2D1_RECT_F& rect) : rect_(rect) {
+}
+
+RectF::RectF(float left, float top, float right, float bottom) {
+  rect_.left = left;
+  rect_.top = top;
+  rect_.right = right;
+  rect_.bottom = bottom;
+}
+
+RectF::RectF(const PointF& left_top, const PointF& right_bottom)
+    : RectF(left_top.x(), left_top.y(), right_bottom.x(), right_bottom.y()) {
+}
+
+RectF::RectF(const PointF& left_top, const SizeF& size)
+    : RectF(left_top, left_top + size) {
+}
+
+RectF::RectF() : RectF(0.0f, 0.0f, 0.0f, 0.0f) {
+}
+
+RectF RectF::operator+(const SizeF& size) const {
+  return gfx::RectF(left() - size.width(), top() - size.height(),
+                    right() + size.width(), bottom() - size.height());
+}
+
+RectF RectF::operator-(const SizeF& size) const {
+  return gfx::RectF(left() + size.width(), top() + size.height(),
+                    right() - size.width(), bottom() + size.height());
+}
+
+RectF& RectF::operator+=(const SizeF& size) {
+  rect_.left -= size.width();
+  rect_.top -= size.height();
+  rect_.right += size.width();
+  rect_.bottom += size.height();
+  return *this;
+}
+
+RectF& RectF::operator+=(float new_value) {
+  return *this += SizeF(new_value, new_value);
+}
+
+RectF& RectF::operator-=(const SizeF& size) {
+  rect_.left += size.width();
+  rect_.top += size.height();
+  rect_.right -= size.width();
+  rect_.bottom -= size.height();
+  return *this;
+}
+
+RectF& RectF::operator-=(float new_value) {
+  return *this -= SizeF(new_value, new_value);
+}
+
+bool RectF::operator==(const RectF& other) const {
+  return rect_.left == other.rect_.left && rect_.top == other.rect_.top &&
+         rect_.right == other.rect_.right &&
+         rect_.bottom == other.rect_.bottom;
+}
+
+bool RectF::operator!=(const RectF& other) const {
+  return !operator==(other);
+}
+
+RectF RectF::Shift(const SizeF& size) const {
+  return gfx::RectF(left_top() + size, this->size());
 }
 
 }  // namespace gfx
@@ -511,7 +669,7 @@ ComPtr<IDCompositionDesktopDevice> Factory::CreateCompositionDevice() {
 // cc::Layer
 //
 class Layer {
-  private: D2D1_RECT_F bounds_;
+  private: gfx::RectF bounds_;
   private: std::vector<Layer*> child_layers_;
   private: ComPtr<ID2D1DeviceContext> d2d_device_context_;
   private: bool is_active_;
@@ -524,7 +682,7 @@ class Layer {
 
   public: operator IDCompositionVisual2*() const { return visual_; }
 
-  public: const D2D1_RECT_F& bounds() const { return bounds_; }
+  public: const gfx::RectF& bounds() const { return bounds_; }
   public: ID2D1DeviceContext* d2d_device_context() const {
     return d2d_device_context_;
   }
@@ -541,8 +699,7 @@ class Layer {
   public: virtual void DidInactive();
   public: virtual bool DoAnimate(uint32_t tick_count);
   public: void Present();
-  public: void Resize(int width, int height);
-  public: void SetLeftTop(float left, float top);
+  public: void SetBounds(const gfx::RectF& bounds);
 };
 
 Layer::Layer(IDCompositionDesktopDevice* composition_device)
@@ -673,11 +830,14 @@ void Layer::Present() {
   COM_VERIFY(swap_chain_->Present1(1, 0, &present_params));
 }
 
-void Layer::Resize(int width, int height) {
-  bounds_.left = 0.0f;
-  bounds_.top = 0.0f;
-  bounds_.right = static_cast<float>(width);
-  bounds_.bottom = static_cast<float>(height);
+void Layer::SetBounds(const gfx::RectF& bounds) {
+  COM_VERIFY(visual_->SetOffsetX(bounds.left()));
+  COM_VERIFY(visual_->SetOffsetY(bounds.top()));
+
+  bounds_ = gfx::RectF(gfx::PointF(), bounds.size());
+
+  auto const width = static_cast<int>(bounds.width());
+  auto const height = static_cast<int>(bounds.height());
 
   swap_chain_.reset(CreateSwapChain(width, height));
   swap_chain_.MustBeNoOtherUse();
@@ -685,11 +845,6 @@ void Layer::Resize(int width, int height) {
   COM_VERIFY(visual_->SetContent(swap_chain_));
   d2d_device_context_ = CreateD2DDeviceContext(swap_chain_, width, height);
   d2d_device_context_.MustBeNoOtherUse();
-}
-
-void Layer::SetLeftTop(float left, float top) {
-  COM_VERIFY(visual_->SetOffsetX(left));
-  COM_VERIFY(visual_->SetOffsetY(top));
 }
 
 }  // namespace cc
@@ -923,7 +1078,7 @@ class Sampling {
 
   public: void AddSample(float);
   public: void Paint(ID2D1RenderTarget* canvas, const gfx::Brush& brush,
-                     const D2D1_RECT_F& bounds) const;
+                     const gfx::RectF& bounds) const;
 };
 
 Sampling::Sampling(size_t max_samples) :
@@ -947,27 +1102,27 @@ void Sampling::AddSample(float sample) {
 }
 
 void Sampling::Paint(ID2D1RenderTarget* canvas, const gfx::Brush& brush,
-                     const D2D1_RECT_F& bounds) const {
+                     const gfx::RectF& bounds) const {
   auto const maximum = maximum_ * 1.1f;
   auto const minimum = minimum_ * 0.9f;
   if (maximum == minimum)
     return;
-  auto const scale = (bounds.bottom - bounds.top) / (maximum - minimum_);
+  auto const scale = bounds.height() / (maximum - minimum_);
   auto  last_point = gfx::PointF(
-      bounds.left, bounds.bottom - (samples_.front() - minimum_) * scale);
-  auto x_step = (bounds.right - bounds.left) / samples_.size();
+      bounds.left(), bounds.bottom() - (samples_.front() - minimum_) * scale);
+  auto x_step = bounds.width() / samples_.size();
   auto sum = 0.0f;
   for (auto const sample : samples_) {
     sum += sample;
     auto const curr_point = gfx::PointF(
-        last_point.x() + x_step, bounds.bottom - (sample - minimum_) * scale);
+        last_point.x() + x_step, bounds.bottom() - (sample - minimum_) * scale);
     canvas->DrawLine(last_point, curr_point, brush, 1.0f);
     last_point = curr_point;
   }
   auto const avg = sum / samples_.size();
-  auto const avg_y = bounds.bottom - (avg - minimum_) * scale;
-  canvas->DrawLine(gfx::PointF(bounds.left, avg_y),
-                   gfx::PointF(bounds.right, avg_y),
+  auto const avg_y = bounds.bottom()- (avg - minimum_) * scale;
+  canvas->DrawLine(gfx::PointF(bounds.left(), avg_y),
+                   gfx::PointF(bounds.right(), avg_y),
                    brush, 2.0f);
   COM_VERIFY(canvas->Flush());
 }
@@ -977,14 +1132,13 @@ void Sampling::Paint(ID2D1RenderTarget* canvas, const gfx::Brush& brush,
 // Card
 //
 class Card : public cc::Layer {
-  private: mutable D2D1_RECT_F content_bounds_;
-  private: float shadow_height_;
-  private: float shadow_width_;
+  private: mutable gfx::RectF content_bounds_;
+  private: gfx::SizeF shadow_size_;
 
   protected: Card(IDCompositionDesktopDevice* composition_device);
   protected: virtual ~Card() = default;
 
-  public: D2D1_RECT_F& content_bounds() const;
+  public: gfx::RectF& content_bounds() const;
 
   protected: void PaintBackground(ID2D1RenderTarget* canvas) const;
 
@@ -993,23 +1147,18 @@ class Card : public cc::Layer {
 };
 
 Card::Card(IDCompositionDesktopDevice* composition_device)
-    : Layer(composition_device), shadow_height_(10), shadow_width_(10) {
+    : Layer(composition_device), shadow_size_(10.0f, 10.0f) {
 }
 
-D2D1_RECT_F& Card::content_bounds() const {
-  content_bounds_ = bounds();
-  content_bounds_.right -= shadow_width_;
-  content_bounds_.bottom -= shadow_height_;
+gfx::RectF& Card::content_bounds() const {
+  content_bounds_ = gfx::RectF(bounds().left_top(),
+                               bounds().size() - shadow_size_);
   return content_bounds_;
 }
 
 void Card::PaintBackground(ID2D1RenderTarget* canvas) const {
   canvas->Clear(D2D1::ColorF(D2D1::ColorF::White, 0.0f));
-  auto shadow_bounds = content_bounds();
-  shadow_bounds.left += shadow_width_;
-  shadow_bounds.top += shadow_height_;
-  shadow_bounds.right += shadow_width_;
-  shadow_bounds.bottom += shadow_width_;
+  const auto shadow_bounds = content_bounds().Shift(shadow_size_);
   canvas->FillRoundedRectangle(D2D1::RoundedRect(shadow_bounds, 2.0f, 2.0f),
                                gfx::Brush(canvas, D2D1::ColorF::Black, 0.1f));
   canvas->FillRoundedRectangle(D2D1::RoundedRect(content_bounds(), 2.0f, 2.0f),
@@ -1033,15 +1182,15 @@ void Card::DidInactive() {
   ComPtr<IDWriteTextLayout> text_layout;
   COM_VERIFY(cc::Factory::instance()->dwrite()->CreateTextLayout(
       text.data(), static_cast<UINT>(text.length()), text_format,
-      bounds.right - bounds.left, bounds.bottom - bounds.top,
+      bounds.width(), bounds.width(),
       &text_layout));
 
   DWRITE_TEXT_METRICS text_metrics;
   COM_VERIFY(text_layout->GetMetrics(&text_metrics));
 
   auto const text_origin = gfx::PointF(
-    bounds.left + ((bounds.right - bounds.left) - text_metrics.width) / 2,
-    bounds.top + ((bounds.bottom - bounds.top) - text_metrics.height) / 2);
+    bounds.left() + (bounds.width() - text_metrics.width) / 2,
+    bounds.top() + (bounds.height() - text_metrics.height) / 2);
 
   auto const canvas = d2d_device_context();
   canvas->BeginDraw();
@@ -1074,7 +1223,7 @@ class CartoonCard : public Card {
     public: ~Ball() = default;
 
     public: void DoAnimate(ID2D1RenderTarget* canvas,
-                           const D2D1_RECT_F& bounds,
+                           const gfx::RectF& bounds,
                            uint32_t tick_count);
   };
 
@@ -1155,9 +1304,7 @@ bool CartoonCard::DoAnimate(uint32_t tick_count) {
   ComPtr<IDWriteTextLayout> text_layout;
   COM_VERIFY(cc::Factory::instance()->dwrite()->CreateTextLayout(
       text.data(), static_cast<UINT>(text.length()), text_format_,
-      content_bounds().right - content_bounds().left,
-      content_bounds().bottom - content_bounds().top,
-      &text_layout));
+      content_bounds().width(), content_bounds().height(), &text_layout));
 
   gfx::Brush text_brush(canvas, D2D1::ColorF(D2D1::ColorF::Black, 0.5f));
   canvas->DrawTextLayout(gfx::PointF(5.0f, 5.0f), text_layout, text_brush,
@@ -1183,7 +1330,7 @@ CartoonCard::Ball::Ball(float angle, float size,
 }
 
 void CartoonCard::Ball::DoAnimate(ID2D1RenderTarget* canvas,
-                                   const D2D1_RECT_F& bounds,
+                                   const gfx::RectF& bounds,
                                    uint32_t tick_count) {
   if (tick_count_ == tick_count)
     return;
@@ -1191,13 +1338,13 @@ void CartoonCard::Ball::DoAnimate(ID2D1RenderTarget* canvas,
   tick_count_ = tick_count;
   for (auto count = 0u; count < tick_delta; ++count) {
     center_ += motion_;
-    if (center_.x() - size_ < bounds.left ||
-        center_.x() + size_ > bounds.right) {
+    if (center_.x() - size_ < bounds.left() ||
+        center_.x() + size_ > bounds.right()) {
       motion_.set_x(-motion_.x());
       center_ += gfx::PointF(motion_.x(), 0.0f);
     }
-    if (center_.y() - size_ < bounds.top ||
-        center_.y() + size_ > bounds.bottom) {
+    if (center_.y() - size_ < bounds.top() ||
+        center_.y() + size_ > bounds.bottom()) {
       motion_.set_y(-motion_.y());
       center_ += gfx::PointF(0.0f, motion_.y());
     }
@@ -1216,7 +1363,7 @@ void CartoonCard::Ball::DoAnimate(ID2D1RenderTarget* canvas,
 
   auto const rect_size = size_ * 0.5f;
   canvas->FillRectangle(
-      D2D1::RectF(center_.x() - rect_size, center_.y() - rect_size,
+      gfx::RectF(center_.x() - rect_size, center_.y() - rect_size,
                   center_.x() + rect_size, center_.y() + rect_size),
       gfx::Brush(canvas, D2D1::ColorF(D2D1::ColorF::Green, 0.7f)));
 
@@ -1287,20 +1434,20 @@ bool StatusLayer::DoAnimate(uint32_t tick_count) {
   // Paint graph
   sample_duration_.Paint(canvas,
       gfx::Brush(canvas, D2D1::ColorF(D2D1::ColorF::Red, 0.5f)),
-      D2D1::RectF(bounds().left, bounds().bottom - 20,
-                  bounds().right, bounds().bottom));
+      gfx::RectF(gfx::PointF(bounds().left(), bounds().bottom() - 20),
+                 bounds().right_bottom()));
   sample_last_frame_.Paint(canvas,
       gfx::Brush(canvas, D2D1::ColorF(D2D1::ColorF::Yellow, 0.5f)),
-      D2D1::RectF(bounds().left, bounds().bottom - 40,
-                  bounds().right, bounds().bottom - 20));
+      gfx::RectF(gfx::PointF(bounds().left(), bounds().bottom() - 40),
+                 bounds().right_bottom() - gfx::SizeF(0, 20)));
   sample_last_frame_.Paint(canvas,
       gfx::Brush(canvas, D2D1::ColorF(D2D1::ColorF::Blue, 0.5f)),
-      D2D1::RectF(bounds().left, bounds().bottom - 60,
-                  bounds().right, bounds().bottom - 40));
+      gfx::RectF(gfx::PointF(bounds().left(), bounds().bottom() - 60),
+                 bounds().right_bottom() - gfx::SizeF(0, 40)));
   sample_tick_.Paint(canvas,
       gfx::Brush(canvas, D2D1::ColorF(D2D1::ColorF::White, 0.5f)),
-      D2D1::RectF(bounds().left, bounds().bottom - 80,
-                  bounds().right, bounds().bottom - 60));
+      gfx::RectF(gfx::PointF(bounds().left(), bounds().bottom() - 80),
+                 bounds().right_bottom() - gfx::SizeF(0, 60)));
 
   // Samples values
   std::basic_ostringstream<base::char16> stream;
@@ -1324,8 +1471,7 @@ bool StatusLayer::DoAnimate(uint32_t tick_count) {
   text_layout_.reset();
   COM_VERIFY(cc::Factory::instance()->dwrite()->CreateTextLayout(
       text.data(), static_cast<UINT>(text.length()), text_format_,
-      bounds().right - bounds().left, bounds().bottom - bounds().top,
-      &text_layout_));
+      bounds().width(), bounds().height(), &text_layout_));
 
   gfx::Brush text_brush(canvas, D2D1::ColorF::LightGray);
   canvas->DrawTextLayout(gfx::PointF(5.0f, 5.0f), text_layout_, text_brush,
@@ -1441,20 +1587,19 @@ void MyApp::DidResize() {
   auto const splitter_height = 5.0f;
   auto const pane_height = (height - splitter_height - tab_height) / 2;
 
-  root_layer_->Resize(width, height);
+  root_layer_->SetBounds(gfx::RectF(gfx::PointF(), gfx::SizeF(width, height)));
 
   // Resize status visual
   {
-    auto const status_width = 240.0f;;
-    auto const status_height = 200.0f;
-    status_layer_->Resize(status_width, status_height);
-    status_layer_->SetLeftTop(20, height / 2);
+    const gfx::SizeF status_size(240.0f, 200.0f);
+    status_layer_->SetBounds(gfx::RectF(gfx::PointF(20, height / 2),
+                                        status_size));
 
     // Setup transform for status visual
     ComPtr<IDCompositionRotateTransform> rotate_transform;
     COM_VERIFY(composition_device_->CreateRotateTransform(&rotate_transform));
-    COM_VERIFY(rotate_transform->SetCenterX(status_width / 2));
-    COM_VERIFY(rotate_transform->SetCenterY(status_height / 2));
+    COM_VERIFY(rotate_transform->SetCenterX(status_size.width() / 2));
+    COM_VERIFY(rotate_transform->SetCenterY(status_size.height() / 2));
     COM_VERIFY(rotate_transform->SetAngle(-5));
     COM_VERIFY(status_layer_->visual()->SetTransform(rotate_transform));
   }
@@ -1465,21 +1610,13 @@ void MyApp::DidResize() {
     canvas->BeginDraw();
     canvas->Clear(D2D1::ColorF(0, 0, 0, 0));
 
-    D2D1_RECT_F pane_bounds[2];
-    pane_bounds[0].left = 0;
-    pane_bounds[0].right = width;
-    pane_bounds[0].top = tab_height;
-    pane_bounds[0].bottom = pane_height;
-
-    pane_bounds[1].left = 0;
-    pane_bounds[1].right = width;
-    pane_bounds[1].top = pane_bounds[0].bottom + splitter_height;
-    pane_bounds[1].bottom = height;
-
+    gfx::RectF pane_bounds[2] {
+        gfx::RectF(gfx::PointF(0, tab_height), gfx::PointF(width, pane_height)),
+        gfx::RectF(gfx::PointF(0, pane_height + splitter_height),
+                   gfx::PointF(width, height))
+    };
   // Resize cartoon visual
-    cartoon_layer_->Resize(pane_bounds[0].right - pane_bounds[0].left,
-                           pane_bounds[0].bottom - pane_bounds[0].top);
-    cartoon_layer_->SetLeftTop(pane_bounds[0].left, pane_bounds[0].top);
+    cartoon_layer_->SetBounds(pane_bounds[0]);
 
 #if 0
     gfx::Brush white_brush(canvas,
