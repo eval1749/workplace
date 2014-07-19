@@ -869,17 +869,36 @@ CartoonLayer::~CartoonLayer() {
 void CartoonLayer::DidInactive() {
   Layer::DidInactive();
 
+  // Paint "Paused" in center of layer.
+  auto const font_size = 40;
+  ComPtr<IDWriteTextFormat> text_format;
+  COM_VERIFY(cc::Factory::instance()->dwrite()->CreateTextFormat(
+    L"Verdana", nullptr, DWRITE_FONT_WEIGHT_REGULAR, DWRITE_FONT_STYLE_NORMAL,
+    DWRITE_FONT_STRETCH_NORMAL, font_size, L"en-us", &text_format));
+
+  base::string16 text(L"Paused");
+  ComPtr<IDWriteTextLayout> text_layout;
+  COM_VERIFY(cc::Factory::instance()->dwrite()->CreateTextLayout(
+      text.data(), static_cast<UINT>(text.length()), text_format,
+      bounds().right - bounds().left, bounds().bottom - bounds().top,
+      &text_layout));
+
+  DWRITE_TEXT_METRICS text_metrics;
+  COM_VERIFY(text_layout->GetMetrics(&text_metrics));
+
+  auto const text_origin = D2D1::Point2F(
+    bounds().left + ((bounds().right - bounds().left) - text_metrics.width) / 2,
+    bounds().top + ((bounds().bottom - bounds().top) - text_metrics.height) / 2);
+
   auto const canvas = d2d_device_context();
   canvas->BeginDraw();
 
   canvas->FillRectangle(bounds(),
-    gfx::Brush(canvas, D2D1::ColorF(D2D1::ColorF::Black, 0.7f)));
+    gfx::Brush(canvas, D2D1::ColorF(D2D1::ColorF::Black, 0.6f)));
 
-  base::string16 text(L"Paused");
-  canvas->DrawText(text.data(), static_cast<uint32_t>(text.length()),
-                   text_format_, bounds(),
-                   gfx::Brush(canvas, D2D1::ColorF(D2D1::ColorF::White, 0.9f)));
-
+  gfx::Brush text_brush(canvas, D2D1::ColorF(D2D1::ColorF::White, 0.9f));
+  canvas->DrawTextLayout(text_origin, text_layout, text_brush);
+  
   COM_VERIFY(canvas->EndDraw());
   Present();
 }
@@ -915,14 +934,14 @@ bool CartoonLayer::DoAnimate(uint32_t tick_count) {
           last_stats_.SyncGPUTime.QuadPart << std::endl;
 
   const auto text = stream.str();
-  ComPtr<IDWriteTextLayout> text_layout_;
+  ComPtr<IDWriteTextLayout> text_layout;
   COM_VERIFY(cc::Factory::instance()->dwrite()->CreateTextLayout(
       text.data(), static_cast<UINT>(text.length()), text_format_,
       bounds().right - bounds().left, bounds().bottom - bounds().top,
-      &text_layout_));
+      &text_layout));
 
   gfx::Brush text_brush(canvas, D2D1::ColorF(D2D1::ColorF::Black, 0.5f));
-  canvas->DrawTextLayout(D2D1::Point2F(5.0f, 5.0f), text_layout_, text_brush,
+  canvas->DrawTextLayout(D2D1::Point2F(5.0f, 5.0f), text_layout, text_brush,
                          D2D1_DRAW_TEXT_OPTIONS_CLIP);
   COM_VERIFY(canvas->EndDraw());
   Present();
