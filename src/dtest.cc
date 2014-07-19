@@ -353,6 +353,86 @@ bool PointF::operator!=(const PointF& other) const {
   return !operator==(other);
 }
 
+//////////////////////////////////////////////////////////////////////
+//
+// SizeF
+//
+class SizeF final {
+  private: D2D1_SIZE_F size_;
+
+  public: SizeF(const SizeF& other);
+  public: SizeF(const D2D1_SIZE_F& size);
+  public: SizeF(float x, float y);
+  public: SizeF();
+
+  public: operator D2D1_SIZE_F() const { return size_; }
+
+  public: SizeF& operator=(float new_value);
+  public: SizeF& operator+=(const SizeF& other);
+  public: SizeF& operator+=(float new_value);
+  public: SizeF& operator-=(const SizeF& other);
+  public: SizeF& operator-=(float new_value);
+
+  public: bool operator==(const SizeF& other) const;
+  public: bool operator!=(const SizeF& other) const;
+
+  public: float width() { return size_.width; }
+  public: void set_width(float new_width) { size_.width = new_width; }
+  public: float height() { return size_.height; }
+  public: void set_height(float new_height) { size_.height = new_height; }
+};
+
+SizeF::SizeF(const SizeF& other) : size_(other.size_) {
+}
+
+SizeF::SizeF(const D2D1_SIZE_F& size) : size_(size) {
+}
+
+SizeF::SizeF(float width, float height) {
+  size_.width = width;
+  size_.height = height;
+}
+
+SizeF::SizeF() : SizeF(0.0f, 0.0f) {
+}
+
+SizeF& SizeF::operator=(float new_value) {
+  size_.width = size_.height = new_value;
+  return *this;
+}
+
+SizeF& SizeF::operator+=(const SizeF& other) {
+  size_.width += other.size_.width;
+  size_.height += other.size_.height;
+  return *this;
+}
+
+SizeF& SizeF::operator+=(float new_value) {
+  size_.width += new_value;
+  size_.height += new_value;
+  return *this;
+}
+
+SizeF& SizeF::operator-=(const SizeF& other) {
+  size_.width += other.size_.width;
+  size_.height += other.size_.height;
+  return *this;
+}
+
+SizeF& SizeF::operator-=(float new_value) {
+  size_.width -= new_value;
+  size_.height -= new_value;
+  return *this;
+}
+
+bool SizeF::operator==(const SizeF& other) const {
+  return size_.width == other.size_.width && size_.height == other.size_.height;
+}
+
+bool SizeF::operator!=(const SizeF& other) const {
+  return !operator==(other);
+}
+
 }  // namespace gfx
 
 namespace cc {
@@ -361,7 +441,7 @@ namespace cc {
 //
 // Factory
 //
-// This class is a singleton class provieds:
+// This class is a singleton class provids:
 //  - D2D1Factory
 //  - D3D11 Device
 //  - Composition Device
