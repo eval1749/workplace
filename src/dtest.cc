@@ -482,6 +482,7 @@ class Window {
 
   private: RECT bounds_;
   private: HWND hwnd_;
+  private: bool is_active_;
 
   protected: Window();
   protected: ~Window();
@@ -489,6 +490,7 @@ class Window {
   public: operator HWND() const { return hwnd_; }
 
   public: const RECT& bounds() const { return bounds_; }
+  public: bool is_active() const { return is_active_; }
 
   protected: virtual void DidCreate();
   protected: virtual void DidResize();
@@ -522,7 +524,7 @@ Window::Creator::~Creator(){
 //
 // Window
 //
-Window::Window() : hwnd_(nullptr) {
+Window::Window() : hwnd_(nullptr), is_active_(false) {
 }
 
 Window::~Window() {
@@ -568,6 +570,9 @@ void Window::Init() {
 
 LRESULT Window::OnMessage(UINT message, WPARAM wParam, LPARAM lParam) {
   switch (message) {
+    case WM_ACTIVATE:
+      is_active_ = wParam != WA_INACTIVE;
+      return 0;
     case WM_CREATE:
       ::GetClientRect(*this, &bounds_);
       DidCreate();
@@ -845,7 +850,7 @@ void StatusLayer::DoAnimate() {
 class MyApp : public Window, private Animator {
   private: ComPtr<IDCompositionDesktopDevice> composition_device_;
   private: ComPtr<IDCompositionTarget> composition_target_;
-
+  private: uint32_t last_animate_tick_;
   private: std::unique_ptr<cc::Layer> root_layer_;
   private: std::unique_ptr<StatusLayer> status_layer_;
 
@@ -865,7 +870,7 @@ class MyApp : public Window, private Animator {
   private: virtual void WillDestroy() override;
 };
 
-MyApp::MyApp() {
+MyApp::MyApp() : last_animate_tick_(0) {
 }
 
 MyApp::~MyApp() {
@@ -897,6 +902,12 @@ void MyApp::Run() {
 
 // Animator
 void MyApp::DoAnimate() {
+  auto const tick_count = ::GetTickCount();
+  auto const delta = tick_count - last_animate_tick_;
+  auto const kBackgroundAnimate = 100;
+  if (!is_active() && delta < kBackgroundAnimate)
+    return;
+  last_animate_tick_ = tick_count;
   status_layer_->DoAnimate();
 }
 
