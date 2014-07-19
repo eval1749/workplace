@@ -15,6 +15,7 @@
 #include <d2d1helper.h>
 #include <dwmapi.h>
 #include <dwrite.h>
+#include <dxgi1_3.h>
 
 #include <algorithm>
 #include <iostream>
@@ -340,7 +341,8 @@ ComPtr<IDCompositionDesktopDevice> Factory::CreateCompositionDevice() {
 class Layer {
   private: D2D1_RECT_F bounds_;
   private: ComPtr<ID2D1DeviceContext> d2d_device_context_;
-  private: ComPtr<IDXGISwapChain1> swap_chain_;
+  private: ComPtr<IDXGISwapChain2> swap_chain_;
+  private: HANDLE swap_chain_waitable_;
   private: ComPtr<IDCompositionVisual2> visual_;
 
   public: Layer(IDCompositionDesktopDevice* composition_device);
@@ -352,20 +354,22 @@ class Layer {
   public: ID2D1DeviceContext* d2d_device_context() const {
     return d2d_device_context_;
   }
+  protected: bool is_swap_chain_ready() const;
   public: IDCompositionVisual2* visual() const { return visual_; }
 
   public: void AppendChild(Layer* new_child);
 
   private: ComPtr<ID2D1DeviceContext> CreateD2DDeviceContext(
-      IDXGISwapChain1* swap_chain, int width, int height);
-  private: ComPtr<IDXGISwapChain1> CreateSwapChain(int width, int height);
+      IDXGISwapChain2* swap_chain, int width, int height);
+  private: ComPtr<IDXGISwapChain2> CreateSwapChain(int width, int height);
 
   public: void Present();
   public: void Resize(int width, int height);
   public: void SetLeftTop(float left, float top);
 };
 
-Layer::Layer(IDCompositionDesktopDevice* composition_device) {
+Layer::Layer(IDCompositionDesktopDevice* composition_device)
+    : swap_chain_waitable_(nullptr) {
   COM_VERIFY(composition_device->CreateVisual(&visual_));
   COM_VERIFY(visual_->SetBitmapInterpolationMode(
       DCOMPOSITION_BITMAP_INTERPOLATION_MODE_LINEAR));
@@ -377,12 +381,25 @@ Layer::~Layer() {
   d2d_device_context_.MustBeNoOtherUse();
 }
 
+bool Layer::is_swap_chain_ready() const {
+  auto const wait = ::WaitForSingleObject(swap_chain_waitable_, 0);
+  switch (wait){
+    case WAIT_OBJECT_0:
+      return true;
+    case WAIT_TIMEOUT:
+      return false;
+    default:
+      NOTREACHED();
+  }
+  return false;
+}
+
 void Layer::AppendChild(Layer* new_child) {
   COM_VERIFY(visual_->AddVisual(new_child->visual_, true, nullptr));
 }
 
 ComPtr<ID2D1DeviceContext> Layer::CreateD2DDeviceContext(
-      IDXGISwapChain1* swap_chain, int width, int height) {
+      IDXGISwapChain2* swap_chain, int width, int height) {
   ComPtr<IDXGIDevice1> dxgi_device;
   COM_VERIFY(dxgi_device.QueryFrom(Factory::instance()->d3d_device()));
 
@@ -414,7 +431,7 @@ ComPtr<ID2D1DeviceContext> Layer::CreateD2DDeviceContext(
   return d2d_device_context;
 }
 
-ComPtr<IDXGISwapChain1> Layer::CreateSwapChain(int width, int height) {
+ComPtr<IDXGISwapChain2> Layer::CreateSwapChain(int width, int height) {
   ComPtr<IDXGIDevice> dxgi_device;
   COM_VERIFY(dxgi_device.QueryFrom(Factory::instance()->d3d_device()));
 
@@ -435,13 +452,16 @@ ComPtr<IDXGISwapChain1> Layer::CreateSwapChain(int width, int height) {
   swap_chain_desc.BufferCount = 2;  // use double buffering to enable flip
   swap_chain_desc.Scaling = DXGI_SCALING_STRETCH;
   swap_chain_desc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL;
-  swap_chain_desc.Flags = 0;
+  swap_chain_desc.Flags = DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT;
 
-  ComPtr<IDXGISwapChain1> swap_chain;
+  ComPtr<IDXGISwapChain1> swap_chain1;
   COM_VERIFY(dxgi_factory->CreateSwapChainForComposition(
       Factory::instance()->d3d_device(), &swap_chain_desc, nullptr,
-      &swap_chain));
-  return swap_chain;
+      &swap_chain1));
+  ComPtr<IDXGISwapChain2> swap_chain2;
+  COM_VERIFY(swap_chain2.QueryFrom(swap_chain1));
+  COM_VERIFY(swap_chain2->SetMaximumFrameLatency(2));
+  return swap_chain2;
 }
 
 void Layer::Present() {
@@ -457,6 +477,7 @@ void Layer::Resize(int width, int height) {
 
   swap_chain_.reset(CreateSwapChain(width, height));
   swap_chain_.MustBeNoOtherUse();
+  swap_chain_waitable_ = swap_chain_->GetFrameLatencyWaitableObject();
   COM_VERIFY(visual_->SetContent(swap_chain_));
   d2d_device_context_ = CreateD2DDeviceContext(swap_chain_, width, height);
   d2d_device_context_.MustBeNoOtherUse();
@@ -770,6 +791,8 @@ StatusLayer::~StatusLayer() {
 }
 
 void StatusLayer::DoAnimate() {
+  if (!is_swap_chain_ready())
+    return;
   auto const tick_count = ::GetTickCount();
   DCOMPOSITION_FRAME_STATISTICS stats;
   COM_VERIFY(composition_device_->GetFrameStatistics(&stats));
