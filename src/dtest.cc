@@ -786,8 +786,8 @@ void Animation::Play(Time current_time) {
   animatable_->DidFireAnimationTimer();
   if (current_time < start_time_ + timing_.duration)
     return;
-  animatable_->DidFinishAnimation();
   state_ = State::Finish;
+  animatable_->DidFinishAnimation();
 }
 
 void Animation::Start(Time time) {
@@ -1772,10 +1772,6 @@ bool StatusLayer::DoAnimate(uint32_t tick_count) {
   DCOMPOSITION_FRAME_STATISTICS stats;
   COM_VERIFY(composition_device_->GetFrameStatistics(&stats));
 
-  auto const canvas = d2d_device_context();
-  canvas->BeginDraw();
-  canvas->Clear(gfx::ColorF(0, 0, 0, 0.5));
-
   // Update samples
   sample_tick_.AddSample(tick_count - last_tick_count_);
   sample_duration_.AddSample(
@@ -1790,23 +1786,28 @@ bool StatusLayer::DoAnimate(uint32_t tick_count) {
   last_stats_ = stats;
   last_tick_count_ = tick_count;
 
+  auto const bounds = gfx::RectF(gfx::PointF(), this->bounds().size());
+  auto const canvas = d2d_device_context();
+  canvas->BeginDraw();
+  canvas->Clear(gfx::ColorF(0, 0, 0, 0.5));
+
   // Paint graph
   sample_duration_.Paint(canvas,
       gfx::Brush(canvas, gfx::ColorF(gfx::ColorF::Red, 0.5f)),
-      gfx::RectF(gfx::PointF(bounds().left(), bounds().bottom() - 20),
-                 bounds().bottom_right()));
+      gfx::RectF(gfx::PointF(bounds.left(), bounds.bottom() - 20),
+                 bounds.bottom_right()));
   sample_last_frame_.Paint(canvas,
       gfx::Brush(canvas, gfx::ColorF(gfx::ColorF::Yellow, 0.5f)),
-      gfx::RectF(gfx::PointF(bounds().left(), bounds().bottom() - 40),
-                 bounds().bottom_right() - gfx::SizeF(0, 20)));
+      gfx::RectF(gfx::PointF(bounds.left(), bounds.bottom() - 40),
+                 bounds.bottom_right() - gfx::SizeF(0, 20)));
   sample_last_frame_.Paint(canvas,
       gfx::Brush(canvas, gfx::ColorF(gfx::ColorF::Blue, 0.5f)),
-      gfx::RectF(gfx::PointF(bounds().left(), bounds().bottom() - 60),
-                 bounds().bottom_right() - gfx::SizeF(0, 40)));
+      gfx::RectF(gfx::PointF(bounds.left(), bounds.bottom() - 60),
+                 bounds.bottom_right() - gfx::SizeF(0, 40)));
   sample_tick_.Paint(canvas,
       gfx::Brush(canvas, gfx::ColorF(gfx::ColorF::White, 0.5f)),
-      gfx::RectF(gfx::PointF(bounds().left(), bounds().bottom() - 80),
-                 bounds().bottom_right() - gfx::SizeF(0, 60)));
+      gfx::RectF(gfx::PointF(bounds.left(), bounds.bottom() - 80),
+                 bounds.bottom_right() - gfx::SizeF(0, 60)));
 
   // Samples values
   std::basic_ostringstream<base::char16> stream;
@@ -1830,7 +1831,7 @@ bool StatusLayer::DoAnimate(uint32_t tick_count) {
   text_layout_.reset();
   COM_VERIFY(cc::Factory::instance()->dwrite()->CreateTextLayout(
       text.data(), static_cast<UINT>(text.length()), text_format_,
-      bounds().width(), bounds().height(), &text_layout_));
+      bounds.width(), bounds.height(), &text_layout_));
 
   gfx::Brush text_brush(canvas, gfx::ColorF::LightGray);
   canvas->DrawTextLayout(gfx::PointF(5.0f, 5.0f), text_layout_, text_brush,
@@ -1934,7 +1935,7 @@ void DemoApp::Run() {
 
 // ui::Animation
 void DemoApp::DidFinishAnimation() {
-  animation_.release();
+  animation_.reset();
 }
 
 void DemoApp::DidFireAnimationTimer() {
