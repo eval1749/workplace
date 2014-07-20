@@ -35,6 +35,20 @@
 #pragma comment(lib, "ole32.lib")
 #pragma comment(lib, "user32.lib")
 
+// Put this in the private: declarations for a class to be uncopyable.
+#define DISALLOW_COPY(TypeName) \
+  public: TypeName(const TypeName&) = delete
+
+// Put this in the private: declarations for a class to be unassignable.
+#define DISALLOW_ASSIGN(TypeName) \
+  public: void operator=(const TypeName&) = delete
+
+// A macro to disallow the copy constructor and operator= functions
+// This should be used in the private: declarations for a class
+#define DISALLOW_COPY_AND_ASSIGN(TypeName) \
+  public: TypeName(const TypeName&) = delete; \
+  public: void operator=(const TypeName&) = delete
+
 #ifndef HINST_THISCOMPONENT
 EXTERN_C IMAGE_DOS_HEADER __ImageBase;
 #define HINST_THISCOMPONENT ((HINSTANCE)&__ImageBase)
@@ -59,6 +73,10 @@ EXTERN_C IMAGE_DOS_HEADER __ImageBase;
 }
 
 #define DCHECK(expr) (Check(__FILE__, __LINE__, #expr, (expr)))
+
+#define DCHECK_EQ(expr1, expr2) { \
+  Check(__FILE__, __LINE__, #expr1 "==" #expr2, (expr1) == (expr2)); \
+}
 
 std::ostream& Check(const char* file_name, int line_number,
                     const char* expr_string, bool expr_value) {
@@ -612,13 +630,168 @@ void RectF::set_size(const SizeF& new_size) {
 
 }  // namespace gfx
 
+namespace ui {
+
+//////////////////////////////////////////////////////////////////////
+//
+// Animatable
+//
+class Animatable {
+  public: Animatable() = default;
+  public: virtual ~Animatable() = default;
+
+  public: virtual void DidFinishAnimation() = 0;
+  public: virtual void DidFireAnimationTimer() = 0;
+
+  DISALLOW_COPY_AND_ASSIGN(Animatable);
+};
+
+//////////////////////////////////////////////////////////////////////
+//
+// Animation
+//
+class Animation  {
+  public: typedef double Time;
+  public: typedef double TimeSpan;
+
+  public: enum class FillMode {
+    Auto,
+    Backward,
+    Both,
+    Forward,
+    None,
+  };
+
+  public: enum class PlaybackDirection {
+    Alternate,
+    AlternateReverse,
+    Normal,
+    Reverse,
+  };
+
+  public: enum class State {
+    Finish,
+    NotStarted,
+    Running,
+  };
+
+  public: struct Timing {
+    TimeSpan delay;
+    TimeSpan duration;
+    TimeSpan end_delay;
+    FillMode fill;
+    TimeSpan iteration_start;
+    double iterations;
+    PlaybackDirection direction;
+
+    Timing();
+    ~Timing() = default;
+  };
+
+  public: class Variable {
+    private: double end_value_;
+    private: double start_value_;
+
+    public: Variable(double start_value, double end_value);
+    public: ~Variable() = default;
+
+    public: double end_value() const { return end_value_; }
+    public: double start_value() const { return start_value_; }
+
+    DISALLOW_COPY_AND_ASSIGN(Variable);
+  };
+
+  private: Animatable* animatable_;
+  private: Time current_time_;
+  private: State state_;
+  private: Time start_time_;
+  private: Timing timing_;
+  private: std::vector<std::unique_ptr<Variable>> variables_;
+
+  public: Animation(Animatable* animatable, const Timing& timing);
+  public: ~Animation() = default;
+
+  public: Variable* CreateVariable(double start_value, double end_value);
+  public: double GetDouble(const Variable* variable) const;
+  public: void Play(Time time);
+  public: void Start(Time time);
+  public: void Stop();
+
+  DISALLOW_COPY_AND_ASSIGN(Animation);
+};
+
+Animation::Animation(Animatable* animatable, const Timing& timing)
+    : animatable_(animatable), current_time_(0), state_(State::NotStarted),
+      start_time_(0), timing_(timing) {
+}
+
+Animation::Variable* Animation::CreateVariable(double start_value,
+                                               double end_value) {
+  variables_.push_back(std::make_unique<Variable>(start_value, end_value));
+  return variables_.back().get();
+}
+
+double Animation::GetDouble(const Variable* variable) const {
+  DCHECK_EQ(state_, State::Running);
+  auto const time = current_time_ - start_time_ - timing_.delay;
+  auto const duration = timing_.duration - timing_.delay - timing_.end_delay;
+  auto const scale = time / duration;
+  auto const span = variable->end_value() - variable->start_value();
+  return variable->start_value() + span * scale;
+}
+
+void Animation::Play(Time current_time) {
+  if (state_ != State::Running)
+    return;
+  current_time_ = current_time;
+  if (current_time_ < start_time_ + timing_.delay)
+    return;
+  animatable_->DidFireAnimationTimer();
+  if (current_time < start_time_ + timing_.duration)
+    return;
+  animatable_->DidFinishAnimation();
+  state_ = State::NotStarted;
+}
+
+void Animation::Start(Time time) {
+  DCHECK_EQ(state_, State::NotStarted);
+  state_ = State::Running;
+  start_time_ = time;
+  current_time_ = time;
+}
+
+void Animation::Stop() {
+  Play(start_time_ + timing_.delay + timing_.duration);
+}
+
+//////////////////////////////////////////////////////////////////////
+//
+// Animation::Timing
+//
+Animation::Timing::Timing()
+    : delay(0), duration(0), end_delay(0), fill(FillMode::None),
+      iteration_start(0), iterations(0), direction(PlaybackDirection::Normal) {
+}
+
+//////////////////////////////////////////////////////////////////////
+//
+// Animation::Variable
+//
+Animation::Variable::Variable(double start_value, double end_value)
+    : end_value_(end_value), start_value_(start_value) {
+}
+
+}  // namespace ui
+
 namespace cc {
+
+class Layer;
 
 //////////////////////////////////////////////////////////////////////
 //
 // Factory
 //
-// This class is a singleton class provids:
+// This class is a singleton class provides:
 //  - D2D1Factory
 //  - D3D11 Device
 //  - Composition Device
@@ -638,6 +811,8 @@ class Factory final : public Singleton<Factory> {
   public: IDWriteFactory* dwrite() const { return dwrite_factory_; }
 
   public: ComPtr<IDCompositionDesktopDevice> CreateCompositionDevice();
+
+  DISALLOW_COPY_AND_ASSIGN(Factory);
 };
 
 Factory::Factory() {
@@ -687,7 +862,8 @@ ComPtr<IDCompositionDesktopDevice> Factory::CreateCompositionDevice() {
 //
 // cc::Layer
 //
-class Layer {
+class Layer : protected ui::Animatable {
+  private: std::unique_ptr<ui::Animation> animation_;
   private: gfx::RectF bounds_;
   private: std::vector<Layer*> child_layers_;
   private: ComPtr<ID2D1DeviceContext> d2d_device_context_;
@@ -697,7 +873,7 @@ class Layer {
   private: ComPtr<IDCompositionVisual2> visual_;
 
   public: Layer(IDCompositionDesktopDevice* composition_device);
-  public: ~Layer();
+  public: virtual ~Layer();
 
   public: operator IDCompositionVisual2*() const { return visual_; }
 
@@ -720,8 +896,19 @@ class Layer {
   public: virtual bool DoAnimate(uint32_t tick_count);
   public: void Present();
   public: void SetBounds(const gfx::RectF& new_bounds);
+  public: void ScrollSmoothly(int delta_x, int delta_y);
+
+  // LayerAnimation
+  private: virtual void DidFinishAnimation() override;
+  private: virtual void DidFireAnimationTimer() override;
+
+  DISALLOW_COPY_AND_ASSIGN(Layer);
 };
 
+//////////////////////////////////////////////////////////////////////
+//
+// Layer
+//
 Layer::Layer(IDCompositionDesktopDevice* composition_device)
     : is_active_(false), swap_chain_waitable_(nullptr) {
   COM_VERIFY(composition_device->CreateVisual(&visual_));
@@ -885,6 +1072,24 @@ void Layer::SetBounds(const gfx::RectF& new_bounds) {
     DidChangeBounds();
 }
 
+void Layer::ScrollSmoothly(int delta_x, int delta_y) {
+  if (animation_)
+    animation_->Stop();
+  ui::Animation::Timing timing;
+  timing.duration = 1000;
+  auto const animation = new ui::Animation(this, timing);
+  animation_.reset(animation);
+  animation_->Start(::GetTickCount());
+}
+
+// LayerAnimation
+void Layer::DidFinishAnimation() {
+  animation_.reset();
+}
+
+void Layer::DidFireAnimationTimer() {
+}
+
 }  // namespace cc
 
 //////////////////////////////////////////////////////////////////////
@@ -924,6 +1129,8 @@ class Window {
   protected: virtual void WillDestroy();
   private: static LRESULT CALLBACK WindowProc(HWND hwnd, UINT message,
                                               WPARAM wParam, LPARAM lParam);
+
+  DISALLOW_COPY_AND_ASSIGN(Window);
 };
 
 //////////////////////////////////////////////////////////////////////
@@ -1056,6 +1263,8 @@ class Animator {
   protected: virtual ~Animator() = default;
 
   public: virtual void DoAnimate() = 0;
+
+  DISALLOW_COPY_AND_ASSIGN(Animator);
 };
 
 //////////////////////////////////////////////////////////////////////
@@ -1073,6 +1282,7 @@ class Scheduler final : public Singleton<Scheduler> {
 
   private: static void CALLBACK TimerProc(HWND hwnd, UINT message,
                                           UINT_PTR timer_id, DWORD time);
+  DISALLOW_COPY_AND_ASSIGN(Scheduler);
 };
 
 Scheduler::Scheduler() {
@@ -1117,6 +1327,8 @@ class Sampling {
   public: void AddSample(float);
   public: void Paint(ID2D1RenderTarget* canvas, const gfx::Brush& brush,
                      const gfx::RectF& bounds) const;
+
+  DISALLOW_COPY_AND_ASSIGN(Sampling);
 };
 
 Sampling::Sampling(size_t max_samples) :
@@ -1183,6 +1395,8 @@ class Card : public cc::Layer {
   // cc::Layer
   private: virtual void DidChangeBounds() override;
   private: virtual void DidInactive() override;
+
+  DISALLOW_COPY_AND_ASSIGN(Card);
 };
 
 Card::Card(IDCompositionDesktopDevice* composition_device)
@@ -1274,6 +1488,8 @@ class CartoonCard : public Card {
 
   // cc::Layer
   private: virtual bool DoAnimate(uint32_t tick_count) override;
+
+  DISALLOW_COPY_AND_ASSIGN(CartoonCard);
 };
 
 //////////////////////////////////////////////////////////////////////
@@ -1427,6 +1643,8 @@ class StatusLayer : public cc::Layer {
   public: virtual ~StatusLayer();
 
   private: virtual bool DoAnimate(uint32_t tick_count) override;
+
+  DISALLOW_COPY_AND_ASSIGN(StatusLayer);
 };
 
 StatusLayer::StatusLayer(IDCompositionDesktopDevice* composition_device)
@@ -1547,6 +1765,8 @@ class MyApp : public Window, private Animator {
   private: virtual LRESULT OnMessage(UINT message, WPARAM wParam,
                                      LPARAM lParam) override;
   private: virtual void WillDestroy() override;
+
+  DISALLOW_COPY_AND_ASSIGN(MyApp);
 };
 
 MyApp::MyApp() : last_animate_tick_(0) {
