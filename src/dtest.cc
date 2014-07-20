@@ -195,6 +195,8 @@ template<class T> class ComPtr {
     return *this;
   }
 
+  public: ComPtr& operator=(T* ptr) = delete;
+
   public: T* get() const { return ptr_; }
 
   public: void** location() {
@@ -1001,11 +1003,8 @@ ComPtr<ID2D1DeviceContext> Layer::CreateD2DDeviceContext(
 }
 
 ComPtr<IDXGISwapChain2> Layer::CreateSwapChain(int width, int height) {
-  ComPtr<IDXGIDevice> dxgi_device;
-  COM_VERIFY(dxgi_device.QueryFrom(Factory::instance()->dxgi_device()));
-
   ComPtr<IDXGIAdapter> dxgi_adapter;
-  dxgi_device->GetAdapter(&dxgi_adapter);
+  Factory::instance()->dxgi_device()->GetAdapter(&dxgi_adapter);
 
   ComPtr<IDXGIFactory2> dxgi_factory;
   dxgi_adapter->GetParent(IID_PPV_ARGS(&dxgi_factory));
