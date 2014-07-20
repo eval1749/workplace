@@ -32,6 +32,7 @@
 #pragma comment(lib, "dcomp.lib")
 #pragma comment(lib, "dwmapi.lib")
 #pragma comment(lib, "dwrite.lib")
+#pragma comment(lib, "dxguid.lib")
 #pragma comment(lib, "gdi32.lib")
 #pragma comment(lib, "ole32.lib")
 #pragma comment(lib, "user32.lib")
@@ -1449,10 +1450,21 @@ void Sampling::Paint(ID2D1RenderTarget* canvas, const gfx::Brush& brush,
 
 //////////////////////////////////////////////////////////////////////
 //
+// BoxShadow
+//
+struct BoxShadow {
+  gfx::SizeF offset;
+  float blur_radius;
+  gfx::ColorF color;
+};
+
+//////////////////////////////////////////////////////////////////////
+//
 // Card
 //
 class Card : public cc::Layer {
   private: gfx::RectF content_bounds_;
+  std::vector<BoxShadow> shadows_;
   private: gfx::SizeF shadow_size_;
 
   protected: Card(IDCompositionDesktopDevice* composition_device);
@@ -1460,7 +1472,7 @@ class Card : public cc::Layer {
 
   public: const gfx::RectF& content_bounds() const { return content_bounds_; }
 
-  protected: void PaintBackground(ID2D1RenderTarget* canvas) const;
+  protected: void PaintBackground(ID2D1DeviceContext* canvas) const;
 
   // cc::Layer
   protected: virtual void DidChangeBounds() override;
@@ -1470,15 +1482,54 @@ class Card : public cc::Layer {
 };
 
 Card::Card(IDCompositionDesktopDevice* composition_device)
-    : Layer(composition_device), shadow_size_(10.0f, 10.0f) {
+    : Layer(composition_device) {
+  // Below values are obtained from
+  // http://www.polymer-project.org/tools/designer/
+  shadows_ = {
+    {gfx::SizeF(0.0f, 2.0f), 4.0f, gfx::ColorF(0, 0, 0, 0.098f)},
+    {gfx::SizeF(0.0f, 0.0f), 3.0f, gfx::ColorF(0, 0, 0, 0.098f)}
+  };
+  for (const auto& shadow : shadows_) {
+    shadow_size_.set_width(std::max(shadow_size_.width(),
+        shadow.offset.width() + shadow.blur_radius * 2));
+    shadow_size_.set_height(std::max(shadow_size_.height(),
+        shadow.offset.height() + shadow.blur_radius * 2));
+  }
 }
 
-void Card::PaintBackground(ID2D1RenderTarget* canvas) const {
+void Card::PaintBackground(ID2D1DeviceContext* canvas) const {
+  auto const radius = 2.0f;
   canvas->Clear(gfx::ColorF(gfx::ColorF::White, 0.0f));
-  const auto shadow_bounds = content_bounds().Offset(shadow_size_);
-  canvas->FillRoundedRectangle(D2D1::RoundedRect(shadow_bounds, 2.0f, 2.0f),
-                               gfx::Brush(canvas, gfx::ColorF::Black, 0.1f));
-  canvas->FillRoundedRectangle(D2D1::RoundedRect(content_bounds(), 2.0f, 2.0f),
+
+  ComPtr<ID2D1BitmapRenderTarget> canvas2;
+  COM_VERIFY(canvas->CreateCompatibleRenderTarget(&canvas2));
+
+  ComPtr<ID2D1Effect> blur_effect;
+  COM_VERIFY(canvas->CreateEffect(CLSID_D2D1GaussianBlur, &blur_effect));
+
+  for (const auto& shadow : shadows_) {
+    const auto shadow_size = gfx::SizeF(shadow.blur_radius,
+                                        shadow.blur_radius);
+    const auto shadow_bounds = gfx::RectF(
+       content_bounds().origin() + shadow.offset,
+       content_bounds().size());// + shadow_size);
+    ComPtr<ID2D1Bitmap> bitmap;
+    canvas2->BeginDraw();
+    canvas2->Clear(gfx::ColorF(0, 0, 0, 0));
+    canvas2->FillRoundedRectangle(
+         D2D1::RoundedRect(shadow_bounds, radius, radius),
+         gfx::Brush(canvas2, shadow.color));
+    COM_VERIFY(canvas2->EndDraw());
+    COM_VERIFY(canvas2->GetBitmap(&bitmap));
+    blur_effect->SetInput(0, bitmap);
+    COM_VERIFY(blur_effect->SetValue(D2D1_GAUSSIANBLUR_PROP_STANDARD_DEVIATION,
+                                     shadow.blur_radius));
+    canvas->DrawImage(blur_effect, gfx::PointF());
+    COM_VERIFY(canvas->Flush());
+  }
+
+  canvas->FillRoundedRectangle(D2D1::RoundedRect(content_bounds(),
+                                                 radius, radius),
                                gfx::Brush(canvas, gfx::ColorF::White));
 }
 
@@ -1517,7 +1568,7 @@ void Card::DidInactive() {
   canvas->BeginDraw();
 
   canvas->FillRectangle(bounds,
-    gfx::Brush(canvas, gfx::ColorF(gfx::ColorF::Black, 0.6f)));
+    gfx::Brush(canvas, gfx::ColorF(gfx::ColorF::Black, 0.4f)));
 
   gfx::Brush text_brush(canvas, gfx::ColorF(gfx::ColorF::White, 0.9f));
   canvas->DrawTextLayout(text_origin, text_layout, text_brush);
@@ -1719,7 +1770,7 @@ void CartoonCard::Ball::DoAnimate(ID2D1RenderTarget* canvas,
       gfx::Brush(canvas, gfx::ColorF(gfx::ColorF::Green, 0.7f)));
 
   canvas->SetTransform(D2D1::IdentityMatrix());
-  canvas->Flush();
+  COM_VERIFY(canvas->Flush());
 }
 
 void CartoonCard::Ball::DidColision(const Ball& other) {
@@ -1817,7 +1868,7 @@ bool StatusLayer::DoAnimate(uint32_t tick_count) {
       L" " << sample_last_frame_.maximum() <<
       L" " << sample_last_frame_.last() << std::endl;
   stream << L"CurrentTime=" << sample_duration_.minimum() <<
-      L" " << sample_duration_.minimum() <<
+      L" " << sample_duration_.maximum() <<
       L" " << sample_duration_.last() << std::endl;
   stream << L"NextFrame=" << sample_next_frame_.minimum() <<
       L" " << sample_next_frame_.maximum() <<
