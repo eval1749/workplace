@@ -491,8 +491,8 @@ class RectF final {
   public: RectF(const RectF& other);
   public: RectF(const D2D1_RECT_F& rect);
   public: RectF(float left, float top, float right, float bottom);
-  public: RectF(const PointF& left_top, const PointF& right_bottom);
-  public: RectF(const PointF& left_top, const SizeF& size);
+  public: RectF(const PointF& origin, const PointF& bottom_right);
+  public: RectF(const PointF& origin, const SizeF& size);
   public: RectF();
 
   public: operator const D2D1_RECT_F&() const { return rect_; }
@@ -510,16 +510,19 @@ class RectF final {
   public: bool operator!=(const RectF& other) const;
 
   public: float bottom() const { return rect_.bottom; }
+  public: PointF bottom_right() const { return PointF(right(), bottom()); }
   public: float left() const { return rect_.left; }
-  public: PointF left_top() const { return PointF(left(), top()); }
   public: float height() const { return rect_.bottom - rect_.top; }
+  public: PointF origin() const { return PointF(left(), top()); }
+  public: void set_origin(const gfx::PointF& origin);
   public: float right() const { return rect_.right; }
-  public: PointF right_bottom() const { return PointF(right(), bottom()); }
   public: SizeF size() const { return SizeF(width(), height()); }
+  public: void set_size(const gfx::SizeF& size);
   public: float top() const { return rect_.top; }
   public: float width() const { return rect_.right - rect_.left; }
 
-  public: RectF Shift(const SizeF& size) const;
+  // Move the rectangle by horizontal and vertical distance.
+  public: RectF Offset(const SizeF& size) const;
 };
 
 RectF::RectF(const RectF& other) : rect_(other.rect_) {
@@ -535,12 +538,12 @@ RectF::RectF(float left, float top, float right, float bottom) {
   rect_.bottom = bottom;
 }
 
-RectF::RectF(const PointF& left_top, const PointF& right_bottom)
-    : RectF(left_top.x(), left_top.y(), right_bottom.x(), right_bottom.y()) {
+RectF::RectF(const PointF& origin, const PointF& bottom_right)
+    : RectF(origin.x(), origin.y(), bottom_right.x(), bottom_right.y()) {
 }
 
-RectF::RectF(const PointF& left_top, const SizeF& size)
-    : RectF(left_top, left_top + size) {
+RectF::RectF(const PointF& origin, const SizeF& size)
+    : RectF(origin, origin + size) {
 }
 
 RectF::RectF() : RectF(0.0f, 0.0f, 0.0f, 0.0f) {
@@ -590,8 +593,21 @@ bool RectF::operator!=(const RectF& other) const {
   return !operator==(other);
 }
 
-RectF RectF::Shift(const SizeF& size) const {
-  return gfx::RectF(left_top() + size, this->size());
+RectF RectF::Offset(const SizeF& size) const {
+  return gfx::RectF(origin() + size, this->size());
+}
+
+void RectF::set_origin(const PointF& new_origin){
+  auto const size = this->size();
+  rect_.left = new_origin.x();
+  rect_.top = new_origin.y();
+  rect_.right = rect_.left + size.width();
+  rect_.bottom = rect_.top + size.height();
+}
+
+void RectF::set_size(const SizeF& new_size) {
+  rect_.right = rect_.left + new_size.width();
+  rect_.bottom = rect_.top + new_size.height();
 }
 
 }  // namespace gfx
@@ -699,10 +715,11 @@ class Layer {
       IDXGISwapChain2* swap_chain, int width, int height);
   private: ComPtr<IDXGISwapChain2> CreateSwapChain(int width, int height);
   public: virtual void DidActive();
+  protected: virtual void DidChangeBounds();
   public: virtual void DidInactive();
   public: virtual bool DoAnimate(uint32_t tick_count);
   public: void Present();
-  public: void SetBounds(const gfx::RectF& bounds);
+  public: void SetBounds(const gfx::RectF& new_bounds);
 };
 
 Layer::Layer(IDCompositionDesktopDevice* composition_device)
@@ -811,6 +828,9 @@ void Layer::DidActive() {
   }
 }
 
+void Layer::DidChangeBounds() {
+}
+
 void Layer::DidInactive() {
   if (!is_active_)
     return;
@@ -833,21 +853,36 @@ void Layer::Present() {
   COM_VERIFY(swap_chain_->Present1(1, 0, &present_params));
 }
 
-void Layer::SetBounds(const gfx::RectF& bounds) {
-  COM_VERIFY(visual_->SetOffsetX(bounds.left()));
-  COM_VERIFY(visual_->SetOffsetY(bounds.top()));
+void Layer::SetBounds(const gfx::RectF& new_bounds) {
+  auto changed = false;
+  if (bounds_.left() != new_bounds.left()) {
+    COM_VERIFY(visual_->SetOffsetX(new_bounds.left()));
+    bounds_.set_origin(gfx::PointF(new_bounds.left(), bounds_.top()));
+    changed = true;
+  }
+  if (bounds_.top () != new_bounds.top()) {
+    COM_VERIFY(visual_->SetOffsetY(new_bounds.top()));
+    bounds_.set_origin(gfx::PointF(bounds_.left(), new_bounds.top()));
+    changed = true;
+  }
 
-  bounds_ = gfx::RectF(gfx::PointF(), bounds.size());
+  if (bounds_.size() != new_bounds.size()) {
+    bounds_.set_size(new_bounds.size());
 
-  auto const width = static_cast<int>(bounds.width());
-  auto const height = static_cast<int>(bounds.height());
+    auto const width = static_cast<int>(new_bounds.width());
+    auto const height = static_cast<int>(new_bounds.height());
 
-  swap_chain_.reset(CreateSwapChain(width, height));
-  swap_chain_.MustBeNoOtherUse();
-  swap_chain_waitable_ = swap_chain_->GetFrameLatencyWaitableObject();
-  COM_VERIFY(visual_->SetContent(swap_chain_));
-  d2d_device_context_ = CreateD2DDeviceContext(swap_chain_, width, height);
-  d2d_device_context_.MustBeNoOtherUse();
+    swap_chain_.reset(CreateSwapChain(width, height));
+    swap_chain_.MustBeNoOtherUse();
+    swap_chain_waitable_ = swap_chain_->GetFrameLatencyWaitableObject();
+    COM_VERIFY(visual_->SetContent(swap_chain_));
+    d2d_device_context_ = CreateD2DDeviceContext(swap_chain_, width, height);
+    d2d_device_context_.MustBeNoOtherUse();
+    changed = true;
+  }
+
+  if (changed)
+    DidChangeBounds();
 }
 
 }  // namespace cc
@@ -1135,17 +1170,18 @@ void Sampling::Paint(ID2D1RenderTarget* canvas, const gfx::Brush& brush,
 // Card
 //
 class Card : public cc::Layer {
-  private: mutable gfx::RectF content_bounds_;
+  private: gfx::RectF content_bounds_;
   private: gfx::SizeF shadow_size_;
 
   protected: Card(IDCompositionDesktopDevice* composition_device);
   protected: virtual ~Card() = default;
 
-  public: gfx::RectF& content_bounds() const;
+  public: const gfx::RectF& content_bounds() const { return content_bounds_; }
 
   protected: void PaintBackground(ID2D1RenderTarget* canvas) const;
 
   // cc::Layer
+  private: virtual void DidChangeBounds() override;
   private: virtual void DidInactive() override;
 };
 
@@ -1153,15 +1189,9 @@ Card::Card(IDCompositionDesktopDevice* composition_device)
     : Layer(composition_device), shadow_size_(10.0f, 10.0f) {
 }
 
-gfx::RectF& Card::content_bounds() const {
-  content_bounds_ = gfx::RectF(bounds().left_top(),
-                               bounds().size() - shadow_size_);
-  return content_bounds_;
-}
-
 void Card::PaintBackground(ID2D1RenderTarget* canvas) const {
   canvas->Clear(D2D1::ColorF(D2D1::ColorF::White, 0.0f));
-  const auto shadow_bounds = content_bounds().Shift(shadow_size_);
+  const auto shadow_bounds = content_bounds().Offset(shadow_size_);
   canvas->FillRoundedRectangle(D2D1::RoundedRect(shadow_bounds, 2.0f, 2.0f),
                                gfx::Brush(canvas, D2D1::ColorF::Black, 0.1f));
   canvas->FillRoundedRectangle(D2D1::RoundedRect(content_bounds(), 2.0f, 2.0f),
@@ -1169,6 +1199,10 @@ void Card::PaintBackground(ID2D1RenderTarget* canvas) const {
 }
 
 // cc::Layer
+void Card::DidChangeBounds() {
+  content_bounds_.set_size(bounds().size() - shadow_size_);
+}
+
 void Card::DidInactive() {
   Layer::DidInactive();
 
@@ -1325,16 +1359,16 @@ bool CartoonCard::DoAnimate(uint32_t tick_count) {
 // CartoonCard::Ball
 //
 CartoonCard::Ball::Ball(float angle, float size,
-                         const gfx::PointF& center,
-                         const gfx::PointF& motion, uint32_t tick_count)
+                        const gfx::PointF& center,
+                        const gfx::PointF& motion, uint32_t tick_count)
     : angle_(angle), center_(center), motion_(motion), size_(size),
       tick_count_(tick_count) {
   motion_ = 1.0f;
 }
 
 void CartoonCard::Ball::DoAnimate(ID2D1RenderTarget* canvas,
-                                   const gfx::RectF& bounds,
-                                   uint32_t tick_count) {
+                                  const gfx::RectF& bounds,
+                                  uint32_t tick_count) {
   if (tick_count_ == tick_count)
     return;
   auto const tick_delta = std::max((tick_count - tick_count_) / 16, 1u);
@@ -1367,7 +1401,7 @@ void CartoonCard::Ball::DoAnimate(ID2D1RenderTarget* canvas,
   auto const rect_size = size_ * 0.5f;
   canvas->FillRectangle(
       gfx::RectF(center_.x() - rect_size, center_.y() - rect_size,
-                  center_.x() + rect_size, center_.y() + rect_size),
+                 center_.x() + rect_size, center_.y() + rect_size),
       gfx::Brush(canvas, D2D1::ColorF(D2D1::ColorF::Green, 0.7f)));
 
   canvas->SetTransform(D2D1::IdentityMatrix());
@@ -1438,19 +1472,19 @@ bool StatusLayer::DoAnimate(uint32_t tick_count) {
   sample_duration_.Paint(canvas,
       gfx::Brush(canvas, D2D1::ColorF(D2D1::ColorF::Red, 0.5f)),
       gfx::RectF(gfx::PointF(bounds().left(), bounds().bottom() - 20),
-                 bounds().right_bottom()));
+                 bounds().bottom_right()));
   sample_last_frame_.Paint(canvas,
       gfx::Brush(canvas, D2D1::ColorF(D2D1::ColorF::Yellow, 0.5f)),
       gfx::RectF(gfx::PointF(bounds().left(), bounds().bottom() - 40),
-                 bounds().right_bottom() - gfx::SizeF(0, 20)));
+                 bounds().bottom_right() - gfx::SizeF(0, 20)));
   sample_last_frame_.Paint(canvas,
       gfx::Brush(canvas, D2D1::ColorF(D2D1::ColorF::Blue, 0.5f)),
       gfx::RectF(gfx::PointF(bounds().left(), bounds().bottom() - 60),
-                 bounds().right_bottom() - gfx::SizeF(0, 40)));
+                 bounds().bottom_right() - gfx::SizeF(0, 40)));
   sample_tick_.Paint(canvas,
       gfx::Brush(canvas, D2D1::ColorF(D2D1::ColorF::White, 0.5f)),
       gfx::RectF(gfx::PointF(bounds().left(), bounds().bottom() - 80),
-                 bounds().right_bottom() - gfx::SizeF(0, 60)));
+                 bounds().bottom_right() - gfx::SizeF(0, 60)));
 
   // Samples values
   std::basic_ostringstream<base::char16> stream;
@@ -1667,6 +1701,17 @@ LRESULT MyApp::OnMessage(UINT message, WPARAM wParam, LPARAM lParam) {
       ::FillRect(hdc, &ps.rcPaint,
                  static_cast<HBRUSH>(::GetStockObject(BLACK_BRUSH)));
       ::EndPaint(*this, &ps);
+      return 1;
+    }
+    case WM_MOUSEWHEEL: {
+      auto const delta = GET_WHEEL_DELTA_WPARAM(wParam);
+      auto const origin = root_layer_->bounds().origin();
+      auto const size = root_layer_->bounds().size();
+      if (delta > 0)
+        root_layer_->SetBounds(gfx::RectF(origin + gfx::SizeF(0, 10), size));
+      else
+        root_layer_->SetBounds(gfx::RectF(origin + gfx::SizeF(0, -10), size));
+      composition_device_->Commit();
       return 1;
     }
   }
