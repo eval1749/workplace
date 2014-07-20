@@ -484,7 +484,6 @@ PointF& PointF::operator+=(float new_value) {
   return *this;
 }
 
-
 PointF& PointF::operator-=(const SizeF& size) {
   point_.x -= size.width();
   point_.y -= size.height();
@@ -1512,7 +1511,7 @@ void Card::PaintBackground(ID2D1DeviceContext* canvas) const {
                                         shadow.blur_radius);
     const auto shadow_bounds = gfx::RectF(
        content_bounds().origin() + shadow.offset,
-       content_bounds().size());// + shadow_size);
+       content_bounds().size());
     ComPtr<ID2D1Bitmap> bitmap;
     canvas2->BeginDraw();
     canvas2->Clear(gfx::ColorF(0, 0, 0, 0));
@@ -2201,7 +2200,6 @@ void DemoApp::Animation::SetValues1(double start, double end) {
   DCHECK(!variable1_);
   variable1_.reset(animation_->CreateVariable(start, end));
 }
-
 
 }  // namespace my
 
