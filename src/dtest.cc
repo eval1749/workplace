@@ -141,7 +141,10 @@ LARGE_INTEGER operator/(const LARGE_INTEGER& large1,
 //
 template<class T> class ComPtr {
   private: T* ptr_;
-  public: explicit ComPtr(T* ptr = nullptr) : ptr_(ptr) {}
+  public: explicit ComPtr(T* ptr = nullptr) : ptr_(ptr) {
+    if (ptr_)
+      ptr_->AddRef();
+  }
   public: explicit ComPtr(T& ptr) : ptr_(&ptr) {}
   public: ComPtr(const ComPtr& other) : ptr_(other.ptr_) {
     if (ptr_)
@@ -226,7 +229,7 @@ template<class T> class ComPtr {
   public: void MustBeNoOtherUse() {
     auto const ref_count = ptr_->AddRef();
     ptr_->Release();
-    DCHECK(ref_count == 2);
+    DCHECK_EQ(ref_count, 2);
   }
 
   public: HRESULT QueryFrom(IUnknown* other) {
@@ -245,13 +248,18 @@ class ComInitializer {
 
 class SingletonBase {
   protected: SingletonBase() = default;
-  protected: ~SingletonBase() = default;
+  public: virtual ~SingletonBase() = default;
+
+  DISALLOW_COPY_AND_ASSIGN(SingletonBase);
 };
 
 std::vector<SingletonBase*>* all_singletons;
 
 template<class T>
 class Singleton : public SingletonBase {
+  protected: Singleton() = default;
+  protected: ~Singleton() = default;
+
   public: static T* instance() {
     static T* instance;
     if (!instance) {
@@ -260,6 +268,8 @@ class Singleton : public SingletonBase {
     }
     return instance;
   }
+
+  DISALLOW_COPY_AND_ASSIGN(Singleton);
 };
 
 #define DECLARE_SINGLETON_CLASS(name) \
@@ -803,8 +813,8 @@ class Factory final : public Singleton<Factory> {
   private: ComPtr<ID3D11Device> d3d_device_;
   private: ComPtr<IDWriteFactory> dwrite_factory_;
 
-  public: Factory();
-  public: ~Factory();
+  private: Factory();
+  private: virtual ~Factory();
 
   public: ID2D1Factory1* d2d_factory() const { return d2d_factory_; }
   public: ID3D11Device* d3d_device() const { return d3d_device_; }
@@ -843,8 +853,8 @@ Factory::Factory() {
 }
 
 Factory::~Factory(){
-  d2d_factory_.MustBeNoOtherUse();
-  d3d_device_.MustBeNoOtherUse();
+  d2d_factory_.reset();
+  d3d_device_.reset();
 }
 
 ComPtr<IDCompositionDesktopDevice> Factory::CreateCompositionDevice() {
@@ -919,6 +929,7 @@ Layer::Layer(IDCompositionDesktopDevice* composition_device)
 
 Layer::~Layer() {
   visual_->SetContent(nullptr);
+  visual_->RemoveAllVisuals();
   d2d_device_context_.MustBeNoOtherUse();
 }
 
@@ -1275,7 +1286,7 @@ class Scheduler final : public Singleton<Scheduler> {
   private: std::unordered_set<Animator*> animators_;
 
   public: Scheduler();
-  public: ~Scheduler();
+  public: virtual ~Scheduler();
 
   public: void Add(Animator* animator);
   private: void DidFireTimer();
@@ -1816,19 +1827,29 @@ void MyApp::DidActive() {
   root_layer_->DidActive();
 }
 
+// Build visual tree and set composition target to this window.
 void MyApp::DidCreate() {
   Window::DidCreate();
+
   composition_device_ = cc::Factory::instance()->CreateCompositionDevice();
+  composition_device_.MustBeNoOtherUse();
+
+  // Build visual tree
   root_layer_.reset(new cc::Layer(composition_device_));
+
   cartoon_layer_.reset(new CartoonCard(composition_device_));
-  status_layer_.reset(new StatusLayer(composition_device_));
-  root_layer_->AppendChild(status_layer_.get());
   root_layer_->AppendChild(cartoon_layer_.get());
 
+  status_layer_.reset(new StatusLayer(composition_device_));
+  root_layer_->AppendChild(status_layer_.get());
+
+  // Set composition target to this window.
   COM_VERIFY(composition_device_->CreateTargetForHwnd(
       *this, true, &composition_target_));
+  composition_target_.MustBeNoOtherUse();
   COM_VERIFY(composition_target_->SetRoot(root_layer_->visual()));
 
+  // Setup visual tree bounds
   DidResize();
 }
 
@@ -1847,7 +1868,7 @@ void MyApp::DidResize() {
   root_layer_->SetBounds(gfx::RectF(gfx::PointF(), gfx::SizeF(width, height)));
 
   // Resize status visual
-  {
+  if (status_layer_) {
     const gfx::SizeF status_size(240.0f, 200.0f);
     status_layer_->SetBounds(gfx::RectF(gfx::PointF(20, height / 2),
                                         status_size));
@@ -1873,6 +1894,7 @@ void MyApp::DidResize() {
                    gfx::PointF(width, height))
     };
   // Resize cartoon visual
+  if (cartoon_layer_)
     cartoon_layer_->SetBounds(pane_bounds[0]);
 
 #if 0
@@ -1961,5 +1983,8 @@ int WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
   ComInitializer com_initializer;
   MyApp my_app;
   my_app.Run();
+  for (auto const singleton : singletons) {
+    delete singleton;
+  }
   return 0;
 }
