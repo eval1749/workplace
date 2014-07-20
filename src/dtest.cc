@@ -746,7 +746,9 @@ Animation::Variable* Animation::CreateVariable(double start_value,
 
 double Animation::GetDouble(const Variable* variable) const {
   DCHECK_EQ(state_, State::Running);
-  auto const time = current_time_ - start_time_ - timing_.delay;
+  auto const max_time = start_time_ + timing_.delay + timing_.duration;
+  auto const time = std::min(current_time_ - start_time_ - timing_.delay,
+                             max_time);
   auto const duration = timing_.duration - timing_.delay - timing_.end_delay;
   auto const scale = time / duration;
   auto const span = variable->end_value() - variable->start_value();
@@ -909,7 +911,6 @@ class Layer : protected ui::Animatable {
   public: virtual bool DoAnimate(uint32_t tick_count);
   public: void Present();
   public: void SetBounds(const gfx::RectF& new_bounds);
-  public: void ScrollSmoothly(int delta_x, int delta_y);
 
   // LayerAnimation
   private: virtual void DidFinishAnimation() override;
@@ -1089,16 +1090,6 @@ void Layer::SetBounds(const gfx::RectF& new_bounds) {
 
   if (changed)
     DidChangeBounds();
-}
-
-void Layer::ScrollSmoothly(int delta_x, int delta_y) {
-  if (animation_)
-    animation_->Stop();
-  ui::Animation::Timing timing;
-  timing.duration = 1000;
-  auto const animation = new ui::Animation(this, timing);
-  animation_.reset(animation);
-  animation_->Start(::GetTickCount());
 }
 
 // LayerAnimation
