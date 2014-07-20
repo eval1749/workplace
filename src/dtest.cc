@@ -1102,6 +1102,8 @@ void Layer::DidFireAnimationTimer() {
 
 }  // namespace cc
 
+namespace ui {
+
 //////////////////////////////////////////////////////////////////////
 //
 // Window
@@ -1316,6 +1318,10 @@ void Scheduler::DidFireTimer() {
 void CALLBACK Scheduler::TimerProc(HWND, UINT, UINT_PTR, DWORD) {
   Scheduler::instance()->DidFireTimer();
 }
+
+}  // namespace ui
+
+namespace my {
 
 //////////////////////////////////////////////////////////////////////
 //
@@ -1749,9 +1755,9 @@ bool StatusLayer::DoAnimate(uint32_t tick_count) {
 
 //////////////////////////////////////////////////////////////////////
 //
-// MyApp
+// DemoApp
 //
-class MyApp : public Window, private Animator {
+class DemoApp : public ui::Window, private ui::Animator {
   private: ComPtr<IDCompositionDesktopDevice> composition_device_;
   private: ComPtr<IDCompositionTarget> composition_target_;
   private: uint32_t last_animate_tick_;
@@ -1759,15 +1765,15 @@ class MyApp : public Window, private Animator {
   private: std::unique_ptr<cc::Layer> root_layer_;
   private: std::unique_ptr<StatusLayer> status_layer_;
 
-  public: MyApp();
-  public: virtual ~MyApp();
+  public: DemoApp();
+  public: virtual ~DemoApp();
 
   public: void Run();
 
-  // Animator
+  // ui::Animator
   private: virtual void DoAnimate() override;
 
-  // Window
+  // ui::Window
   private: virtual void DidActive() override;
   private: virtual void DidCreate() override;
   private: virtual void DidInactive() override;
@@ -1776,16 +1782,16 @@ class MyApp : public Window, private Animator {
                                      LPARAM lParam) override;
   private: virtual void WillDestroy() override;
 
-  DISALLOW_COPY_AND_ASSIGN(MyApp);
+  DISALLOW_COPY_AND_ASSIGN(DemoApp);
 };
 
-MyApp::MyApp() : last_animate_tick_(0) {
+DemoApp::DemoApp() : last_animate_tick_(0) {
 }
 
-MyApp::~MyApp() {
+DemoApp::~DemoApp() {
 }
 
-void MyApp::Run() {
+void DemoApp::Run() {
   float dpi_x, dpi_y;
   cc::Factory::instance()->d2d_factory()->GetDesktopDpi(&dpi_x, &dpi_y);
 
@@ -1805,12 +1811,12 @@ void MyApp::Run() {
   if (!hwnd)
     return;
   ::ShowWindow(hwnd, SW_SHOWNORMAL);
-  Scheduler::instance()->Add(this);
-  Window::Run();
+  ui::Scheduler::instance()->Add(this);
+  ui::Window::Run();
 }
 
 // Animator
-void MyApp::DoAnimate() {
+void DemoApp::DoAnimate() {
   auto const tick_count = ::GetTickCount();
   auto const delta = tick_count - last_animate_tick_;
   auto const kBackgroundAnimate = 100;
@@ -1821,14 +1827,14 @@ void MyApp::DoAnimate() {
 }
 
 // Window
-void MyApp::DidActive() {
-  Window::DidActive();
+void DemoApp::DidActive() {
+  ui::Window::DidActive();
   root_layer_->DidActive();
 }
 
 // Build visual tree and set composition target to this window.
-void MyApp::DidCreate() {
-  Window::DidCreate();
+void DemoApp::DidCreate() {
+  ui::Window::DidCreate();
 
   composition_device_ = cc::Factory::instance()->CreateCompositionDevice();
   composition_device_.MustBeNoOtherUse();
@@ -1852,11 +1858,11 @@ void MyApp::DidCreate() {
   DidResize();
 }
 
-void MyApp::DidInactive() {
+void DemoApp::DidInactive() {
   root_layer_->DidInactive();
 }
 
-void MyApp::DidResize() {
+void DemoApp::DidResize() {
   auto const width = bounds().right - bounds().left;
   auto const height = bounds().bottom - bounds().top;
 
@@ -1924,7 +1930,7 @@ void MyApp::DidResize() {
   composition_device_->Commit();
 }
 
-LRESULT MyApp::OnMessage(UINT message, WPARAM wParam, LPARAM lParam) {
+LRESULT DemoApp::OnMessage(UINT message, WPARAM wParam, LPARAM lParam) {
   switch (message) {
     case WM_ACTIVATE: {
         MARGINS margins;
@@ -1956,10 +1962,10 @@ LRESULT MyApp::OnMessage(UINT message, WPARAM wParam, LPARAM lParam) {
       return 1;
     }
   }
-  return Window::OnMessage(message, wParam, lParam);
+  return ui::Window::OnMessage(message, wParam, lParam);
 }
 
-void MyApp::WillDestroy() {
+void DemoApp::WillDestroy() {
 #if 0
   composition_target_->SetRoot(nullptr);
   root_layer_.reset();
@@ -1968,8 +1974,10 @@ void MyApp::WillDestroy() {
   composition_target_.reset();
   composition_device_.reset();
 #endif
-  Window::WillDestroy();
+  ui::Window::WillDestroy();
 }
+
+}  // namespace my
 
 //////////////////////////////////////////////////////////////////////
 //
@@ -1980,8 +1988,8 @@ int WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
   all_singletons = &singletons;
   ::AllocConsole();
   ComInitializer com_initializer;
-  MyApp my_app;
-  my_app.Run();
+  my::DemoApp application;
+  application.Run();
   for (auto const singleton : singletons) {
     delete singleton;
   }
