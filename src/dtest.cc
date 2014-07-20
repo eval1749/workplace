@@ -276,6 +276,9 @@ class Singleton : public SingletonBase {
   friend class Singleton<name>
 
 namespace gfx {
+
+using D2D1::ColorF;
+
 //////////////////////////////////////////////////////////////////////
 //
 // Brush
@@ -283,21 +286,21 @@ namespace gfx {
 class Brush final {
   private: ComPtr<ID2D1SolidColorBrush> brush_;
 
-  public: Brush(ID2D1RenderTarget* render_target, D2D1::ColorF::Enum color,
+  public: Brush(ID2D1RenderTarget* render_target, gfx::ColorF::Enum color,
                 float alpha = 1.0f);
-  public: Brush(ID2D1RenderTarget* render_target, D2D1::ColorF color);
+  public: Brush(ID2D1RenderTarget* render_target, gfx::ColorF color);
   public: ~Brush() = default;
 
   public: operator ID2D1SolidColorBrush*() const { return brush_; }
 };
 
-Brush::Brush(ID2D1RenderTarget* render_target, D2D1::ColorF::Enum name,
+Brush::Brush(ID2D1RenderTarget* render_target, gfx::ColorF::Enum name,
              float alpha) {
-  COM_VERIFY(render_target->CreateSolidColorBrush(D2D1::ColorF(name, alpha),
+  COM_VERIFY(render_target->CreateSolidColorBrush(gfx::ColorF(name, alpha),
                                                   &brush_));
 }
 
-Brush::Brush(ID2D1RenderTarget* render_target, D2D1::ColorF color) {
+Brush::Brush(ID2D1RenderTarget* render_target, gfx::ColorF color) {
   COM_VERIFY(render_target->CreateSolidColorBrush(color, &brush_));
 }
 
@@ -928,7 +931,7 @@ Layer::Layer(IDCompositionDesktopDevice* composition_device)
 
   ComPtr<IDCompositionVisualDebug> debug_visual;
   COM_VERIFY(debug_visual.QueryFrom(visual_));
-  COM_VERIFY(debug_visual->EnableHeatMap(D2D1::ColorF(0, 255, 0, 0.5)));
+  COM_VERIFY(debug_visual->EnableHeatMap(gfx::ColorF(0, 255, 0, 0.5)));
   //COM_VERIFY(debug_visual->EnableRedrawRegions());
 }
 
@@ -1420,12 +1423,12 @@ Card::Card(IDCompositionDesktopDevice* composition_device)
 }
 
 void Card::PaintBackground(ID2D1RenderTarget* canvas) const {
-  canvas->Clear(D2D1::ColorF(D2D1::ColorF::White, 0.0f));
+  canvas->Clear(gfx::ColorF(gfx::ColorF::White, 0.0f));
   const auto shadow_bounds = content_bounds().Offset(shadow_size_);
   canvas->FillRoundedRectangle(D2D1::RoundedRect(shadow_bounds, 2.0f, 2.0f),
-                               gfx::Brush(canvas, D2D1::ColorF::Black, 0.1f));
+                               gfx::Brush(canvas, gfx::ColorF::Black, 0.1f));
   canvas->FillRoundedRectangle(D2D1::RoundedRect(content_bounds(), 2.0f, 2.0f),
-                               gfx::Brush(canvas, D2D1::ColorF::White));
+                               gfx::Brush(canvas, gfx::ColorF::White));
 }
 
 // cc::Layer
@@ -1463,9 +1466,9 @@ void Card::DidInactive() {
   canvas->BeginDraw();
 
   canvas->FillRectangle(bounds,
-    gfx::Brush(canvas, D2D1::ColorF(D2D1::ColorF::Black, 0.6f)));
+    gfx::Brush(canvas, gfx::ColorF(gfx::ColorF::Black, 0.6f)));
 
-  gfx::Brush text_brush(canvas, D2D1::ColorF(D2D1::ColorF::White, 0.9f));
+  gfx::Brush text_brush(canvas, gfx::ColorF(gfx::ColorF::White, 0.9f));
   canvas->DrawTextLayout(text_origin, text_layout, text_brush);
 
   COM_VERIFY(canvas->EndDraw());
@@ -1575,7 +1578,7 @@ bool CartoonCard::DoAnimate(uint32_t tick_count) {
       text.data(), static_cast<UINT>(text.length()), text_format_,
       content_bounds().width(), content_bounds().height(), &text_layout));
 
-  gfx::Brush text_brush(canvas, D2D1::ColorF(D2D1::ColorF::Black, 0.5f));
+  gfx::Brush text_brush(canvas, gfx::ColorF(gfx::ColorF::Black, 0.5f));
   canvas->DrawTextLayout(gfx::PointF(5.0f, 5.0f), text_layout, text_brush,
                          D2D1_DRAW_TEXT_OPTIONS_CLIP);
   COM_VERIFY(canvas->EndDraw());
@@ -1628,13 +1631,13 @@ void CartoonCard::Ball::DoAnimate(ID2D1RenderTarget* canvas,
   ellipse.radiusX = size_;
   ellipse.radiusY = size_;
   canvas->FillEllipse(ellipse,
-      gfx::Brush(canvas, D2D1::ColorF(D2D1::ColorF::Blue, 0.5)));
+      gfx::Brush(canvas, gfx::ColorF(gfx::ColorF::Blue, 0.5)));
 
   auto const rect_size = size_ * 0.5f;
   canvas->FillRectangle(
       gfx::RectF(center_.x() - rect_size, center_.y() - rect_size,
                  center_.x() + rect_size, center_.y() + rect_size),
-      gfx::Brush(canvas, D2D1::ColorF(D2D1::ColorF::Green, 0.7f)));
+      gfx::Brush(canvas, gfx::ColorF(gfx::ColorF::Green, 0.7f)));
 
   canvas->SetTransform(D2D1::IdentityMatrix());
   canvas->Flush();
@@ -1686,7 +1689,7 @@ bool StatusLayer::DoAnimate(uint32_t tick_count) {
 
   auto const canvas = d2d_device_context();
   canvas->BeginDraw();
-  canvas->Clear(D2D1::ColorF(0, 0, 0, 0.5));
+  canvas->Clear(gfx::ColorF(0, 0, 0, 0.5));
 
   // Update samples
   sample_tick_.AddSample(tick_count - last_tick_count_);
@@ -1704,19 +1707,19 @@ bool StatusLayer::DoAnimate(uint32_t tick_count) {
 
   // Paint graph
   sample_duration_.Paint(canvas,
-      gfx::Brush(canvas, D2D1::ColorF(D2D1::ColorF::Red, 0.5f)),
+      gfx::Brush(canvas, gfx::ColorF(gfx::ColorF::Red, 0.5f)),
       gfx::RectF(gfx::PointF(bounds().left(), bounds().bottom() - 20),
                  bounds().bottom_right()));
   sample_last_frame_.Paint(canvas,
-      gfx::Brush(canvas, D2D1::ColorF(D2D1::ColorF::Yellow, 0.5f)),
+      gfx::Brush(canvas, gfx::ColorF(gfx::ColorF::Yellow, 0.5f)),
       gfx::RectF(gfx::PointF(bounds().left(), bounds().bottom() - 40),
                  bounds().bottom_right() - gfx::SizeF(0, 20)));
   sample_last_frame_.Paint(canvas,
-      gfx::Brush(canvas, D2D1::ColorF(D2D1::ColorF::Blue, 0.5f)),
+      gfx::Brush(canvas, gfx::ColorF(gfx::ColorF::Blue, 0.5f)),
       gfx::RectF(gfx::PointF(bounds().left(), bounds().bottom() - 60),
                  bounds().bottom_right() - gfx::SizeF(0, 40)));
   sample_tick_.Paint(canvas,
-      gfx::Brush(canvas, D2D1::ColorF(D2D1::ColorF::White, 0.5f)),
+      gfx::Brush(canvas, gfx::ColorF(gfx::ColorF::White, 0.5f)),
       gfx::RectF(gfx::PointF(bounds().left(), bounds().bottom() - 80),
                  bounds().bottom_right() - gfx::SizeF(0, 60)));
 
@@ -1744,7 +1747,7 @@ bool StatusLayer::DoAnimate(uint32_t tick_count) {
       text.data(), static_cast<UINT>(text.length()), text_format_,
       bounds().width(), bounds().height(), &text_layout_));
 
-  gfx::Brush text_brush(canvas, D2D1::ColorF::LightGray);
+  gfx::Brush text_brush(canvas, gfx::ColorF::LightGray);
   canvas->DrawTextLayout(gfx::PointF(5.0f, 5.0f), text_layout_, text_brush,
                          D2D1_DRAW_TEXT_OPTIONS_CLIP);
 
@@ -1891,7 +1894,7 @@ void MyApp::DidResize() {
   {
     auto const canvas = root_layer_->d2d_device_context();
     canvas->BeginDraw();
-    canvas->Clear(D2D1::ColorF(0, 0, 0, 0));
+    canvas->Clear(gfx::ColorF(0, 0, 0, 0));
 
     gfx::RectF pane_bounds[2] {
         gfx::RectF(gfx::PointF(0, tab_height), gfx::PointF(width, pane_height)),
@@ -1904,10 +1907,10 @@ void MyApp::DidResize() {
 
 #if 0
     gfx::Brush white_brush(canvas,
-                            D2D1::ColorF(D2D1::ColorF::White, 0.3f));
+                            gfx::ColorF(gfx::ColorF::White, 0.3f));
 
     gfx::Brush green_brush(canvas,
-                           D2D1::ColorF(D2D1::ColorF::Green, 0.5f));
+                           gfx::ColorF(gfx::ColorF::Green, 0.5f));
 
     for (auto i = 0; i < 2; ++i) {
       canvas->FillRectangle(pane_bounds[i], white_brush);
