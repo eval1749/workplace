@@ -429,10 +429,8 @@ class PointF final {
   public: PointF operator-(const SizeF& size) const;
 
   public: PointF& operator=(float new_value);
-  public: PointF& operator+=(const PointF& other);
   public: PointF& operator+=(const SizeF& other);
   public: PointF& operator+=(float new_value);
-  public: PointF& operator-=(const PointF& other);
   public: PointF& operator-=(const SizeF& other);
   public: PointF& operator-=(float new_value);
 
@@ -443,6 +441,8 @@ class PointF final {
   public: void set_x(float new_x) { point_.x = new_x; }
   public: float y() const { return point_.y; }
   public: void set_y(float new_y) { point_.y = new_y; }
+
+  public: float Distance(const PointF& other) const;
 };
 
 PointF::PointF(const PointF& other) : point_(other.point_) {
@@ -472,12 +472,6 @@ PointF& PointF::operator=(float new_value) {
   return *this;
 }
 
-PointF& PointF::operator+=(const PointF& other) {
-  point_.x += other.point_.x;
-  point_.y += other.point_.y;
-  return *this;
-}
-
 PointF& PointF::operator+=(const SizeF& size) {
   point_.x += size.width();
   point_.y += size.height();
@@ -490,11 +484,6 @@ PointF& PointF::operator+=(float new_value) {
   return *this;
 }
 
-PointF& PointF::operator-=(const PointF& other) {
-  point_.x -= other.point_.x;
-  point_.y -= other.point_.y;
-  return *this;
-}
 
 PointF& PointF::operator-=(const SizeF& size) {
   point_.x -= size.width();
@@ -516,6 +505,12 @@ bool PointF::operator!=(const PointF& other) const {
   return !operator==(other);
 }
 
+float PointF::Distance(const PointF& other) const {
+  auto const dx = point_.x - other.point_.x;
+  auto const dy = point_.y - other.point_.y;
+  return ::sqrt(dx * dx + dy * dy);
+}
+
 //////////////////////////////////////////////////////////////////////
 //
 // RectF
@@ -534,7 +529,13 @@ class RectF final {
   public: operator D2D1_RECT_F&() { return rect_; }
 
   public: RectF operator+(const SizeF& size) const;
+  public: RectF operator+(float value) const {
+    return operator+(SizeF(value, value));
+  }
   public: RectF operator-(const SizeF& size) const;
+  public: RectF operator-(float value) const {
+    return operator-(SizeF(value, value));
+  }
 
   public: RectF& operator+=(const SizeF& size);
   public: RectF& operator+=(float new_value);
@@ -555,6 +556,8 @@ class RectF final {
   public: void set_size(const gfx::SizeF& size);
   public: float top() const { return rect_.top; }
   public: float width() const { return rect_.right - rect_.left; }
+
+  public: bool Contains(const PointF& point)const;
 
   // Move the rectangle by horizontal and vertical distance.
   public: RectF Offset(const SizeF& size) const;
@@ -591,7 +594,7 @@ RectF RectF::operator+(const SizeF& size) const {
 
 RectF RectF::operator-(const SizeF& size) const {
   return gfx::RectF(left() + size.width(), top() + size.height(),
-                    right() - size.width(), bottom() + size.height());
+                    right() - size.width(), bottom() - size.height());
 }
 
 RectF& RectF::operator+=(const SizeF& size) {
@@ -628,10 +631,6 @@ bool RectF::operator!=(const RectF& other) const {
   return !operator==(other);
 }
 
-RectF RectF::Offset(const SizeF& size) const {
-  return gfx::RectF(origin() + size, this->size());
-}
-
 void RectF::set_origin(const PointF& new_origin){
   auto const size = this->size();
   rect_.left = new_origin.x();
@@ -643,6 +642,15 @@ void RectF::set_origin(const PointF& new_origin){
 void RectF::set_size(const SizeF& new_size) {
   rect_.right = rect_.left + new_size.width();
   rect_.bottom = rect_.top + new_size.height();
+}
+
+bool RectF::Contains(const PointF& point) const {
+  return point.x() >= rect_.left && point.x() < rect_.right &&
+         point.y() >= rect_.top && point.y() < rect_.bottom;
+}
+
+RectF RectF::Offset(const SizeF& size) const {
+  return gfx::RectF(origin() + size, this->size());
 }
 
 }  // namespace gfx
@@ -1443,8 +1451,8 @@ class Card : public cc::Layer {
   protected: void PaintBackground(ID2D1RenderTarget* canvas) const;
 
   // cc::Layer
-  private: virtual void DidChangeBounds() override;
-  private: virtual void DidInactive() override;
+  protected: virtual void DidChangeBounds() override;
+  protected: virtual void DidInactive() override;
 
   DISALLOW_COPY_AND_ASSIGN(Card);
 };
@@ -1514,18 +1522,23 @@ class CartoonCard : public Card {
   private: class Ball {
     private: float angle_;
     private: gfx::PointF center_;
-    private: gfx::PointF motion_;
+    private: gfx::SizeF motion_;
     private: float size_;
     private: uint32_t tick_count_;
 
     public: Ball(float angle, float size, const gfx::PointF& center,
-                 const gfx::PointF& motion,
+                 const gfx::SizeF& motion,
                  uint32_t tick_count);
     public: ~Ball() = default;
 
+    public: const gfx::PointF& center() const { return center_; }
+    public: float size() const { return size_; }
+
+    public: void DidChangeBounds(const gfx::RectF& bounds);
     public: void DoAnimate(ID2D1RenderTarget* canvas,
                            const gfx::RectF& bounds,
                            uint32_t tick_count);
+    public: void DidColision(const Ball& other);
   };
 
   private: std::vector<std::unique_ptr<Ball>> balls_;
@@ -1537,6 +1550,7 @@ class CartoonCard : public Card {
   public: virtual ~CartoonCard();
 
   // cc::Layer
+  private: virtual void DidChangeBounds() override;
   private: virtual bool DoAnimate(uint32_t tick_count) override;
 
   DISALLOW_COPY_AND_ASSIGN(CartoonCard);
@@ -1547,21 +1561,24 @@ class CartoonCard : public Card {
 // CartoonCard
 //
 CartoonCard::CartoonCard(IDCompositionDesktopDevice* composition_device)
-    : Card(composition_device), balls_(4),
+    : Card(composition_device), balls_(5),
       last_tick_count_(::GetTickCount()) {
   last_stats_ = {0};
 
   balls_[0].reset(new Ball(0.0f, 10.0f,
-                           gfx::PointF(10, 10), gfx::PointF(1.3, 1.2),
+                           gfx::PointF(10, 10), gfx::SizeF(1.3, 1.2),
                            last_tick_count_));
   balls_[1].reset(new Ball(30.0f, 10.0f,
-                           gfx::PointF(90, 10), gfx::PointF(-2.0, 1.5),
+                           gfx::PointF(90, 10), gfx::SizeF(-2.0, 1.5),
                            last_tick_count_));
   balls_[2].reset(new Ball(90.0f, 15.0f,
-                           gfx::PointF(30, 90), gfx::PointF(1.0, -1.0),
+                           gfx::PointF(30, 90), gfx::SizeF(1.0, -1.0),
                            last_tick_count_));
   balls_[3].reset(new Ball(180.0f, 20.0f,
-                           gfx::PointF(90, 90), gfx::PointF(-1.0, -1.0),
+                           gfx::PointF(90, 90), gfx::SizeF(-1.0, -1.0),
+                           last_tick_count_));
+  balls_[4].reset(new Ball(180.0f, 13.0f,
+                           gfx::PointF(50, 50), gfx::SizeF(-1.0, -1.0),
                            last_tick_count_));
 
   auto const font_size = 13;
@@ -1571,6 +1588,13 @@ CartoonCard::CartoonCard(IDCompositionDesktopDevice* composition_device)
 }
 
 CartoonCard::~CartoonCard() {
+}
+
+void CartoonCard::DidChangeBounds() {
+  Card::DidChangeBounds();
+  for (const auto& ball : balls_) {
+    ball->DidChangeBounds(content_bounds());
+  }
 }
 
 bool CartoonCard::DoAnimate(uint32_t tick_count) {
@@ -1584,7 +1608,17 @@ bool CartoonCard::DoAnimate(uint32_t tick_count) {
   for (auto& ball : balls_) {
     ball->DoAnimate(canvas, content_bounds(), tick_count);
   }
-
+  for (auto& ball : balls_) {
+    for (auto& other : balls_) {
+      if (ball == other)
+        continue;
+      auto const distance = ball->center().Distance(other->center());
+      if (distance > ball->size() && distance > other->size())
+        continue;
+      ball->DidColision(*other);
+      break;
+    }
+  }
   DXGI_FRAME_STATISTICS stats = {0};
   // Ignore errors. |GetFrameStatistics()| returns
   // DXGI_ERROR_FRAME_STATISTICS_DISJOINT.
@@ -1626,31 +1660,33 @@ bool CartoonCard::DoAnimate(uint32_t tick_count) {
 //
 CartoonCard::Ball::Ball(float angle, float size,
                         const gfx::PointF& center,
-                        const gfx::PointF& motion, uint32_t tick_count)
+                        const gfx::SizeF& motion, uint32_t tick_count)
     : angle_(angle), center_(center), motion_(motion), size_(size),
       tick_count_(tick_count) {
   motion_ = 1.0f;
 }
 
+void CartoonCard::Ball::DidChangeBounds(const gfx::RectF& bounds) {
+  center_.set_x(std::min(center_.x(), bounds.right() - size_));
+  center_.set_y(std::min(center_.y(), bounds.bottom() - size_));
+}
+
 void CartoonCard::Ball::DoAnimate(ID2D1RenderTarget* canvas,
-                                  const gfx::RectF& bounds,
+                                  const gfx::RectF& content_bounds,
                                   uint32_t tick_count) {
   if (tick_count_ == tick_count)
     return;
+  auto const bounds = content_bounds - size_;
   auto const tick_delta = std::max((tick_count - tick_count_) / 16, 1u);
   tick_count_ = tick_count;
   for (auto count = 0u; count < tick_delta; ++count) {
     center_ += motion_;
-    if (center_.x() - size_ < bounds.left() ||
-        center_.x() + size_ > bounds.right()) {
-      motion_.set_x(-motion_.x());
-      center_ += gfx::PointF(motion_.x(), 0.0f);
-    }
-    if (center_.y() - size_ < bounds.top() ||
-        center_.y() + size_ > bounds.bottom()) {
-      motion_.set_y(-motion_.y());
-      center_ += gfx::PointF(0.0f, motion_.y());
-    }
+    if (bounds.Contains(center_))
+      continue;
+    if (center_.x() < bounds.left() || center_.x() >= bounds.right())
+      motion_.set_width(-motion_.width());
+    if (center_.y() < bounds.top() || center_.y() >= bounds.bottom())
+      motion_.set_height(-motion_.height());
   }
 
   angle_ = ::fmod(angle_ + tick_delta, 360.0f);
@@ -1672,6 +1708,12 @@ void CartoonCard::Ball::DoAnimate(ID2D1RenderTarget* canvas,
 
   canvas->SetTransform(D2D1::IdentityMatrix());
   canvas->Flush();
+}
+
+void CartoonCard::Ball::DidColision(const Ball& other) {
+  if (size() > other.size())
+    return;
+  motion_ = gfx::SizeF(-motion_.width(), -motion_.height());
 }
 
 //////////////////////////////////////////////////////////////////////
