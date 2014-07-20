@@ -2033,6 +2033,26 @@ void DemoApp::Animation::Play(ui::Animation::Time current_time) {
 
 }  // namespace my
 
+namespace {
+const GUID DXGI_DEBUG_ALL = {
+  0xe48ae283, 0xda80, 0x490b, 0x87, 0xe6, 0x43, 0xe9, 0xa9, 0xcf, 0xda, 0x8
+};
+
+void ReportLiveObjects() {
+  auto const dll = ::GetModuleHandleW(L"dxgidebug.dll");
+  if (!dll)
+    return;
+  typedef HRESULT (WINAPI  *DXGIGetDebugInterface)(REFIID riid, void **ppDebug);
+  DXGIGetDebugInterface func = reinterpret_cast<DXGIGetDebugInterface>(
+      ::GetProcAddress(dll, "DXGIGetDebugInterface"));
+  if (!func)
+    return;
+  ComPtr<IDXGIDebug> repoter;
+  COM_VERIFY(func(__uuidof(IDXGIDebug), repoter.location()));
+  repoter->ReportLiveObjects(DXGI_DEBUG_ALL, DXGI_DEBUG_RLO_ALL);
+}
+}  // namespace
+
 //////////////////////////////////////////////////////////////////////
 //
 // WinMain
@@ -2047,5 +2067,6 @@ int WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
   for (auto const singleton : singletons) {
     delete singleton;
   }
+  ReportLiveObjects();
   return 0;
 }
