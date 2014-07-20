@@ -815,15 +815,15 @@ class Factory final : public Singleton<Factory> {
   DECLARE_SINGLETON_CLASS(Factory);
 
   private: ComPtr<ID2D1Factory1> d2d_factory_;
-  private: ComPtr<ID3D11Device> d3d_device_;
   private: ComPtr<IDWriteFactory> dwrite_factory_;
+  private: ComPtr<IDXGIDevice3> dxgi_device_;
 
   private: Factory();
   private: virtual ~Factory();
 
   public: ID2D1Factory1* d2d_factory() const { return d2d_factory_; }
-  public: ID3D11Device* d3d_device() const { return d3d_device_; }
   public: IDWriteFactory* dwrite() const { return dwrite_factory_; }
+  public: IDXGIDevice3* dxgi_device() const { return dxgi_device_; }
 
   public: ComPtr<IDCompositionDesktopDevice> CreateCompositionDevice();
 
@@ -851,24 +851,31 @@ Factory::Factory() {
                            D3D11_CREATE_DEVICE_SINGLETHREADED |
                            D3D11_CREATE_DEVICE_DEBUG;
 
+  ComPtr<ID3D11Device> d3d_device;
   COM_VERIFY(::D3D11CreateDevice(
       nullptr, D3D_DRIVER_TYPE_HARDWARE, nullptr,
       d3d11_flags, nullptr, 0, D3D11_SDK_VERSION,
-      &d3d_device_, feature_levels, nullptr));
+      &d3d_device, feature_levels, nullptr));
+  COM_VERIFY(dxgi_device_.QueryFrom(d3d_device));
 }
 
 Factory::~Factory(){
+  {
+    auto const event = ::CreateEvent(nullptr, false, false, nullptr);
+    COM_VERIFY(dxgi_device_->EnqueueSetEvent(event));
+    ::WaitForSingleObject(event, INFINITE);
+    ::CloseHandle(event);
+    dxgi_device_->Trim();
+  }
   d2d_factory_.reset();
-  d3d_device_.reset();
+  dwrite_factory_.reset();
+  dxgi_device_.reset();
 }
 
 ComPtr<IDCompositionDesktopDevice> Factory::CreateCompositionDevice() {
-  ComPtr<IDXGIDevice> dxgi_device;
-  COM_VERIFY(dxgi_device.QueryFrom(d3d_device_));
-
   // Create Direct Composition device.
   ComPtr<IDCompositionDesktopDevice> composition_device;
-  COM_VERIFY(::DCompositionCreateDevice2(dxgi_device,
+  COM_VERIFY(::DCompositionCreateDevice2(dxgi_device_,
       __uuidof(IDCompositionDesktopDevice), composition_device.location()));
   return composition_device;
 }
@@ -963,7 +970,7 @@ void Layer::AppendChild(Layer* new_child) {
 ComPtr<ID2D1DeviceContext> Layer::CreateD2DDeviceContext(
       IDXGISwapChain2* swap_chain, int width, int height) {
   ComPtr<IDXGIDevice1> dxgi_device;
-  COM_VERIFY(dxgi_device.QueryFrom(Factory::instance()->d3d_device()));
+  COM_VERIFY(dxgi_device.QueryFrom(Factory::instance()->dxgi_device()));
 
   ComPtr<ID2D1Device> d2d_device;
   COM_VERIFY(Factory::instance()->d2d_factory()->CreateDevice(
@@ -995,7 +1002,7 @@ ComPtr<ID2D1DeviceContext> Layer::CreateD2DDeviceContext(
 
 ComPtr<IDXGISwapChain2> Layer::CreateSwapChain(int width, int height) {
   ComPtr<IDXGIDevice> dxgi_device;
-  COM_VERIFY(dxgi_device.QueryFrom(Factory::instance()->d3d_device()));
+  COM_VERIFY(dxgi_device.QueryFrom(Factory::instance()->dxgi_device()));
 
   ComPtr<IDXGIAdapter> dxgi_adapter;
   dxgi_device->GetAdapter(&dxgi_adapter);
@@ -1018,7 +1025,7 @@ ComPtr<IDXGISwapChain2> Layer::CreateSwapChain(int width, int height) {
 
   ComPtr<IDXGISwapChain1> swap_chain1;
   COM_VERIFY(dxgi_factory->CreateSwapChainForComposition(
-      Factory::instance()->d3d_device(), &swap_chain_desc, nullptr,
+      Factory::instance()->dxgi_device(), &swap_chain_desc, nullptr,
       &swap_chain1));
   ComPtr<IDXGISwapChain2> swap_chain2;
   COM_VERIFY(swap_chain2.QueryFrom(swap_chain1));
@@ -1855,6 +1862,8 @@ void DemoApp::DidFireAnimationTimer() {
 
 // ui::Schedulable
 void DemoApp::DoAnimate() {
+  if (!root_layer_)
+    return;
   auto const tick_count = ::GetTickCount();
   auto const delta = tick_count - last_animate_tick_;
   auto const kBackgroundAnimate = 100;
@@ -1869,7 +1878,8 @@ void DemoApp::DoAnimate() {
 // ui::Window
 void DemoApp::DidActive() {
   ui::Window::DidActive();
-  root_layer_->DidActive();
+  if (root_layer_)
+    root_layer_->DidActive();
 }
 
 // Build visual tree and set composition target to this window.
@@ -1899,7 +1909,8 @@ void DemoApp::DidCreate() {
 }
 
 void DemoApp::DidInactive() {
-  root_layer_->DidInactive();
+  if (root_layer_)
+    root_layer_->DidInactive();
 }
 
 void DemoApp::DidResize() {
@@ -2038,6 +2049,10 @@ const GUID DXGI_DEBUG_ALL = {
   0xe48ae283, 0xda80, 0x490b, 0x87, 0xe6, 0x43, 0xe9, 0xa9, 0xcf, 0xda, 0x8
 };
 
+const GUID DXGI_DEBUG_DXGI = {
+  0x25cddaa4, 0xb1c6, 0x47e1, 0xac, 0x3e, 0x98, 0x87, 0x5b, 0x5a, 0x2e, 0x2a
+};
+
 void ReportLiveObjects() {
   auto const dll = ::GetModuleHandleW(L"dxgidebug.dll");
   if (!dll)
@@ -2049,7 +2064,7 @@ void ReportLiveObjects() {
     return;
   ComPtr<IDXGIDebug> repoter;
   COM_VERIFY(func(__uuidof(IDXGIDebug), repoter.location()));
-  repoter->ReportLiveObjects(DXGI_DEBUG_ALL, DXGI_DEBUG_RLO_ALL);
+  repoter->ReportLiveObjects(DXGI_DEBUG_DXGI, DXGI_DEBUG_RLO_ALL);
 }
 }  // namespace
 
