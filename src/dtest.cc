@@ -32,7 +32,6 @@
 #pragma comment(lib, "dcomp.lib")
 #pragma comment(lib, "dwmapi.lib")
 #pragma comment(lib, "dwrite.lib")
-//#pragma comment(lib, "dxgidebug.lib")
 #pragma comment(lib, "gdi32.lib")
 #pragma comment(lib, "ole32.lib")
 #pragma comment(lib, "user32.lib")
@@ -657,19 +656,7 @@ RectF RectF::Offset(const SizeF& size) const {
 
 namespace ui {
 
-//////////////////////////////////////////////////////////////////////
-//
-// Animatable
-//
-class Animatable {
-  public: Animatable() = default;
-  public: virtual ~Animatable() = default;
-
-  public: virtual void DidFinishAnimation() = 0;
-  public: virtual void DidFireAnimationTimer() = 0;
-
-  DISALLOW_COPY_AND_ASSIGN(Animatable);
-};
+class Animatable;
 
 //////////////////////////////////////////////////////////////////////
 //
@@ -733,7 +720,7 @@ class Animation  {
   private: Timing timing_;
 
   public: Animation(Animatable* animatable, const Timing& timing);
-  public: ~Animation() = default;
+  public: ~Animation();
 
   public: Variable* CreateVariable(double start_value, double end_value);
   public: double GetDouble(const Variable* variable) const;
@@ -744,9 +731,30 @@ class Animation  {
   DISALLOW_COPY_AND_ASSIGN(Animation);
 };
 
+//////////////////////////////////////////////////////////////////////
+//
+// Animatable
+//
+class Animatable {
+  public: Animatable() = default;
+  public: virtual ~Animatable() = default;
+
+  public: virtual void DidFinishAnimation() = 0;
+  public: virtual void DidFireAnimationTimer() = 0;
+
+  DISALLOW_COPY_AND_ASSIGN(Animatable);
+};
+
+//////////////////////////////////////////////////////////////////////
+//
+// Animation
+//
 Animation::Animation(Animatable* animatable, const Timing& timing)
     : animatable_(animatable), current_time_(0), state_(State::NotStarted),
       start_time_(0), timing_(timing) {
+}
+
+Animation::~Animation() {
 }
 
 Animation::Variable* Animation::CreateVariable(double start_value,
@@ -766,6 +774,10 @@ double Animation::GetDouble(const Variable* variable) const {
 }
 
 void Animation::Play(Time current_time) {
+  if (state_ == State::NotStarted) {
+    Start(current_time);
+    return;
+  }
   if (state_ != State::Running)
     return;
   current_time_ = current_time;
@@ -775,7 +787,7 @@ void Animation::Play(Time current_time) {
   if (current_time < start_time_ + timing_.duration)
     return;
   animatable_->DidFinishAnimation();
-  state_ = State::NotStarted;
+  state_ = State::Finish;
 }
 
 void Animation::Start(Time time) {
@@ -1847,11 +1859,14 @@ class DemoApp final : public ui::Window, private ui::Schedulable,
 
     public: Animation(Type type, ui::Animatable* animatable,
                       const ui::Animation::Timing& timing);
-    public: ~Animation() = default;
+    public: ~Animation();
 
     public: Type type() const { return type_; }
+    public: double value1() const;
 
     public: void Play(ui::Animation::Time current_time);
+    public: void SetValues1(double start, double end);
+    public: void Start();
   };
 
   private: std::unique_ptr<Animation> animation_;
@@ -1860,6 +1875,7 @@ class DemoApp final : public ui::Window, private ui::Schedulable,
   private: uint32_t last_animate_tick_;
   private: std::unique_ptr<CartoonCard> cartoon_layer_;
   private: std::unique_ptr<cc::Layer> root_layer_;
+  private: bool should_commit_;
   private: std::unique_ptr<StatusLayer> status_layer_;
 
   public: DemoApp();
@@ -1886,7 +1902,7 @@ class DemoApp final : public ui::Window, private ui::Schedulable,
   DISALLOW_COPY_AND_ASSIGN(DemoApp);
 };
 
-DemoApp::DemoApp() : last_animate_tick_(0) {
+DemoApp::DemoApp() : last_animate_tick_(0), should_commit_(false) {
 }
 
 DemoApp::~DemoApp() {
@@ -1904,7 +1920,7 @@ void DemoApp::Run() {
     CW_USEDEFAULT,
     CW_USEDEFAULT,
     static_cast<UINT>(ceil(640.f * dpi_x / 96.f)),
-    static_cast<UINT>(ceil(480.f * dpi_y / 96.f)),
+    static_cast<UINT>(ceil(800.f * dpi_y / 96.f)),
     nullptr,
     nullptr,
     HINST_THISCOMPONENT,
@@ -1918,12 +1934,17 @@ void DemoApp::Run() {
 
 // ui::Animation
 void DemoApp::DidFinishAnimation() {
-  animation_.reset();
+  animation_.release();
 }
 
 void DemoApp::DidFireAnimationTimer() {
   switch (animation_->type()) {
     case Animation::Type::Scroll: {
+      auto const origin_top = animation_->value1();
+      root_layer_->SetBounds(gfx::RectF(
+        gfx::PointF(root_layer_->bounds().left(), origin_top),
+        root_layer_->bounds().size()));
+      should_commit_ = true;
       break;
     }
   }
@@ -1942,6 +1963,10 @@ void DemoApp::DoAnimate() {
     animation_->Play(tick_count);
   last_animate_tick_ = tick_count;
   root_layer_->DoAnimate(tick_count);
+  if (should_commit_) {
+    composition_device_->Commit();
+    should_commit_ = false;
+  }
 }
 
 // ui::Window
@@ -2073,12 +2098,13 @@ LRESULT DemoApp::OnMessage(UINT message, WPARAM wParam, LPARAM lParam) {
     case WM_MOUSEWHEEL: {
       auto const delta = GET_WHEEL_DELTA_WPARAM(wParam);
       auto const origin = root_layer_->bounds().origin();
-      auto const size = root_layer_->bounds().size();
+      ui::Animation::Timing timing;
+      timing.duration = 16 * 10;
+      animation_.reset(new Animation(Animation::Type::Scroll, this, timing));
       if (delta > 0)
-        root_layer_->SetBounds(gfx::RectF(origin + gfx::SizeF(0, 10), size));
+        animation_->SetValues1(origin.y(), origin.y() + 100);
       else
-        root_layer_->SetBounds(gfx::RectF(origin + gfx::SizeF(0, -10), size));
-      composition_device_->Commit();
+        animation_->SetValues1(origin.y(), origin.y() - 100);
       return 1;
     }
   }
@@ -2107,9 +2133,22 @@ DemoApp::Animation::Animation(Type type,
     : animation_(new ui::Animation(animatable, timing)), type_(type) {
 }
 
+DemoApp::Animation::~Animation() {
+}
+
 void DemoApp::Animation::Play(ui::Animation::Time current_time) {
   animation_->Play(current_time);
 }
+
+double DemoApp::Animation::value1() const {
+  return animation_->GetDouble(variable1_.get());
+}
+
+void DemoApp::Animation::SetValues1(double start, double end) {
+  DCHECK(!variable1_);
+  variable1_.reset(animation_->CreateVariable(start, end));
+}
+
 
 }  // namespace my
 
