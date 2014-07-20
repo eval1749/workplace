@@ -949,6 +949,8 @@ Layer::~Layer() {
   visual_->SetContent(nullptr);
   visual_->RemoveAllVisuals();
   d2d_device_context_.MustBeNoOtherUse();
+  d2d_device_context_.reset();
+  swap_chain_.MustBeNoOtherUse();
 }
 
 bool Layer::is_swap_chain_ready() const {
@@ -971,12 +973,9 @@ void Layer::AppendChild(Layer* new_child) {
 
 ComPtr<ID2D1DeviceContext> Layer::CreateD2DDeviceContext(
       IDXGISwapChain2* swap_chain, int width, int height) {
-  ComPtr<IDXGIDevice1> dxgi_device;
-  COM_VERIFY(dxgi_device.QueryFrom(Factory::instance()->dxgi_device()));
-
   ComPtr<ID2D1Device> d2d_device;
   COM_VERIFY(Factory::instance()->d2d_factory()->CreateDevice(
-      dxgi_device, &d2d_device));
+      Factory::instance()->dxgi_device(), &d2d_device));
 
   ComPtr<ID2D1DeviceContext> d2d_device_context;
   COM_VERIFY(d2d_device->CreateDeviceContext(
