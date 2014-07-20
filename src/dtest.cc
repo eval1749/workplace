@@ -16,6 +16,7 @@
 #include <dwmapi.h>
 #include <dwrite.h>
 #include <dxgi1_3.h>
+#include <dxgidebug.h>
 
 #include <algorithm>
 #include <iostream>
@@ -31,6 +32,7 @@
 #pragma comment(lib, "dcomp.lib")
 #pragma comment(lib, "dwmapi.lib")
 #pragma comment(lib, "dwrite.lib")
+//#pragma comment(lib, "dxgidebug.lib")
 #pragma comment(lib, "gdi32.lib")
 #pragma comment(lib, "ole32.lib")
 #pragma comment(lib, "user32.lib")
@@ -719,7 +721,6 @@ class Animation  {
   private: State state_;
   private: Time start_time_;
   private: Timing timing_;
-  private: std::vector<std::unique_ptr<Variable>> variables_;
 
   public: Animation(Animatable* animatable, const Timing& timing);
   public: ~Animation() = default;
@@ -740,8 +741,7 @@ Animation::Animation(Animatable* animatable, const Timing& timing)
 
 Animation::Variable* Animation::CreateVariable(double start_value,
                                                double end_value) {
-  variables_.push_back(std::make_unique<Variable>(start_value, end_value));
-  return variables_.back().get();
+  return new Variable(start_value, end_value);
 }
 
 double Animation::GetDouble(const Variable* variable) const {
@@ -912,7 +912,7 @@ class Layer : protected ui::Animatable {
   public: void Present();
   public: void SetBounds(const gfx::RectF& new_bounds);
 
-  // LayerAnimation
+  // ui::Animatable
   private: virtual void DidFinishAnimation() override;
   private: virtual void DidFireAnimationTimer() override;
 
@@ -1092,7 +1092,7 @@ void Layer::SetBounds(const gfx::RectF& new_bounds) {
     DidChangeBounds();
 }
 
-// LayerAnimation
+// ui::Animation
 void Layer::DidFinishAnimation() {
   animation_.reset();
 }
@@ -1268,15 +1268,15 @@ void Window::WillDestroy() {
 
 //////////////////////////////////////////////////////////////////////
 //
-// Animator
+// Schedulable
 //
-class Animator {
-  protected: Animator() = default;
-  protected: virtual ~Animator() = default;
+class Schedulable {
+  protected: Schedulable() = default;
+  protected: virtual ~Schedulable() = default;
 
   public: virtual void DoAnimate() = 0;
 
-  DISALLOW_COPY_AND_ASSIGN(Animator);
+  DISALLOW_COPY_AND_ASSIGN(Schedulable);
 };
 
 //////////////////////////////////////////////////////////////////////
@@ -1284,12 +1284,12 @@ class Animator {
 // Scheduler
 //
 class Scheduler final : public Singleton<Scheduler> {
-  private: std::unordered_set<Animator*> animators_;
+  private: std::unordered_set<Schedulable*> animators_;
 
   public: Scheduler();
   public: virtual ~Scheduler();
 
-  public: void Add(Animator* animator);
+  public: void Add(Schedulable* animator);
   private: void DidFireTimer();
 
   private: static void CALLBACK TimerProc(HWND hwnd, UINT message,
@@ -1305,7 +1305,7 @@ Scheduler::Scheduler() {
 Scheduler::~Scheduler() {
 }
 
-void Scheduler::Add(Animator* animator) {
+void Scheduler::Add(Schedulable* animator) {
   animators_.insert(animator);
 }
 
@@ -1757,7 +1757,28 @@ bool StatusLayer::DoAnimate(uint32_t tick_count) {
 //
 // DemoApp
 //
-class DemoApp : public ui::Window, private ui::Animator {
+class DemoApp final : public ui::Window, private ui::Schedulable,
+                      private ui::Animatable {
+  private: class Animation {
+    public: enum class Type {
+      Scroll,
+      Zoom,
+    };
+
+    private: std::unique_ptr<ui::Animation> animation_;
+    private: Type type_;
+    private: std::unique_ptr<ui::Animation::Variable> variable1_;
+
+    public: Animation(Type type, ui::Animatable* animatable,
+                      const ui::Animation::Timing& timing);
+    public: ~Animation() = default;
+
+    public: Type type() const { return type_; }
+
+    public: void Play(ui::Animation::Time current_time);
+  };
+
+  private: std::unique_ptr<Animation> animation_;
   private: ComPtr<IDCompositionDesktopDevice> composition_device_;
   private: ComPtr<IDCompositionTarget> composition_target_;
   private: uint32_t last_animate_tick_;
@@ -1770,7 +1791,11 @@ class DemoApp : public ui::Window, private ui::Animator {
 
   public: void Run();
 
-  // ui::Animator
+  // ui::Animatable
+  private: virtual void DidFinishAnimation() override;
+  private: virtual void DidFireAnimationTimer() override;
+
+  // ui::Schedulable
   private: virtual void DoAnimate() override;
 
   // ui::Window
@@ -1815,18 +1840,33 @@ void DemoApp::Run() {
   ui::Window::Run();
 }
 
-// Animator
+// ui::Animation
+void DemoApp::DidFinishAnimation() {
+  animation_.reset();
+}
+
+void DemoApp::DidFireAnimationTimer() {
+  switch (animation_->type()) {
+    case Animation::Type::Scroll: {
+      break;
+    }
+  }
+}
+
+// ui::Schedulable
 void DemoApp::DoAnimate() {
   auto const tick_count = ::GetTickCount();
   auto const delta = tick_count - last_animate_tick_;
   auto const kBackgroundAnimate = 100;
   if (!is_active() && delta < kBackgroundAnimate)
     return;
+  if (animation_)
+    animation_->Play(tick_count);
   last_animate_tick_ = tick_count;
   root_layer_->DoAnimate(tick_count);
 }
 
-// Window
+// ui::Window
 void DemoApp::DidActive() {
   ui::Window::DidActive();
   root_layer_->DidActive();
@@ -1975,6 +2015,20 @@ void DemoApp::WillDestroy() {
   composition_device_.reset();
 #endif
   ui::Window::WillDestroy();
+}
+
+//////////////////////////////////////////////////////////////////////
+//
+// DemoApp::Animation
+//
+DemoApp::Animation::Animation(Type type,
+                              ui::Animatable* animatable,
+                              const ui::Animation::Timing& timing)
+    : animation_(new ui::Animation(animatable, timing)), type_(type) {
+}
+
+void DemoApp::Animation::Play(ui::Animation::Time current_time) {
+  animation_->Play(current_time);
 }
 
 }  // namespace my
