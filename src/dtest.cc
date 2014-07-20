@@ -925,6 +925,11 @@ Layer::Layer(IDCompositionDesktopDevice* composition_device)
   COM_VERIFY(visual_->SetBitmapInterpolationMode(
       DCOMPOSITION_BITMAP_INTERPOLATION_MODE_LINEAR));
   COM_VERIFY(visual_->SetBorderMode(DCOMPOSITION_BORDER_MODE_SOFT));
+
+  ComPtr<IDCompositionVisualDebug> debug_visual;
+  COM_VERIFY(debug_visual.QueryFrom(visual_));
+  COM_VERIFY(debug_visual->EnableHeatMap(D2D1::ColorF(0, 255, 0, 0.5)));
+  //COM_VERIFY(debug_visual->EnableRedrawRegions());
 }
 
 Layer::~Layer() {
