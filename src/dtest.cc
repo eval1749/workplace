@@ -816,6 +816,7 @@ class Layer;
 class Factory final : public Singleton<Factory> {
   DECLARE_SINGLETON_CLASS(Factory);
 
+  private: D2D1_BITMAP_PROPERTIES1 bitmap_properties_;
   private: ComPtr<ID2D1Factory1> d2d_factory_;
   private: ComPtr<IDWriteFactory> dwrite_factory_;
   private: ComPtr<IDXGIDevice3> dxgi_device_;
@@ -823,6 +824,9 @@ class Factory final : public Singleton<Factory> {
   private: Factory();
   private: virtual ~Factory();
 
+  public: const D2D1_BITMAP_PROPERTIES1* bitmap_properties() const {
+    return &bitmap_properties_;
+  }
   public: ID2D1Factory1* d2d_factory() const { return d2d_factory_; }
   public: IDWriteFactory* dwrite() const { return dwrite_factory_; }
   public: IDXGIDevice3* dxgi_device() const { return dxgi_device_; }
@@ -842,6 +846,14 @@ Factory::Factory() {
   // Create Direct 2D factory.
   COM_VERIFY(::D2D1CreateFactory(D2D1_FACTORY_TYPE_SINGLE_THREADED,
                                  &d2d_factory_));
+
+  float dpi_x, dpi_y;
+  d2d_factory_->GetDesktopDpi(&dpi_x, &dpi_y);
+  bitmap_properties_ = D2D1::BitmapProperties1(
+      D2D1_BITMAP_OPTIONS_TARGET | D2D1_BITMAP_OPTIONS_CANNOT_DRAW,
+      D2D1::PixelFormat(DXGI_FORMAT_B8G8R8A8_UNORM,
+                        D2D1_ALPHA_MODE_PREMULTIPLIED),
+      dpi_x, dpi_y);
 
   // Create Direct 3D device.
   D3D_FEATURE_LEVEL feature_levels[] = {
@@ -912,8 +924,9 @@ class Layer : protected ui::Animatable {
 
   public: void AppendChild(Layer* new_child);
   private: ComPtr<ID2D1DeviceContext> CreateD2DDeviceContext(
-      IDXGISwapChain2* swap_chain, int width, int height);
-  private: ComPtr<IDXGISwapChain2> CreateSwapChain(int width, int height);
+      IDXGISwapChain2* swap_chain, uint32_t width, uint32_t height);
+  private: ComPtr<IDXGISwapChain2> CreateSwapChain(uint32_t width,
+                                                   uint32_t height);
   public: virtual void DidActive();
   protected: virtual void DidChangeBounds();
   public: virtual void DidInactive();
@@ -948,6 +961,7 @@ Layer::Layer(IDCompositionDesktopDevice* composition_device)
 Layer::~Layer() {
   visual_->SetContent(nullptr);
   visual_->RemoveAllVisuals();
+  d2d_device_context_->SetTarget(nullptr);
   d2d_device_context_.MustBeNoOtherUse();
   d2d_device_context_.reset();
   swap_chain_.MustBeNoOtherUse();
@@ -972,7 +986,7 @@ void Layer::AppendChild(Layer* new_child) {
 }
 
 ComPtr<ID2D1DeviceContext> Layer::CreateD2DDeviceContext(
-      IDXGISwapChain2* swap_chain, int width, int height) {
+      IDXGISwapChain2* swap_chain, uint32_t width, uint32_t height) {
   ComPtr<ID2D1Device> d2d_device;
   COM_VERIFY(Factory::instance()->d2d_factory()->CreateDevice(
       Factory::instance()->dxgi_device(), &d2d_device));
@@ -984,24 +998,18 @@ ComPtr<ID2D1DeviceContext> Layer::CreateD2DDeviceContext(
   ComPtr<IDXGISurface> dxgi_back_buffer;
   swap_chain->GetBuffer(0, IID_PPV_ARGS(&dxgi_back_buffer));
 
-  float dpi_x, dpi_y;
-  Factory::instance()->d2d_factory()->GetDesktopDpi(&dpi_x, &dpi_y);
-  D2D1_BITMAP_PROPERTIES1 bitmapProperties = D2D1::BitmapProperties1(
-      D2D1_BITMAP_OPTIONS_TARGET | D2D1_BITMAP_OPTIONS_CANNOT_DRAW,
-      D2D1::PixelFormat(DXGI_FORMAT_B8G8R8A8_UNORM,
-                        D2D1_ALPHA_MODE_PREMULTIPLIED),
-      dpi_x, dpi_y);
-
   ComPtr<ID2D1Bitmap1> d2d_back_buffer;
   COM_VERIFY(d2d_device_context->CreateBitmapFromDxgiSurface(
-      dxgi_back_buffer, &bitmapProperties, &d2d_back_buffer));
+      dxgi_back_buffer, Factory::instance()->bitmap_properties(),
+      &d2d_back_buffer));
   d2d_device_context->SetTarget(d2d_back_buffer);
   d2d_device_context->SetTextAntialiasMode(D2D1_TEXT_ANTIALIAS_MODE_CLEARTYPE);
   d2d_device_context.MustBeNoOtherUse();
   return d2d_device_context;
 }
 
-ComPtr<IDXGISwapChain2> Layer::CreateSwapChain(int width, int height) {
+ComPtr<IDXGISwapChain2> Layer::CreateSwapChain(
+    uint32_t width, uint32_t height) {
   ComPtr<IDXGIAdapter> dxgi_adapter;
   Factory::instance()->dxgi_device()->GetAdapter(&dxgi_adapter);
 
@@ -1081,15 +1089,36 @@ void Layer::SetBounds(const gfx::RectF& new_bounds) {
   if (bounds_.size() != new_bounds.size()) {
     bounds_.set_size(new_bounds.size());
 
-    auto const width = static_cast<int>(new_bounds.width());
-    auto const height = static_cast<int>(new_bounds.height());
+    if (swap_chain_) {
+      d2d_device_context_->SetTarget(nullptr);
+      COM_VERIFY(swap_chain_->ResizeBuffers(0u,
+          static_cast<uint32_t>(bounds_.width()),
+          static_cast<uint32_t>(bounds_.height()),
+          DXGI_FORMAT_UNKNOWN,
+          DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT));
+      ComPtr<IDXGISurface> dxgi_back_buffer;
+      swap_chain_->GetBuffer(0, IID_PPV_ARGS(&dxgi_back_buffer));
+      swap_chain_waitable_ = swap_chain_->GetFrameLatencyWaitableObject();
 
-    swap_chain_.reset(CreateSwapChain(width, height));
-    swap_chain_.MustBeNoOtherUse();
-    swap_chain_waitable_ = swap_chain_->GetFrameLatencyWaitableObject();
-    COM_VERIFY(visual_->SetContent(swap_chain_));
-    d2d_device_context_ = CreateD2DDeviceContext(swap_chain_, width, height);
-    d2d_device_context_.MustBeNoOtherUse();
+      ComPtr<ID2D1Bitmap1> d2d_back_buffer;
+      COM_VERIFY(d2d_device_context_->CreateBitmapFromDxgiSurface(
+          dxgi_back_buffer, Factory::instance()->bitmap_properties(),
+          &d2d_back_buffer));
+      d2d_device_context_->SetTarget(d2d_back_buffer);
+      d2d_device_context_->SetTextAntialiasMode(
+          D2D1_TEXT_ANTIALIAS_MODE_CLEARTYPE);
+    } else {
+      swap_chain_.reset(CreateSwapChain(
+          static_cast<uint32_t>(bounds_.width()),
+          static_cast<uint32_t>(bounds_.height())));
+      swap_chain_.MustBeNoOtherUse();
+      swap_chain_waitable_ = swap_chain_->GetFrameLatencyWaitableObject();
+      COM_VERIFY(visual_->SetContent(swap_chain_));
+      d2d_device_context_ = CreateD2DDeviceContext(swap_chain_,
+          static_cast<uint32_t>(bounds_.width()),
+          static_cast<uint32_t>(bounds_.height()));
+      d2d_device_context_.MustBeNoOtherUse();
+    }
     changed = true;
   }
 
