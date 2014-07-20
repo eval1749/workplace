@@ -2100,12 +2100,13 @@ LRESULT DemoApp::OnMessage(UINT message, WPARAM wParam, LPARAM lParam) {
       auto const delta = GET_WHEEL_DELTA_WPARAM(wParam);
       auto const origin = root_layer_->bounds().origin();
       ui::Animation::Timing timing;
-      timing.duration = 16 * 10;
+      auto const num_frames = 10;
+      auto const speed = 10;
+      auto const sign = delta > 0 ? 1 : -1;
+      timing.duration = 16 * num_frames;
       animation_.reset(new Animation(Animation::Type::Scroll, this, timing));
-      if (delta > 0)
-        animation_->SetValues1(origin.y(), origin.y() + 100);
-      else
-        animation_->SetValues1(origin.y(), origin.y() - 100);
+      animation_->SetValues1(origin.y(),
+                             origin.y() + sign * speed * num_frames);
       return 1;
     }
   }
