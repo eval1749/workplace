@@ -702,6 +702,7 @@ Factory::~Factory(){
 //
 class SwapChain {
   private: ComPtr<ID2D1DeviceContext> d2d_device_context_;
+  private: bool is_ready_;
   private: ComPtr<IDXGISwapChain2> swap_chain_;
   private: HANDLE swap_chain_waitable_;
 
@@ -711,10 +712,10 @@ class SwapChain {
   public: ID2D1DeviceContext* d2d_device_context() const {
     return d2d_device_context_;
   }
-  public: bool is_swap_chain_ready() const;
   public: IDXGISwapChain2* swap_chain() const { return swap_chain_; }
 
   public: void DidResize(const D2D1_SIZE_U& size);
+  public: bool IsReady();
   public: void Present();
   private: void UpdateDeviceContext();
 
@@ -722,7 +723,7 @@ class SwapChain {
 };
 
 SwapChain::SwapChain(IDXGIDevice* dxgi_device, const D2D1_SIZE_U& size)
-    : swap_chain_waitable_(nullptr) {
+    : is_ready_(false), swap_chain_waitable_(nullptr) {
   ComPtr<IDXGIAdapter> dxgi_adapter;
   dxgi_device->GetAdapter(&dxgi_adapter);
 
@@ -782,10 +783,21 @@ SwapChain::~SwapChain() {
   swap_chain_.MustBeNoOtherUse();
 }
 
-bool SwapChain::is_swap_chain_ready() const {
+void SwapChain::DidResize(const D2D1_SIZE_U& size) {
+  d2d_device_context_->SetTarget(nullptr);
+  COM_VERIFY(swap_chain_->ResizeBuffers(0u, size.width, size.height,
+      DXGI_FORMAT_UNKNOWN,
+      DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT));
+  UpdateDeviceContext();
+}
+
+bool SwapChain::IsReady() {
+  if (is_ready_)
+    return true;
   auto const wait = ::WaitForSingleObject(swap_chain_waitable_, 0);
   switch (wait){
     case WAIT_OBJECT_0:
+      is_ready_ = true;
       return true;
     case WAIT_TIMEOUT:
       return false;
@@ -799,14 +811,7 @@ void SwapChain::Present() {
   DXGI_PRESENT_PARAMETERS present_params = {0};
   auto const flags = DXGI_PRESENT_DO_NOT_WAIT;
   COM_VERIFY(swap_chain_->Present1(0, flags, &present_params));
-}
-
-void SwapChain::DidResize(const D2D1_SIZE_U& size) {
-  d2d_device_context_->SetTarget(nullptr);
-  COM_VERIFY(swap_chain_->ResizeBuffers(0u, size.width, size.height,
-      DXGI_FORMAT_UNKNOWN,
-      DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT));
-  UpdateDeviceContext();
+  is_ready_ = false;
 }
 
 void SwapChain::UpdateDeviceContext() {
@@ -1076,9 +1081,6 @@ class Layer : protected ui::Animatable {
     return swap_chain_->d2d_device_context();
   }
   protected: bool is_active() const { return is_active_; }
-  protected: bool is_swap_chain_ready() const {
-    return swap_chain_->is_swap_chain_ready();
-  }
   public: gfx::SwapChain* swap_chain() const { return swap_chain_.get(); }
   public: IDCompositionVisual2* visual() const { return visual_; }
 
@@ -1624,6 +1626,9 @@ void Card::DidInactive() {
 }
 
 bool Card::DoAnimate(uint32_t) {
+  if (!swap_chain()->IsReady())
+    return false;
+
   if (state_ != State::WillBeInactive)
     return state_ == State::Active;
 
@@ -1757,7 +1762,7 @@ bool CartoonCard::DoAnimate(uint32_t tick_count) {
   if (!is_active())
     return false;
 
-  if (!is_swap_chain_ready()) {
+  if (!swap_chain()->IsReady()) {
     ++not_present_count_;
     return false;
   }
@@ -1944,7 +1949,7 @@ bool StatusLayer::DoAnimate(uint32_t tick_count) {
   DCOMPOSITION_FRAME_STATISTICS stats;
   COM_VERIFY(composition_device_->GetFrameStatistics(&stats));
 
-  if (!is_swap_chain_ready())
+  if (!swap_chain()->IsReady())
     return false;
 
   // Update samples
