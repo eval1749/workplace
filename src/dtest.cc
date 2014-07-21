@@ -747,7 +747,6 @@ SwapChain::SwapChain(IDXGIDevice* dxgi_device, const D2D1_SIZE_U& size)
       dxgi_device, &swap_chain_desc, nullptr,
       &swap_chain1));
   COM_VERIFY(swap_chain_.QueryFrom(swap_chain1));
-  swap_chain_waitable_ = swap_chain_->GetFrameLatencyWaitableObject();
 
   // Notify the swap chain that this app intends to render each frame faster
   // than the display's vertical refresh rate (typically 60Hz). Apps that cannot
@@ -762,6 +761,10 @@ SwapChain::SwapChain(IDXGIDevice* dxgi_device, const D2D1_SIZE_U& size)
 
   COM_VERIFY(d2d_device->CreateDeviceContext(
       D2D1_DEVICE_CONTEXT_OPTIONS_NONE, &d2d_device_context_));
+
+  // TODO(yosi) We should know when we retrieve waitable object from swap
+  // chain.
+  swap_chain_waitable_ = swap_chain_->GetFrameLatencyWaitableObject();
 
   UpdateDeviceContext();
 }
@@ -788,7 +791,7 @@ bool SwapChain::is_swap_chain_ready() const {
 
 void SwapChain::Present() {
   DXGI_PRESENT_PARAMETERS present_params = {0};
-  COM_VERIFY(swap_chain_->Present1(1, 0, &present_params));
+  swap_chain_->Present1(0, 0, &present_params);
 }
 
 void SwapChain::DidResize(const D2D1_SIZE_U& size) {
@@ -1377,8 +1380,10 @@ class Scheduler final : public Singleton<Scheduler> {
 };
 
 Scheduler::Scheduler() {
+#if 0
   ::SetTimer(nullptr, reinterpret_cast<UINT_PTR>(this), 1,
              Scheduler::TimerProc);
+#endif
 }
 
 Scheduler::~Scheduler() {
@@ -1396,9 +1401,15 @@ void Scheduler::DidFireTimer() {
 
 void Scheduler::Run() {
   MSG msg;
-  while (::GetMessage(&msg, nullptr, 0, 0)) {
-    ::TranslateMessage(&msg);
-    ::DispatchMessage(&msg);
+  for (;;) {
+    if (::PeekMessage(&msg, nullptr, 0, 0, PM_NOREMOVE)) {
+      if (!::GetMessage(&msg, nullptr, 0, 0))
+        break;
+      ::TranslateMessage(&msg);
+      ::DispatchMessage(&msg);
+    } else {
+      DidFireTimer();
+    }
   }
 }
 
@@ -1435,9 +1446,8 @@ class Sampling {
 };
 
 Sampling::Sampling(size_t max_samples) :
-    maximum_(0.0f),
-    minimum_(0.0f),
     max_samples_(max_samples), samples_(max_samples) {
+  maximum_ = minimum_ = samples_.front();
 }
 
 void Sampling::AddSample(float sample) {
@@ -1446,8 +1456,7 @@ void Sampling::AddSample(float sample) {
   samples_.push_back(sample);
   if (discard_sample != maximum_ && discard_sample != minimum_)
     return;
-  maximum_ = std::numeric_limits<float>::min();
-  minimum_ = std::numeric_limits<float>::max();
+  maximum_ = minimum_ = samples_.front();
   for (auto const sample : samples_) {
     maximum_ = std::max(maximum_, sample);
     minimum_ = std::min(minimum_, sample);
@@ -1458,9 +1467,8 @@ void Sampling::Paint(ID2D1RenderTarget* canvas, const gfx::Brush& brush,
                      const gfx::RectF& bounds) const {
   auto const maximum = maximum_ * 1.1f;
   auto const minimum = minimum_ * 0.9f;
-  if (maximum == minimum)
-    return;
-  auto const scale = bounds.height() / (maximum - minimum_);
+  auto const span = maximum == minimum ? 1.0f : maximum - minimum;
+  auto const scale = bounds.height() / span;
   auto  last_point = gfx::PointF(
       bounds.left(), bounds.bottom() - (samples_.front() - minimum_) * scale);
   auto x_step = bounds.width() / samples_.size();
@@ -1744,7 +1752,12 @@ bool CartoonCard::DoAnimate(uint32_t tick_count) {
   canvas->DrawTextLayout(gfx::PointF(5.0f, 5.0f), text_layout, text_brush,
                          D2D1_DRAW_TEXT_OPTIONS_CLIP);
   COM_VERIFY(canvas->EndDraw());
-  Present();
+
+  DXGI_PRESENT_PARAMETERS present_params = {0};
+  //auto const flags = DXGI_PRESENT_DO_NOT_SEQUENCE;
+  //auto const flags = DXGI_PRESENT_RESTART;
+  auto const flags = DXGI_PRESENT_DO_NOT_WAIT;
+  COM_VERIFY(swap_chain()->Present1(0, flags, &present_params));
 
   last_stats_ = stats;
   last_tick_count_ = tick_count;
@@ -1852,13 +1865,16 @@ StatusLayer::~StatusLayer() {
 }
 
 bool StatusLayer::DoAnimate(uint32_t tick_count) {
-  if (!is_swap_chain_ready())
-    return false;
   DCOMPOSITION_FRAME_STATISTICS stats;
   COM_VERIFY(composition_device_->GetFrameStatistics(&stats));
 
   // Update samples
   sample_tick_.AddSample(tick_count - last_tick_count_);
+  last_tick_count_ = tick_count;
+
+  if (!is_swap_chain_ready())
+    return false;
+
   sample_duration_.AddSample(
     ((stats.currentTime - last_stats_.currentTime) * 1000 /
      stats.timeFrequency).QuadPart);
@@ -1869,7 +1885,6 @@ bool StatusLayer::DoAnimate(uint32_t tick_count) {
     ((stats.nextEstimatedFrameTime - last_stats_.nextEstimatedFrameTime) *
      1000 / stats.timeFrequency).QuadPart);
   last_stats_ = stats;
-  last_tick_count_ = tick_count;
 
   auto const bounds = gfx::RectF(gfx::PointF(), this->bounds().size());
   auto const canvas = d2d_device_context();
@@ -1877,11 +1892,11 @@ bool StatusLayer::DoAnimate(uint32_t tick_count) {
   canvas->Clear(gfx::ColorF(0, 0, 0, 0.5));
 
   // Paint graph
-  sample_duration_.Paint(canvas,
+  sample_next_frame_.Paint(canvas,
       gfx::Brush(canvas, gfx::ColorF(gfx::ColorF::Red, 0.5f)),
       gfx::RectF(gfx::PointF(bounds.left(), bounds.bottom() - 20),
                  bounds.bottom_right()));
-  sample_last_frame_.Paint(canvas,
+  sample_duration_.Paint(canvas,
       gfx::Brush(canvas, gfx::ColorF(gfx::ColorF::Yellow, 0.5f)),
       gfx::RectF(gfx::PointF(bounds.left(), bounds.bottom() - 40),
                  bounds.bottom_right() - gfx::SizeF(0, 20)));
@@ -1896,15 +1911,15 @@ bool StatusLayer::DoAnimate(uint32_t tick_count) {
 
   // Samples values
   std::basic_ostringstream<base::char16> stream;
-  stream << L"Tick=" << sample_tick_.minimum() << L" " <<
+  stream << L"(White) Tick=" << sample_tick_.minimum() << L" " <<
       sample_tick_.maximum() << L" " << sample_tick_.last() << std::endl;
-  stream << L"LastFrameTime=" << sample_last_frame_.minimum() <<
+  stream << L"(Blue) LastFrameTime=" << sample_last_frame_.minimum() <<
       L" " << sample_last_frame_.maximum() <<
       L" " << sample_last_frame_.last() << std::endl;
-  stream << L"CurrentTime=" << sample_duration_.minimum() <<
+  stream << L"(Yellow) CurrentTime=" << sample_duration_.minimum() <<
       L" " << sample_duration_.maximum() <<
       L" " << sample_duration_.last() << std::endl;
-  stream << L"NextFrame=" << sample_next_frame_.minimum() <<
+  stream << L"(Red) NextFrame=" << sample_next_frame_.minimum() <<
       L" " << sample_next_frame_.maximum() <<
       L" " << sample_next_frame_.last() << std::endl;
   stream << L"rate=" << stats.currentCompositionRate.Numerator <<
