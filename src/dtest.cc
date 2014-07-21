@@ -521,6 +521,7 @@ class RectF final {
 
   public: float bottom() const { return rect_.bottom; }
   public: PointF bottom_right() const { return PointF(right(), bottom()); }
+  public: bool empty() const { return width() <= 0 || height() <= 0; }
   public: float left() const { return rect_.left; }
   public: float height() const { return rect_.bottom - rect_.top; }
   public: PointF origin() const { return PointF(left(), top()); }
@@ -639,7 +640,7 @@ RectF RectF::Offset(const SizeF& size) const {
 class Factory final : public Singleton<Factory> {
   DECLARE_SINGLETON_CLASS(Factory);
 
-  private: D2D1_BITMAP_PROPERTIES1 bitmap_properties_;
+  private: ComPtr<ID2D1Device> d2d_device_;
   private: ComPtr<ID2D1Factory1> d2d_factory_;
   private: ComPtr<IDWriteFactory> dwrite_factory_;
   private: ComPtr<IDXGIDevice3> dxgi_device_;
@@ -647,6 +648,7 @@ class Factory final : public Singleton<Factory> {
   private: Factory();
   private: virtual ~Factory();
 
+  public: ID2D1Device* d2d_device() const { return d2d_device_; }
   public: ID2D1Factory1* d2d_factory() const { return d2d_factory_; }
   public: IDWriteFactory* dwrite() const { return dwrite_factory_; }
   public: IDXGIDevice3* dxgi_device() const { return dxgi_device_; }
@@ -681,6 +683,9 @@ Factory::Factory() {
       d3d11_flags, nullptr, 0, D3D11_SDK_VERSION,
       &d3d_device, feature_levels, nullptr));
   COM_VERIFY(dxgi_device_.QueryFrom(d3d_device));
+
+  // Create d2d device context
+  COM_VERIFY(d2d_factory_->CreateDevice(dxgi_device_, &d2d_device_));
 }
 
 Factory::~Factory(){
@@ -765,12 +770,7 @@ SwapChain::SwapChain(IDXGIDevice* dxgi_device, const D2D1_SIZE_U& size)
   // minimizing power consumption.
   // COM_VERIFY(swap_chain_->SetMaximumFrameLatency(1));
 
-  // Create d2d device context
-  ComPtr<ID2D1Device> d2d_device;
-  COM_VERIFY(gfx::Factory::instance()->d2d_factory()->CreateDevice(
-      dxgi_device, &d2d_device));
-
-  COM_VERIFY(d2d_device->CreateDeviceContext(
+  COM_VERIFY(Factory::instance()->d2d_device()->CreateDeviceContext(
       D2D1_DEVICE_CONTEXT_OPTIONS_NONE, &d2d_device_context_));
 
   UpdateDeviceContext();
@@ -1068,7 +1068,6 @@ class Layer : protected ui::Animatable {
   private: gfx::RectF bounds_;
   private: std::vector<Layer*> child_layers_;
   private: bool is_active_;
-  private: std::unique_ptr<gfx::SwapChain> swap_chain_;
   private: ComPtr<IDCompositionVisual2> visual_;
 
   public: Layer(IDCompositionDesktopDevice* composition_device);
@@ -1077,11 +1076,7 @@ class Layer : protected ui::Animatable {
   public: operator IDCompositionVisual2*() const { return visual_; }
 
   public: const gfx::RectF& bounds() const { return bounds_; }
-  public: ID2D1DeviceContext* d2d_device_context() const {
-    return swap_chain_->d2d_device_context();
-  }
   protected: bool is_active() const { return is_active_; }
-  public: gfx::SwapChain* swap_chain() const { return swap_chain_.get(); }
   public: IDCompositionVisual2* visual() const { return visual_; }
 
   public: void AppendChild(Layer* new_child);
@@ -1089,7 +1084,6 @@ class Layer : protected ui::Animatable {
   protected: virtual void DidChangeBounds();
   public: virtual void DidInactive();
   public: virtual bool DoAnimate(uint32_t tick_count);
-  public: void Present();
   public: void SetBounds(const gfx::RectF& new_bounds);
 
   // ui::Animatable
@@ -1155,10 +1149,6 @@ bool Layer::DoAnimate(uint32_t tick_count) {
   return animated;
 }
 
-void Layer::Present() {
-  swap_chain_->Present();
-}
-
 void Layer::SetBounds(const gfx::RectF& new_bounds) {
   auto changed = false;
   if (bounds_.left() != new_bounds.left()) {
@@ -1174,24 +1164,13 @@ void Layer::SetBounds(const gfx::RectF& new_bounds) {
 
   if (bounds_.size() != new_bounds.size()) {
     bounds_.set_size(new_bounds.size());
-    D2D1_SIZE_U size = {
-      static_cast<uint32_t>(bounds_.width()),
-      static_cast<uint32_t>(bounds_.height())
-    };
-
-    if (swap_chain_) {
-      swap_chain_->DidResize(size);
-    } else {
-      // Create swap chain and d2d device context
-      swap_chain_.reset(new gfx::SwapChain(
-          gfx::Factory::instance()->dxgi_device(), size));
-      COM_VERIFY(visual_->SetContent(swap_chain_->swap_chain()));
-    }
     changed = true;
   }
 
-  if (changed)
-    DidChangeBounds();
+  if (!changed)
+    return;
+
+  DidChangeBounds();
 }
 
 // ui::Animation
@@ -1200,6 +1179,71 @@ void Layer::DidFinishAnimation() {
 }
 
 void Layer::DidFireAnimationTimer() {
+}
+
+//////////////////////////////////////////////////////////////////////
+//
+// SimpleLayer
+// This class represents a layer with direct composition surface.
+//
+class SimpleLayer : public Layer {
+  public: class CanvasScope {
+    private: ComPtr<ID2D1DeviceContext> d2d_device_context_;
+    private: SimpleLayer* layer_;
+
+    public: CanvasScope(SimpleLayer* layer);
+    public: ~CanvasScope();
+
+    public: ID2D1DeviceContext* d2d_device_context() const {
+      return d2d_device_context_;
+    }
+  };
+  friend class CanvasScope;
+
+  private: ComPtr<IDCompositionDesktopDevice> composition_device_;
+  private: ComPtr<IDCompositionSurface> surface_;
+
+  public: SimpleLayer(IDCompositionDesktopDevice* composition_device);
+  public: virtual ~SimpleLayer();
+
+  private: void AttachSurfaceIfNeeded();
+
+  DISALLOW_COPY_AND_ASSIGN(SimpleLayer);
+};
+
+SimpleLayer::SimpleLayer(IDCompositionDesktopDevice* composition_device)
+    : Layer(composition_device), composition_device_(composition_device) {
+}
+
+SimpleLayer::~SimpleLayer() {
+}
+
+void SimpleLayer::AttachSurfaceIfNeeded() {
+  DCHECK(!bounds().empty());
+  if (surface_)
+    return;
+  COM_VERIFY(composition_device_->CreateSurface(
+      bounds().width(), bounds().height(),
+      DXGI_FORMAT_B8G8R8A8_UNORM, DXGI_ALPHA_MODE_PREMULTIPLIED, &surface_));
+  visual()->SetContent(surface_);
+}
+
+//////////////////////////////////////////////////////////////////////
+//
+// SimpleLayer::CanvasScope
+//
+SimpleLayer::CanvasScope::CanvasScope(SimpleLayer* layer) : layer_(layer) {
+ layer_->AttachSurfaceIfNeeded();
+
+  POINT offset;
+  COM_VERIFY(layer_->surface_->BeginDraw(
+      nullptr, IID_PPV_ARGS(&d2d_device_context_), &offset));
+}
+
+SimpleLayer::CanvasScope::~CanvasScope() {
+  // Note: We also need to call DDirectCompositionDevice::Commit() for making
+  // canvas appeared in screen.
+  COM_VERIFY(layer_->surface_->EndDraw());
 }
 
 }  // namespace cc
@@ -1545,11 +1589,16 @@ class Card : public cc::Layer {
   std::vector<BoxShadow> shadows_;
   private: gfx::SizeF shadow_size_;
   private: State state_;
+  private: std::unique_ptr<gfx::SwapChain> swap_chain_;
 
   protected: Card(IDCompositionDesktopDevice* composition_device);
   protected: virtual ~Card() = default;
 
   public: const gfx::RectF& content_bounds() const { return content_bounds_; }
+  public: ID2D1DeviceContext* d2d_device_context() const {
+    return swap_chain_->d2d_device_context();
+  }
+  public: gfx::SwapChain* swap_chain() const { return swap_chain_.get(); }
 
   protected: void PaintBackground(ID2D1DeviceContext* canvas) const;
 
@@ -1618,6 +1667,20 @@ void Card::PaintBackground(ID2D1DeviceContext* canvas) const {
 // cc::Layer
 void Card::DidChangeBounds() {
   content_bounds_.set_size(bounds().size() - shadow_size_);
+  D2D1_SIZE_U size = {
+    static_cast<uint32_t>(bounds().width()),
+    static_cast<uint32_t>(bounds().height())
+  };
+
+  if (swap_chain_) {
+    swap_chain_->DidResize(size);
+    return;
+  }
+
+  // Create swap chain and d2d device context
+  swap_chain_.reset(new gfx::SwapChain(
+      gfx::Factory::instance()->dxgi_device(), size));
+  COM_VERIFY(visual()->SetContent(swap_chain_->swap_chain()));
 }
 
 void Card::DidInactive() {
@@ -1909,9 +1972,53 @@ void CartoonCard::Ball::DidColision(const Ball& other) {
 
 //////////////////////////////////////////////////////////////////////
 //
+// RootLayer
+//
+class RootLayer : public cc::SimpleLayer {
+  public: RootLayer(IDCompositionDesktopDevice* composition_device);
+  public: virtual ~RootLayer() = default;
+
+  // cc::Layer
+  private: void DidChangeBounds();
+
+  DISALLOW_COPY_AND_ASSIGN(RootLayer);
+};
+
+RootLayer::RootLayer(IDCompositionDesktopDevice* composition_device)
+    : cc::SimpleLayer(composition_device) {
+}
+
+void RootLayer::DidChangeBounds() {
+#if 0
+  cc::SimpleLayer::CanvasScope canvas_scope(this);
+  auto const canvas = canvas_scope.d2d_device_context();
+  canvas->Clear(gfx::ColorF(0, 0, 0, 0));
+
+  gfx::Brush white_brush(canvas,
+                          gfx::ColorF(gfx::ColorF::White, 0.3f));
+
+  gfx::Brush green_brush(canvas,
+                         gfx::ColorF(gfx::ColorF::Green, 0.5f));
+
+  for (auto i = 0; i < 2; ++i) {
+    canvas->FillRectangle(pane_bounds[i], white_brush);
+    auto const pane_height = pane_bounds[i].bottom - pane_bounds[i].top;
+    auto const pane_width = pane_bounds[i].right - pane_bounds[i].left;
+    D2D1_ELLIPSE ellipse;
+    ellipse.point = gfx::PointF(pane_bounds[i].left + pane_width / 2,
+                                  pane_bounds[i].top + pane_height / 2);
+    ellipse.radiusX = pane_width / 3;
+    ellipse.radiusY = pane_height / 3;
+    canvas->FillEllipse(ellipse, green_brush);
+  }
+#endif
+}
+
+//////////////////////////////////////////////////////////////////////
+//
 // StatusLayer
 //
-class StatusLayer : public cc::Layer {
+class StatusLayer : public Card {
   private: ComPtr<IDCompositionDesktopDevice> composition_device_;
   private: DCOMPOSITION_FRAME_STATISTICS last_stats_;
   private: uint32_t last_tick_count_;
@@ -1931,7 +2038,7 @@ class StatusLayer : public cc::Layer {
 };
 
 StatusLayer::StatusLayer(IDCompositionDesktopDevice* composition_device)
-    : Layer(composition_device), composition_device_(composition_device),
+    : Card(composition_device), composition_device_(composition_device),
       last_tick_count_(::GetTickCount()), sample_duration_(100),
       sample_last_frame_(100), sample_next_frame_(100), sample_tick_(100) {
   COM_VERIFY(composition_device_->GetFrameStatistics(&last_stats_));
@@ -1946,11 +2053,11 @@ StatusLayer::~StatusLayer() {
 }
 
 bool StatusLayer::DoAnimate(uint32_t tick_count) {
-  DCOMPOSITION_FRAME_STATISTICS stats;
-  COM_VERIFY(composition_device_->GetFrameStatistics(&stats));
-
   if (!swap_chain()->IsReady())
     return false;
+
+  DCOMPOSITION_FRAME_STATISTICS stats;
+  COM_VERIFY(composition_device_->GetFrameStatistics(&stats));
 
   // Update samples
   sample_tick_.AddSample(tick_count - last_tick_count_);
@@ -1967,28 +2074,38 @@ bool StatusLayer::DoAnimate(uint32_t tick_count) {
      1000 / stats.timeFrequency).QuadPart);
   last_stats_ = stats;
 
-  auto const bounds = gfx::RectF(gfx::PointF(), this->bounds().size());
+  //cc::SimpleLayer::CanvasScope canvas_scope(this);
+  //auto const canvas = canvas_scope.d2d_device_context();
   auto const canvas = d2d_device_context();
   canvas->BeginDraw();
-  canvas->Clear(gfx::ColorF(0, 0, 0, 0.5));
+  PaintBackground(canvas);
+
+  auto const bounds = content_bounds();
+  //canvas->Clear(gfx::ColorF(0, 0, 0, 0.5));
+  PaintBackground(canvas);
 
   // Paint graph
+  auto const graph_bounds = gfx::RectF(
+    gfx::PointF(bounds.left() + 4, bounds.bottom() - 84),
+    gfx::PointF(bounds.right() - 4, bounds.bottom() - 4));
+  canvas->FillRectangle(graph_bounds, gfx::Brush(canvas, gfx::ColorF::Black));
+
   sample_next_frame_.Paint(canvas,
       gfx::Brush(canvas, gfx::ColorF(gfx::ColorF::Red, 0.5f)),
-      gfx::RectF(gfx::PointF(bounds.left(), bounds.bottom() - 20),
-                 bounds.bottom_right()));
+      gfx::RectF(gfx::PointF(graph_bounds.left(), graph_bounds.bottom() - 20),
+                 graph_bounds.bottom_right()));
   sample_duration_.Paint(canvas,
-      gfx::Brush(canvas, gfx::ColorF(gfx::ColorF::Yellow, 0.5f)),
-      gfx::RectF(gfx::PointF(bounds.left(), bounds.bottom() - 40),
-                 bounds.bottom_right() - gfx::SizeF(0, 20)));
+      gfx::Brush(canvas, gfx::ColorF(gfx::ColorF::Gold, 0.5f)),
+      gfx::RectF(gfx::PointF(graph_bounds.left(), graph_bounds.bottom() - 40),
+                 graph_bounds.bottom_right() - gfx::SizeF(0, 20)));
   sample_last_frame_.Paint(canvas,
       gfx::Brush(canvas, gfx::ColorF(gfx::ColorF::Blue, 0.5f)),
-      gfx::RectF(gfx::PointF(bounds.left(), bounds.bottom() - 60),
-                 bounds.bottom_right() - gfx::SizeF(0, 40)));
+      gfx::RectF(gfx::PointF(graph_bounds.left(), graph_bounds.bottom() - 60),
+                 graph_bounds.bottom_right() - gfx::SizeF(0, 40)));
   sample_tick_.Paint(canvas,
       gfx::Brush(canvas, gfx::ColorF(gfx::ColorF::White, 0.5f)),
-      gfx::RectF(gfx::PointF(bounds.left(), bounds.bottom() - 80),
-                 bounds.bottom_right() - gfx::SizeF(0, 60)));
+      gfx::RectF(gfx::PointF(graph_bounds.left(), graph_bounds.bottom() - 80),
+                 graph_bounds.bottom_right() - gfx::SizeF(0, 60)));
 
   // Samples values
   std::basic_ostringstream<base::char16> stream;
@@ -2014,12 +2131,12 @@ bool StatusLayer::DoAnimate(uint32_t tick_count) {
       text.data(), static_cast<UINT>(text.length()), text_format_,
       bounds.width(), bounds.height(), &text_layout_));
 
-  gfx::Brush text_brush(canvas, gfx::ColorF::LightGray);
+  gfx::Brush text_brush(canvas, gfx::ColorF::Black, 0.7);
   canvas->DrawTextLayout(gfx::PointF(5.0f, 5.0f), text_layout_, text_brush,
                          D2D1_DRAW_TEXT_OPTIONS_CLIP);
 
   COM_VERIFY(canvas->EndDraw());
-  Present();
+  swap_chain()->Present();
   return true;
 }
 
@@ -2056,7 +2173,7 @@ class DemoApp final : public ui::Window, private ui::Schedulable,
   private: ComPtr<IDCompositionTarget> composition_target_;
   private: uint32_t last_animate_tick_;
   private: std::unique_ptr<CartoonCard> cartoon_layer_;
-  private: std::unique_ptr<cc::Layer> root_layer_;
+  private: std::unique_ptr<RootLayer> root_layer_;
   private: bool should_commit_;
   private: std::unique_ptr<StatusLayer> status_layer_;
 
@@ -2158,12 +2275,12 @@ void DemoApp::DidCreate() {
 
   // Create Direct Composition device.
   COM_VERIFY(::DCompositionCreateDevice2(
-      gfx::Factory::instance()->dxgi_device(),
-      __uuidof(IDCompositionDesktopDevice), composition_device_.location()));
+      gfx::Factory::instance()->d2d_device(),
+      IID_PPV_ARGS(&composition_device_)));
   composition_device_.MustBeNoOtherUse();
 
   // Build visual tree
-  root_layer_.reset(new cc::Layer(composition_device_));
+  root_layer_.reset(new RootLayer(composition_device_));
 
   cartoon_layer_.reset(new CartoonCard(composition_device_));
   root_layer_->AppendChild(cartoon_layer_.get());
@@ -2211,12 +2328,6 @@ void DemoApp::DidResize() {
     COM_VERIFY(status_layer_->visual()->SetTransform(rotate_transform));
   }
 
-  // Paint root visual
-  {
-    auto const canvas = root_layer_->d2d_device_context();
-    canvas->BeginDraw();
-    canvas->Clear(gfx::ColorF(0, 0, 0, 0));
-
     gfx::RectF pane_bounds[2] {
         gfx::RectF(gfx::PointF(0, tab_height), gfx::PointF(width, pane_height)),
         gfx::RectF(gfx::PointF(0, pane_height + splitter_height),
@@ -2225,30 +2336,6 @@ void DemoApp::DidResize() {
   // Resize cartoon visual
   if (cartoon_layer_)
     cartoon_layer_->SetBounds(pane_bounds[0]);
-
-#if 0
-    gfx::Brush white_brush(canvas,
-                            gfx::ColorF(gfx::ColorF::White, 0.3f));
-
-    gfx::Brush green_brush(canvas,
-                           gfx::ColorF(gfx::ColorF::Green, 0.5f));
-
-    for (auto i = 0; i < 2; ++i) {
-      canvas->FillRectangle(pane_bounds[i], white_brush);
-      auto const pane_height = pane_bounds[i].bottom - pane_bounds[i].top;
-      auto const pane_width = pane_bounds[i].right - pane_bounds[i].left;
-      D2D1_ELLIPSE ellipse;
-      ellipse.point = gfx::PointF(pane_bounds[i].left + pane_width / 2,
-                                    pane_bounds[i].top + pane_height / 2);
-      ellipse.radiusX = pane_width / 3;
-      ellipse.radiusY = pane_height / 3;
-      canvas->FillEllipse(ellipse, green_brush);
-    }
-#endif
-
-    COM_VERIFY(canvas->EndDraw());
-    root_layer_->Present();
-  }
 
   // Update composition
   composition_device_->Commit();
