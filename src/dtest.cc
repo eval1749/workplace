@@ -1228,8 +1228,6 @@ class Window {
   private: static Window* GetWindowFromHwnd(HWND hwnd);
   protected: virtual LRESULT OnMessage(UINT message, WPARAM wParam,
                                        LPARAM lParam);
-  private: void Init();
-  public: void Run();
   protected: virtual void WillDestroy();
   private: static LRESULT CALLBACK WindowProc(HWND hwnd, UINT message,
                                               WPARAM wParam, LPARAM lParam);
@@ -1304,9 +1302,6 @@ Window* Window::GetWindowFromHwnd(HWND hwnd) {
   return global_creating_window;
 }
 
-void Window::Init() {
-}
-
 LRESULT Window::OnMessage(UINT message, WPARAM wParam, LPARAM lParam) {
   switch (message) {
     case WM_ACTIVATE:
@@ -1338,15 +1333,6 @@ LRESULT Window::OnMessage(UINT message, WPARAM wParam, LPARAM lParam) {
     }
   }
   return ::DefWindowProc(hwnd_, message, wParam, lParam);
-}
-
-void Window::Run() {
-  Init();
-  MSG msg;
-  while (::GetMessage(&msg, nullptr, 0, 0)) {
-    ::TranslateMessage(&msg);
-    ::DispatchMessage(&msg);
-  }
 }
 
 LRESULT Window::WindowProc(HWND hwnd, UINT message, WPARAM wParam,
@@ -1383,6 +1369,7 @@ class Scheduler final : public Singleton<Scheduler> {
 
   public: void Add(Schedulable* animator);
   private: void DidFireTimer();
+  public: void Run();
 
   private: static void CALLBACK TimerProc(HWND hwnd, UINT message,
                                           UINT_PTR timer_id, DWORD time);
@@ -1404,6 +1391,14 @@ void Scheduler::Add(Schedulable* animator) {
 void Scheduler::DidFireTimer() {
   for (auto const animator : animators_) {
     animator->DoAnimate();
+  }
+}
+
+void Scheduler::Run() {
+  MSG msg;
+  while (::GetMessage(&msg, nullptr, 0, 0)) {
+    ::TranslateMessage(&msg);
+    ::DispatchMessage(&msg);
   }
 }
 
@@ -1972,8 +1967,6 @@ class DemoApp final : public ui::Window, private ui::Schedulable,
   public: DemoApp();
   public: virtual ~DemoApp();
 
-  public: void Run();
-
   // ui::Animatable
   private: virtual void DidFinishAnimation() override;
   private: virtual void DidFireAnimationTimer() override;
@@ -1994,12 +1987,6 @@ class DemoApp final : public ui::Window, private ui::Schedulable,
 };
 
 DemoApp::DemoApp() : last_animate_tick_(0), should_commit_(false) {
-}
-
-DemoApp::~DemoApp() {
-}
-
-void DemoApp::Run() {
   float dpi_x, dpi_y;
   gfx::Factory::instance()->d2d_factory()->GetDesktopDpi(&dpi_x, &dpi_y);
 
@@ -2020,7 +2007,9 @@ void DemoApp::Run() {
     return;
   ::ShowWindow(hwnd, SW_SHOWNORMAL);
   ui::Scheduler::instance()->Add(this);
-  ui::Window::Run();
+}
+
+DemoApp::~DemoApp() {
 }
 
 // ui::Animation
@@ -2280,7 +2269,7 @@ int WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
   ::AllocConsole();
   ComInitializer com_initializer;
   my::DemoApp application;
-  application.Run();
+  ui::Scheduler::instance()->Run();
   for (auto const singleton : singletons) {
     delete singleton;
   }
