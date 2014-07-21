@@ -1535,9 +1535,16 @@ struct BoxShadow {
 // Card
 //
 class Card : public cc::Layer {
+  private: enum class State {
+    Active,
+    Inactive,
+    WillBeInactive,
+  };
+
   private: gfx::RectF content_bounds_;
   std::vector<BoxShadow> shadows_;
   private: gfx::SizeF shadow_size_;
+  private: State state_;
 
   protected: Card(IDCompositionDesktopDevice* composition_device);
   protected: virtual ~Card() = default;
@@ -1549,12 +1556,13 @@ class Card : public cc::Layer {
   // cc::Layer
   protected: virtual void DidChangeBounds() override;
   protected: virtual void DidInactive() override;
+  protected: virtual bool DoAnimate(uint32_t tick_count) override;
 
   DISALLOW_COPY_AND_ASSIGN(Card);
 };
 
 Card::Card(IDCompositionDesktopDevice* composition_device)
-    : Layer(composition_device) {
+    : Layer(composition_device), state_(State::Inactive) {
   // Below values are obtained from
   // http://www.polymer-project.org/tools/designer/
   shadows_ = {
@@ -1614,7 +1622,14 @@ void Card::DidChangeBounds() {
 
 void Card::DidInactive() {
   Layer::DidInactive();
+  state_ = State::WillBeInactive;
+}
 
+bool Card::DoAnimate(uint32_t) {
+  if (state_ != State::WillBeInactive)
+    return state_ == State::Active;
+
+  state_ = State::Inactive;
   auto const bounds = content_bounds();
 
   // Paint "Paused" in center of layer.
@@ -1650,7 +1665,10 @@ void Card::DidInactive() {
   COM_VERIFY(canvas->EndDraw());
 
   DXGI_PRESENT_PARAMETERS present_params = {0};
-  COM_VERIFY(swap_chain()->Present1(1, 0, &present_params));
+  auto const flags = DXGI_PRESENT_DO_NOT_WAIT;
+  COM_VERIFY(swap_chain()->Present1(0, flags, &present_params));
+
+  return true;
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -1740,6 +1758,8 @@ void CartoonCard::DidChangeBounds() {
 }
 
 bool CartoonCard::DoAnimate(uint32_t tick_count) {
+  Card::DoAnimate(tick_count);
+
   if (!is_active())
     return false;
 
@@ -1747,6 +1767,12 @@ bool CartoonCard::DoAnimate(uint32_t tick_count) {
     ++not_present_count_;
     return false;
   }
+
+  // Statistics
+  DXGI_FRAME_STATISTICS stats = {0};
+  // Ignore errors. |GetFrameStatistics()| returns
+  // DXGI_ERROR_FRAME_STATISTICS_DISJOINT.
+  swap_chain()->GetFrameStatistics(&stats);
 
   tick_count_sample_.AddSample(tick_count - last_tick_count_);
   last_tick_count_ = tick_count;
@@ -1757,6 +1783,7 @@ bool CartoonCard::DoAnimate(uint32_t tick_count) {
   auto const canvas = d2d_device_context();
   canvas->BeginDraw();
   PaintBackground(canvas);
+
   for (auto& ball : balls_) {
     ball->DoAnimate(canvas, content_bounds(), tick_count);
   }
@@ -1783,12 +1810,6 @@ bool CartoonCard::DoAnimate(uint32_t tick_count) {
       gfx::RectF(gfx::PointF(content_bounds().left(),
                              content_bounds().bottom() - 40),
                  content_bounds().bottom_right() - gfx::SizeF(0, 20)));
-
-  // Statistics
-  DXGI_FRAME_STATISTICS stats = {0};
-  // Ignore errors. |GetFrameStatistics()| returns
-  // DXGI_ERROR_FRAME_STATISTICS_DISJOINT.
-  swap_chain()->GetFrameStatistics(&stats);
 
   std::basic_ostringstream<base::char16> stream;
   stream << L"(Red) TickCount=" << tick_count_sample_.minimum() <<
@@ -1820,8 +1841,6 @@ bool CartoonCard::DoAnimate(uint32_t tick_count) {
   COM_VERIFY(canvas->EndDraw());
 
   DXGI_PRESENT_PARAMETERS present_params = {0};
-  //auto const flags = DXGI_PRESENT_DO_NOT_SEQUENCE;
-  //auto const flags = DXGI_PRESENT_RESTART;
   auto const flags = DXGI_PRESENT_DO_NOT_WAIT;
   COM_VERIFY(swap_chain()->Present1(0, flags, &present_params));
 
