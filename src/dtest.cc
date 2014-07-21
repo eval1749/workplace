@@ -747,12 +747,13 @@ SwapChain::SwapChain(IDXGIDevice* dxgi_device, const D2D1_SIZE_U& size)
       dxgi_device, &swap_chain_desc, nullptr,
       &swap_chain1));
   COM_VERIFY(swap_chain_.QueryFrom(swap_chain1));
+  swap_chain_waitable_ = swap_chain_->GetFrameLatencyWaitableObject();
 
   // Notify the swap chain that this app intends to render each frame faster
   // than the display's vertical refresh rate (typically 60Hz). Apps that cannot
   // deliver frames this quickly should set this to 2.
+  // Note: default is one.
   COM_VERIFY(swap_chain_->SetMaximumFrameLatency(1));
-  swap_chain_waitable_ = swap_chain_->GetFrameLatencyWaitableObject();
 
   // Create d2d device context
   ComPtr<ID2D1Device> d2d_device;
