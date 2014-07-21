@@ -1079,9 +1079,7 @@ class Layer : protected ui::Animatable {
   protected: bool is_swap_chain_ready() const {
     return swap_chain_->is_swap_chain_ready();
   }
-  public: IDXGISwapChain2* swap_chain() const {
-    return swap_chain_->swap_chain();
-  }
+  public: gfx::SwapChain* swap_chain() const { return swap_chain_.get(); }
   public: IDCompositionVisual2* visual() const { return visual_; }
 
   public: void AppendChild(Layer* new_child);
@@ -1663,11 +1661,7 @@ bool Card::DoAnimate(uint32_t) {
   canvas->DrawTextLayout(text_origin, text_layout, text_brush);
 
   COM_VERIFY(canvas->EndDraw());
-
-  DXGI_PRESENT_PARAMETERS present_params = {0};
-  auto const flags = DXGI_PRESENT_DO_NOT_WAIT;
-  COM_VERIFY(swap_chain()->Present1(0, flags, &present_params));
-
+  swap_chain()->Present();
   return true;
 }
 
@@ -1772,7 +1766,7 @@ bool CartoonCard::DoAnimate(uint32_t tick_count) {
   DXGI_FRAME_STATISTICS stats = {0};
   // Ignore errors. |GetFrameStatistics()| returns
   // DXGI_ERROR_FRAME_STATISTICS_DISJOINT.
-  swap_chain()->GetFrameStatistics(&stats);
+  swap_chain()->swap_chain()->GetFrameStatistics(&stats);
 
   tick_count_sample_.AddSample(tick_count - last_tick_count_);
   last_tick_count_ = tick_count;
@@ -1839,10 +1833,7 @@ bool CartoonCard::DoAnimate(uint32_t tick_count) {
   canvas->DrawTextLayout(gfx::PointF(5.0f, 5.0f), text_layout, text_brush,
                          D2D1_DRAW_TEXT_OPTIONS_CLIP);
   COM_VERIFY(canvas->EndDraw());
-
-  DXGI_PRESENT_PARAMETERS present_params = {0};
-  auto const flags = DXGI_PRESENT_DO_NOT_WAIT;
-  COM_VERIFY(swap_chain()->Present1(0, flags, &present_params));
+  swap_chain()->Present();
 
   last_stats_ = stats;
   last_tick_count_ = tick_count;
