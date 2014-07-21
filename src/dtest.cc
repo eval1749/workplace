@@ -762,10 +762,6 @@ SwapChain::SwapChain(IDXGIDevice* dxgi_device, const D2D1_SIZE_U& size)
   COM_VERIFY(d2d_device->CreateDeviceContext(
       D2D1_DEVICE_CONTEXT_OPTIONS_NONE, &d2d_device_context_));
 
-  // TODO(yosi) We should know when we retrieve waitable object from swap
-  // chain.
-  swap_chain_waitable_ = swap_chain_->GetFrameLatencyWaitableObject();
-
   UpdateDeviceContext();
 }
 
@@ -821,6 +817,12 @@ void SwapChain::UpdateDeviceContext() {
         dxgi_back_buffer, bitmap_properties, &d2d_back_buffer));
     d2d_device_context_->SetTarget(d2d_back_buffer);
   }
+
+  // TODO(yosi) We should know when we retrieve waitable object from swap
+  // chain.
+  if (swap_chain_waitable_)
+    ::CloseHandle(swap_chain_waitable_);
+  swap_chain_waitable_ = swap_chain_->GetFrameLatencyWaitableObject();
 
   d2d_device_context_->SetTextAntialiasMode(D2D1_TEXT_ANTIALIAS_MODE_CLEARTYPE);
 }
@@ -1365,14 +1367,20 @@ class Schedulable {
 // Scheduler
 //
 class Scheduler final : public Singleton<Scheduler> {
+  public: enum class Method {
+    NoWait,
+    Timer,
+    Waitable,
+  };
+
   private: std::unordered_set<Schedulable*> animators_;
 
-  public: Scheduler();
+  public: explicit Scheduler();
   public: virtual ~Scheduler();
 
   public: void Add(Schedulable* animator);
   private: void DidFireTimer();
-  public: void Run();
+  public: void Run(Method method = Method::Waitable);
 
   private: static void CALLBACK TimerProc(HWND hwnd, UINT message,
                                           UINT_PTR timer_id, DWORD time);
@@ -1380,10 +1388,6 @@ class Scheduler final : public Singleton<Scheduler> {
 };
 
 Scheduler::Scheduler() {
-#if 0
-  ::SetTimer(nullptr, reinterpret_cast<UINT_PTR>(this), 1,
-             Scheduler::TimerProc);
-#endif
 }
 
 Scheduler::~Scheduler() {
@@ -1399,18 +1403,41 @@ void Scheduler::DidFireTimer() {
   }
 }
 
-void Scheduler::Run() {
-  MSG msg;
-  for (;;) {
-    if (::PeekMessage(&msg, nullptr, 0, 0, PM_NOREMOVE)) {
-      if (!::GetMessage(&msg, nullptr, 0, 0))
-        break;
-      ::TranslateMessage(&msg);
-      ::DispatchMessage(&msg);
-    } else {
-      DidFireTimer();
+void Scheduler::Run(Method method) {
+  switch (method) {
+    case Method::Timer: {
+      ::SetTimer(nullptr, reinterpret_cast<UINT_PTR>(this), 1,
+                 Scheduler::TimerProc);
+      MSG msg;
+      while (::GetMessage(&msg, nullptr, 0, 0)) {
+        ::TranslateMessage(&msg);
+        ::DispatchMessage(&msg);
+      }
+      return;
+    }
+    case Method::NoWait:
+    case Method::Waitable: {
+      auto const waitable = method == Method::NoWait ? nullptr :
+        ::CreateEvent(nullptr, false, false, nullptr);
+      MSG msg;
+      for (;;) {
+        if (::PeekMessage(&msg, nullptr, 0, 0, PM_NOREMOVE)) {
+          if (!::GetMessage(&msg, nullptr, 0, 0))
+            break;
+          ::TranslateMessage(&msg);
+          ::DispatchMessage(&msg);
+        } else {
+          if (waitable)
+            ::WaitForSingleObject(waitable, 1);
+          DidFireTimer();
+        }
+      }
+      if (waitable)
+        ::CloseHandle(waitable);
+      return;
     }
   }
+  NOTREACHED();
 }
 
 void CALLBACK Scheduler::TimerProc(HWND, UINT, UINT_PTR, DWORD) {
@@ -1431,7 +1458,7 @@ class Sampling {
   private: size_t max_samples_;
   private: std::list<float> samples_;
 
-  public: Sampling(size_t max_samples);
+  public: Sampling(size_t max_samples = 100);
   public: ~Sampling() = default;
 
   public: float last() const { return samples_.back(); }
@@ -1649,7 +1676,10 @@ class CartoonCard : public Card {
   private: std::vector<std::unique_ptr<Ball>> balls_;
   private: uint32_t last_tick_count_;
   private: DXGI_FRAME_STATISTICS last_stats_;
+  private: int not_present_count_;
+  private: Sampling present_sample_;
   private: ComPtr<IDWriteTextFormat> text_format_;
+  private: Sampling tick_count_sample_;
 
   public: CartoonCard(IDCompositionDesktopDevice* composition_device);
   public: virtual ~CartoonCard();
@@ -1667,7 +1697,7 @@ class CartoonCard : public Card {
 //
 CartoonCard::CartoonCard(IDCompositionDesktopDevice* composition_device)
     : Card(composition_device), balls_(5),
-      last_tick_count_(::GetTickCount()) {
+      last_tick_count_(::GetTickCount()), not_present_count_(0) {
   last_stats_ = {0};
 
   balls_[0].reset(new Ball(0.0f, 10.0f,
@@ -1705,8 +1735,18 @@ void CartoonCard::DidChangeBounds() {
 bool CartoonCard::DoAnimate(uint32_t tick_count) {
   if (!is_active())
     return false;
-  if (!is_swap_chain_ready())
+
+  if (!is_swap_chain_ready()) {
+    ++not_present_count_;
     return false;
+  }
+
+  tick_count_sample_.AddSample(tick_count - last_tick_count_);
+  last_tick_count_ = tick_count;
+
+  present_sample_.AddSample(not_present_count_);
+  not_present_count_ = 0;
+
   auto const canvas = d2d_device_context();
   canvas->BeginDraw();
   PaintBackground(canvas);
@@ -1724,13 +1764,32 @@ bool CartoonCard::DoAnimate(uint32_t tick_count) {
       break;
     }
   }
+
+  // Sample graph
+  tick_count_sample_.Paint(canvas,
+      gfx::Brush(canvas, gfx::ColorF(gfx::ColorF::Red, 0.5f)),
+      gfx::RectF(gfx::PointF(content_bounds().left(),
+                             content_bounds().bottom() - 20),
+                 content_bounds().bottom_right()));
+  present_sample_.Paint(canvas,
+      gfx::Brush(canvas, gfx::ColorF(gfx::ColorF::Blue, 0.5f)),
+      gfx::RectF(gfx::PointF(content_bounds().left(),
+                             content_bounds().bottom() - 40),
+                 content_bounds().bottom_right() - gfx::SizeF(0, 20)));
+
+  // Statistics
   DXGI_FRAME_STATISTICS stats = {0};
   // Ignore errors. |GetFrameStatistics()| returns
   // DXGI_ERROR_FRAME_STATISTICS_DISJOINT.
   swap_chain()->GetFrameStatistics(&stats);
 
   std::basic_ostringstream<base::char16> stream;
-  stream << L"TickCount=" << tick_count - last_tick_count_ << std::endl;
+  stream << L"(Red) TickCount=" << tick_count_sample_.minimum() <<
+    L" " << tick_count_sample_.maximum() <<
+    L" " << tick_count_sample_.last() << std::endl;
+  stream << L"(Blue) NotPresentCount=" << present_sample_.minimum() <<
+    L" " << present_sample_.maximum() <<
+    L" " << present_sample_.last() << std::endl;
   stream << L"PresentCount=" <<
       stats.PresentCount - last_stats_.PresentCount << std::endl;
   stream << L"PresentRefreshCount=" <<
@@ -1868,12 +1927,12 @@ bool StatusLayer::DoAnimate(uint32_t tick_count) {
   DCOMPOSITION_FRAME_STATISTICS stats;
   COM_VERIFY(composition_device_->GetFrameStatistics(&stats));
 
+  if (!is_swap_chain_ready())
+    return false;
+
   // Update samples
   sample_tick_.AddSample(tick_count - last_tick_count_);
   last_tick_count_ = tick_count;
-
-  if (!is_swap_chain_ready())
-    return false;
 
   sample_duration_.AddSample(
     ((stats.currentTime - last_stats_.currentTime) * 1000 /
@@ -2284,7 +2343,7 @@ int WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
   ::AllocConsole();
   ComInitializer com_initializer;
   my::DemoApp application;
-  ui::Scheduler::instance()->Run();
+  ui::Scheduler::instance()->Run(ui::Scheduler::Method::NoWait);
   for (auto const singleton : singletons) {
     delete singleton;
   }
