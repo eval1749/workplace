@@ -698,6 +698,131 @@ Factory::~Factory(){
 
 //////////////////////////////////////////////////////////////////////
 //
+// SwapChain
+//
+class SwapChain {
+  private: ComPtr<ID2D1DeviceContext> d2d_device_context_;
+  private: ComPtr<IDXGISwapChain2> swap_chain_;
+  private: HANDLE swap_chain_waitable_;
+
+  public: SwapChain(IDXGIDevice* dxgi_device, const D2D1_SIZE_U& size);
+  public: ~SwapChain();
+
+  public: ID2D1DeviceContext* d2d_device_context() const {
+    return d2d_device_context_;
+  }
+  public: bool is_swap_chain_ready() const;
+  public: IDXGISwapChain2* swap_chain() const { return swap_chain_; }
+
+  public: void DidResize(const D2D1_SIZE_U& size);
+  public: void Present();
+  private: void UpdateDeviceContext();
+
+  DISALLOW_COPY_AND_ASSIGN(SwapChain);
+};
+
+SwapChain::SwapChain(IDXGIDevice* dxgi_device, const D2D1_SIZE_U& size)
+    : swap_chain_waitable_(nullptr) {
+  ComPtr<IDXGIAdapter> dxgi_adapter;
+  dxgi_device->GetAdapter(&dxgi_adapter);
+
+  ComPtr<IDXGIFactory2> dxgi_factory;
+  dxgi_adapter->GetParent(IID_PPV_ARGS(&dxgi_factory));
+
+  DXGI_SWAP_CHAIN_DESC1 swap_chain_desc = {0};
+  swap_chain_desc.AlphaMode = DXGI_ALPHA_MODE_PREMULTIPLIED;
+  swap_chain_desc.Width = size.width;
+  swap_chain_desc.Height = size.height;
+  swap_chain_desc.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
+  swap_chain_desc.SampleDesc.Count = 1; // don't use multi-sampling
+  swap_chain_desc.SampleDesc.Quality = 0;
+  swap_chain_desc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
+  swap_chain_desc.BufferCount = 2;  // use double buffering to enable flip
+  swap_chain_desc.Scaling = DXGI_SCALING_STRETCH;
+  swap_chain_desc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL;
+  swap_chain_desc.Flags = DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT;
+
+  ComPtr<IDXGISwapChain1> swap_chain1;
+  COM_VERIFY(dxgi_factory->CreateSwapChainForComposition(
+      dxgi_device, &swap_chain_desc, nullptr,
+      &swap_chain1));
+  COM_VERIFY(swap_chain_.QueryFrom(swap_chain1));
+
+  // Notify the swap chain that this app intends to render each frame faster
+  // than the display's vertical refresh rate (typically 60Hz). Apps that cannot
+  // deliver frames this quickly should set this to 2.
+  COM_VERIFY(swap_chain_->SetMaximumFrameLatency(1));
+  swap_chain_waitable_ = swap_chain_->GetFrameLatencyWaitableObject();
+
+  // Create d2d device context
+  ComPtr<ID2D1Device> d2d_device;
+  COM_VERIFY(gfx::Factory::instance()->d2d_factory()->CreateDevice(
+      dxgi_device, &d2d_device));
+
+  COM_VERIFY(d2d_device->CreateDeviceContext(
+      D2D1_DEVICE_CONTEXT_OPTIONS_NONE, &d2d_device_context_));
+
+  UpdateDeviceContext();
+}
+
+SwapChain::~SwapChain() {
+  d2d_device_context_->SetTarget(nullptr);
+  d2d_device_context_.MustBeNoOtherUse();
+  d2d_device_context_.reset();
+  swap_chain_.MustBeNoOtherUse();
+}
+
+bool SwapChain::is_swap_chain_ready() const {
+  auto const wait = ::WaitForSingleObject(swap_chain_waitable_, 0);
+  switch (wait){
+    case WAIT_OBJECT_0:
+      return true;
+    case WAIT_TIMEOUT:
+      return false;
+    default:
+      NOTREACHED();
+  }
+  return false;
+}
+
+void SwapChain::Present() {
+  DXGI_PRESENT_PARAMETERS present_params = {0};
+  COM_VERIFY(swap_chain_->Present1(1, 0, &present_params));
+}
+
+void SwapChain::DidResize(const D2D1_SIZE_U& size) {
+  d2d_device_context_->SetTarget(nullptr);
+  COM_VERIFY(swap_chain_->ResizeBuffers(0u, size.width, size.height,
+      DXGI_FORMAT_UNKNOWN,
+      DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT));
+  UpdateDeviceContext();
+}
+
+void SwapChain::UpdateDeviceContext() {
+  // Allocate back buffer for d2d device context.
+  {
+    ComPtr<IDXGISurface> dxgi_back_buffer;
+    swap_chain_->GetBuffer(0, IID_PPV_ARGS(&dxgi_back_buffer));
+
+    float dpi_x, dpi_y;
+    gfx::Factory::instance()->d2d_factory()->GetDesktopDpi(&dpi_x, &dpi_y);
+    auto const bitmap_properties = D2D1::BitmapProperties1(
+        D2D1_BITMAP_OPTIONS_TARGET | D2D1_BITMAP_OPTIONS_CANNOT_DRAW,
+        D2D1::PixelFormat(DXGI_FORMAT_B8G8R8A8_UNORM,
+                          D2D1_ALPHA_MODE_PREMULTIPLIED),
+        dpi_x, dpi_y);
+
+    ComPtr<ID2D1Bitmap1> d2d_back_buffer;
+    COM_VERIFY(d2d_device_context_->CreateBitmapFromDxgiSurface(
+        dxgi_back_buffer, bitmap_properties, &d2d_back_buffer));
+    d2d_device_context_->SetTarget(d2d_back_buffer);
+  }
+
+  d2d_device_context_->SetTextAntialiasMode(D2D1_TEXT_ANTIALIAS_MODE_CLEARTYPE);
+}
+
+//////////////////////////////////////////////////////////////////////
+//
 // Bitmap
 //
 class Bitmap final {
@@ -926,10 +1051,8 @@ class Layer : protected ui::Animatable {
   private: std::unique_ptr<ui::Animation> animation_;
   private: gfx::RectF bounds_;
   private: std::vector<Layer*> child_layers_;
-  private: ComPtr<ID2D1DeviceContext> d2d_device_context_;
   private: bool is_active_;
-  private: ComPtr<IDXGISwapChain2> swap_chain_;
-  private: HANDLE swap_chain_waitable_;
+  private: std::unique_ptr<gfx::SwapChain> swap_chain_;
   private: ComPtr<IDCompositionVisual2> visual_;
 
   public: Layer(IDCompositionDesktopDevice* composition_device);
@@ -939,16 +1062,18 @@ class Layer : protected ui::Animatable {
 
   public: const gfx::RectF& bounds() const { return bounds_; }
   public: ID2D1DeviceContext* d2d_device_context() const {
-    return d2d_device_context_;
+    return swap_chain_->d2d_device_context();
   }
   protected: bool is_active() const { return is_active_; }
-  protected: bool is_swap_chain_ready() const;
-  public: IDXGISwapChain2* swap_chain() const { return swap_chain_; }
+  protected: bool is_swap_chain_ready() const {
+    return swap_chain_->is_swap_chain_ready();
+  }
+  public: IDXGISwapChain2* swap_chain() const {
+    return swap_chain_->swap_chain();
+  }
   public: IDCompositionVisual2* visual() const { return visual_; }
 
   public: void AppendChild(Layer* new_child);
-  private: ComPtr<IDXGISwapChain2> CreateSwapChain(uint32_t width,
-                                                   uint32_t height);
   public: virtual void DidActive();
   protected: virtual void DidChangeBounds();
   public: virtual void DidInactive();
@@ -968,7 +1093,7 @@ class Layer : protected ui::Animatable {
 // Layer
 //
 Layer::Layer(IDCompositionDesktopDevice* composition_device)
-    : is_active_(false), swap_chain_waitable_(nullptr) {
+    : is_active_(false) {
   COM_VERIFY(composition_device->CreateVisual(&visual_));
   COM_VERIFY(visual_->SetBitmapInterpolationMode(
       DCOMPOSITION_BITMAP_INTERPOLATION_MODE_LINEAR));
@@ -983,59 +1108,11 @@ Layer::Layer(IDCompositionDesktopDevice* composition_device)
 Layer::~Layer() {
   visual_->SetContent(nullptr);
   visual_->RemoveAllVisuals();
-  d2d_device_context_->SetTarget(nullptr);
-  d2d_device_context_.MustBeNoOtherUse();
-  d2d_device_context_.reset();
-  swap_chain_.MustBeNoOtherUse();
-}
-
-bool Layer::is_swap_chain_ready() const {
-  auto const wait = ::WaitForSingleObject(swap_chain_waitable_, 0);
-  switch (wait){
-    case WAIT_OBJECT_0:
-      return true;
-    case WAIT_TIMEOUT:
-      return false;
-    default:
-      NOTREACHED();
-  }
-  return false;
 }
 
 void Layer::AppendChild(Layer* new_child) {
   child_layers_.push_back(new_child);
   COM_VERIFY(visual_->AddVisual(new_child->visual_, true, nullptr));
-}
-
-ComPtr<IDXGISwapChain2> Layer::CreateSwapChain(
-    uint32_t width, uint32_t height) {
-  ComPtr<IDXGIAdapter> dxgi_adapter;
-  gfx::Factory::instance()->dxgi_device()->GetAdapter(&dxgi_adapter);
-
-  ComPtr<IDXGIFactory2> dxgi_factory;
-  dxgi_adapter->GetParent(IID_PPV_ARGS(&dxgi_factory));
-
-  DXGI_SWAP_CHAIN_DESC1 swap_chain_desc = {0};
-  swap_chain_desc.AlphaMode = DXGI_ALPHA_MODE_PREMULTIPLIED;
-  swap_chain_desc.Width = width;
-  swap_chain_desc.Height = height;
-  swap_chain_desc.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
-  swap_chain_desc.SampleDesc.Count = 1; // don't use multi-sampling
-  swap_chain_desc.SampleDesc.Quality = 0;
-  swap_chain_desc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
-  swap_chain_desc.BufferCount = 2;  // use double buffering to enable flip
-  swap_chain_desc.Scaling = DXGI_SCALING_STRETCH;
-  swap_chain_desc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL;
-  swap_chain_desc.Flags = DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT;
-
-  ComPtr<IDXGISwapChain1> swap_chain1;
-  COM_VERIFY(dxgi_factory->CreateSwapChainForComposition(
-      gfx::Factory::instance()->dxgi_device(), &swap_chain_desc, nullptr,
-      &swap_chain1));
-  ComPtr<IDXGISwapChain2> swap_chain2;
-  COM_VERIFY(swap_chain2.QueryFrom(swap_chain1));
-  COM_VERIFY(swap_chain2->SetMaximumFrameLatency(2));
-  return swap_chain2;
 }
 
 void Layer::DidActive() {
@@ -1068,8 +1145,7 @@ bool Layer::DoAnimate(uint32_t tick_count) {
 }
 
 void Layer::Present() {
-  DXGI_PRESENT_PARAMETERS present_params = {0};
-  COM_VERIFY(swap_chain_->Present1(1, 0, &present_params));
+  swap_chain_->Present();
 }
 
 void Layer::SetBounds(const gfx::RectF& new_bounds) {
@@ -1087,54 +1163,19 @@ void Layer::SetBounds(const gfx::RectF& new_bounds) {
 
   if (bounds_.size() != new_bounds.size()) {
     bounds_.set_size(new_bounds.size());
+    D2D1_SIZE_U size = {
+      static_cast<uint32_t>(bounds_.width()),
+      static_cast<uint32_t>(bounds_.height())
+    };
 
     if (swap_chain_) {
-      // Prepare for d2d back buffer.
-      d2d_device_context_->SetTarget(nullptr);
-      COM_VERIFY(swap_chain_->ResizeBuffers(0u,
-          static_cast<uint32_t>(bounds_.width()),
-          static_cast<uint32_t>(bounds_.height()),
-          DXGI_FORMAT_UNKNOWN,
-          DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT));
+      swap_chain_->DidResize(size);
     } else {
       // Create swap chain and d2d device context
-      swap_chain_.reset(CreateSwapChain(
-          static_cast<uint32_t>(bounds_.width()),
-          static_cast<uint32_t>(bounds_.height())));
-      swap_chain_.MustBeNoOtherUse();
-      swap_chain_waitable_ = swap_chain_->GetFrameLatencyWaitableObject();
-      COM_VERIFY(visual_->SetContent(swap_chain_));
-
-      ComPtr<ID2D1Device> d2d_device;
-      COM_VERIFY(gfx::Factory::instance()->d2d_factory()->CreateDevice(
-          gfx::Factory::instance()->dxgi_device(), &d2d_device));
-
-      COM_VERIFY(d2d_device->CreateDeviceContext(
-          D2D1_DEVICE_CONTEXT_OPTIONS_NONE, &d2d_device_context_));
+      swap_chain_.reset(new gfx::SwapChain(
+          gfx::Factory::instance()->dxgi_device(), size));
+      COM_VERIFY(visual_->SetContent(swap_chain_->swap_chain()));
     }
-
-    // Allocate back buffer for d2d device context.
-    {
-      ComPtr<IDXGISurface> dxgi_back_buffer;
-      swap_chain_->GetBuffer(0, IID_PPV_ARGS(&dxgi_back_buffer));
-
-      float dpi_x, dpi_y;
-      gfx::Factory::instance()->d2d_factory()->GetDesktopDpi(&dpi_x, &dpi_y);
-      auto const bitmap_properties = D2D1::BitmapProperties1(
-          D2D1_BITMAP_OPTIONS_TARGET | D2D1_BITMAP_OPTIONS_CANNOT_DRAW,
-          D2D1::PixelFormat(DXGI_FORMAT_B8G8R8A8_UNORM,
-                            D2D1_ALPHA_MODE_PREMULTIPLIED),
-          dpi_x, dpi_y);
-
-      ComPtr<ID2D1Bitmap1> d2d_back_buffer;
-      COM_VERIFY(d2d_device_context_->CreateBitmapFromDxgiSurface(
-          dxgi_back_buffer, bitmap_properties, &d2d_back_buffer));
-      d2d_device_context_->SetTarget(d2d_back_buffer);
-    }
-
-    d2d_device_context_->SetTextAntialiasMode(
-        D2D1_TEXT_ANTIALIAS_MODE_CLEARTYPE);
-
     changed = true;
   }
 
