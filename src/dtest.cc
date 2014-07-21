@@ -748,11 +748,21 @@ SwapChain::SwapChain(IDXGIDevice* dxgi_device, const D2D1_SIZE_U& size)
       &swap_chain1));
   COM_VERIFY(swap_chain_.QueryFrom(swap_chain1));
 
-  // Notify the swap chain that this app intends to render each frame faster
-  // than the display's vertical refresh rate (typically 60Hz). Apps that cannot
-  // deliver frames this quickly should set this to 2.
-  // Note: default is one.
-  COM_VERIFY(swap_chain_->SetMaximumFrameLatency(1));
+  // TODO(yosi) We should know when we retrieve waitable object from swap
+  // chain.
+  if (swap_chain_waitable_)
+    ::CloseHandle(swap_chain_waitable_);
+  swap_chain_waitable_ = swap_chain_->GetFrameLatencyWaitableObject();
+
+  // http://msdn.microsoft.com/en-us/library/windows/apps/dn448914.aspx
+  // Swapchains created with the
+  // DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT flag use their own
+  // per-swapchain latency setting instead of the one associated with the DXGI
+  // device. The default per-swapchain latency is 1, which ensures that DXGI
+  // does not queue more than one frame at a time. This both reduces latency
+  // and ensures that the application will only render after each VSync,
+  // minimizing power consumption.
+  // COM_VERIFY(swap_chain_->SetMaximumFrameLatency(1));
 
   // Create d2d device context
   ComPtr<ID2D1Device> d2d_device;
@@ -787,7 +797,8 @@ bool SwapChain::is_swap_chain_ready() const {
 
 void SwapChain::Present() {
   DXGI_PRESENT_PARAMETERS present_params = {0};
-  swap_chain_->Present1(0, 0, &present_params);
+  auto const flags = DXGI_PRESENT_DO_NOT_WAIT;
+  COM_VERIFY(swap_chain_->Present1(0, flags, &present_params));
 }
 
 void SwapChain::DidResize(const D2D1_SIZE_U& size) {
@@ -817,12 +828,6 @@ void SwapChain::UpdateDeviceContext() {
         dxgi_back_buffer, bitmap_properties, &d2d_back_buffer));
     d2d_device_context_->SetTarget(d2d_back_buffer);
   }
-
-  // TODO(yosi) We should know when we retrieve waitable object from swap
-  // chain.
-  if (swap_chain_waitable_)
-    ::CloseHandle(swap_chain_waitable_);
-  swap_chain_waitable_ = swap_chain_->GetFrameLatencyWaitableObject();
 
   d2d_device_context_->SetTextAntialiasMode(D2D1_TEXT_ANTIALIAS_MODE_CLEARTYPE);
 }
@@ -1643,7 +1648,9 @@ void Card::DidInactive() {
   canvas->DrawTextLayout(text_origin, text_layout, text_brush);
 
   COM_VERIFY(canvas->EndDraw());
-  Present();
+
+  DXGI_PRESENT_PARAMETERS present_params = {0};
+  COM_VERIFY(swap_chain()->Present1(1, 0, &present_params));
 }
 
 //////////////////////////////////////////////////////////////////////
