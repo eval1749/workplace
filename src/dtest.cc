@@ -1417,9 +1417,9 @@ class Schedulable {
 //
 class Scheduler final : public Singleton<Scheduler> {
   public: enum class Method {
-    NoWait,
-    Timer,
-    Waitable,
+    NoWait, // NoPresentContent=3901 9649 5344, CPU=26%
+    Timer, // NoPresentContent=0 1 0, CPU=12%
+    Waitable, // NoPresentContent=0 8 3, CPU=18%
   };
 
   private: std::unordered_set<Schedulable*> animators_;
@@ -2452,7 +2452,9 @@ int WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
   ::AllocConsole();
   ComInitializer com_initializer;
   my::DemoApp application;
-  ui::Scheduler::instance()->Run(ui::Scheduler::Method::NoWait);
+  //ui::Scheduler::instance()->Run(ui::Scheduler::Method::NoWait);
+  ui::Scheduler::instance()->Run(ui::Scheduler::Method::Timer);
+  //ui::Scheduler::instance()->Run(ui::Scheduler::Method::Waitable);
   for (auto const singleton : singletons) {
     delete singleton;
   }
