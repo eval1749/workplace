@@ -285,31 +285,6 @@ using D2D1::ColorF;
 
 //////////////////////////////////////////////////////////////////////
 //
-// Brush
-//
-class Brush final {
-  private: ComPtr<ID2D1SolidColorBrush> brush_;
-
-  public: Brush(ID2D1RenderTarget* render_target, gfx::ColorF::Enum color,
-                float alpha = 1.0f);
-  public: Brush(ID2D1RenderTarget* render_target, gfx::ColorF color);
-  public: ~Brush() = default;
-
-  public: operator ID2D1SolidColorBrush*() const { return brush_; }
-};
-
-Brush::Brush(ID2D1RenderTarget* render_target, gfx::ColorF::Enum name,
-             float alpha) {
-  COM_VERIFY(render_target->CreateSolidColorBrush(gfx::ColorF(name, alpha),
-                                                  &brush_));
-}
-
-Brush::Brush(ID2D1RenderTarget* render_target, gfx::ColorF color) {
-  COM_VERIFY(render_target->CreateSolidColorBrush(color, &brush_));
-}
-
-//////////////////////////////////////////////////////////////////////
-//
 // SizeF
 //
 class SizeF final {
@@ -652,6 +627,125 @@ RectF RectF::Offset(const SizeF& size) const {
   return gfx::RectF(origin() + size, this->size());
 }
 
+//////////////////////////////////////////////////////////////////////
+//
+// Factory
+//
+// This class is a singleton class provides:
+//  - D2D1Factory
+//  - D3D11 Device
+//  - Composition Device
+//
+class Factory final : public Singleton<Factory> {
+  DECLARE_SINGLETON_CLASS(Factory);
+
+  private: D2D1_BITMAP_PROPERTIES1 bitmap_properties_;
+  private: ComPtr<ID2D1Factory1> d2d_factory_;
+  private: ComPtr<IDWriteFactory> dwrite_factory_;
+  private: ComPtr<IDXGIDevice3> dxgi_device_;
+
+  private: Factory();
+  private: virtual ~Factory();
+
+  public: ID2D1Factory1* d2d_factory() const { return d2d_factory_; }
+  public: IDWriteFactory* dwrite() const { return dwrite_factory_; }
+  public: IDXGIDevice3* dxgi_device() const { return dxgi_device_; }
+
+  DISALLOW_COPY_AND_ASSIGN(Factory);
+};
+
+Factory::Factory() {
+  // Create DWrite factory.
+  COM_VERIFY(::DWriteCreateFactory(
+      DWRITE_FACTORY_TYPE_SHARED,
+      __uuidof(IDWriteFactory),
+      dwrite_factory_.locationUnknown()));
+
+  // Create Direct 2D factory.
+  COM_VERIFY(::D2D1CreateFactory(D2D1_FACTORY_TYPE_SINGLE_THREADED,
+                                 &d2d_factory_));
+
+  // Create Direct 3D device.
+  D3D_FEATURE_LEVEL feature_levels[] = {
+      D3D_FEATURE_LEVEL_11_1,
+      D3D_FEATURE_LEVEL_11_0,
+  };
+
+  auto const d3d11_flags = D3D11_CREATE_DEVICE_BGRA_SUPPORT |
+                           D3D11_CREATE_DEVICE_SINGLETHREADED |
+                           D3D11_CREATE_DEVICE_DEBUG;
+
+  ComPtr<ID3D11Device> d3d_device;
+  COM_VERIFY(::D3D11CreateDevice(
+      nullptr, D3D_DRIVER_TYPE_HARDWARE, nullptr,
+      d3d11_flags, nullptr, 0, D3D11_SDK_VERSION,
+      &d3d_device, feature_levels, nullptr));
+  COM_VERIFY(dxgi_device_.QueryFrom(d3d_device));
+}
+
+Factory::~Factory(){
+  {
+    auto const event = ::CreateEvent(nullptr, false, false, nullptr);
+    COM_VERIFY(dxgi_device_->EnqueueSetEvent(event));
+    ::WaitForSingleObject(event, INFINITE);
+    ::CloseHandle(event);
+    dxgi_device_->Trim();
+  }
+  d2d_factory_.reset();
+  dwrite_factory_.reset();
+  dxgi_device_.reset();
+}
+
+//////////////////////////////////////////////////////////////////////
+//
+// Bitmap
+//
+class Bitmap final {
+  private: ComPtr<ID2D1Bitmap1> bitmap_;
+
+  public: Bitmap(ID2D1DeviceContext* canvas, const D2D1_SIZE_U& size);
+  public: ~Bitmap() = default;
+
+  public: operator ID2D1Bitmap1*() const { return bitmap_; }
+
+  DISALLOW_COPY_AND_ASSIGN(Bitmap);
+};
+
+Bitmap::Bitmap(ID2D1DeviceContext* canvas, const D2D1_SIZE_U& size) {
+  float dpi_x, dpi_y;
+  canvas->GetDpi(&dpi_x, &dpi_y);
+  auto const properties = D2D1::BitmapProperties1(
+      D2D1_BITMAP_OPTIONS_TARGET, canvas->GetPixelFormat(), dpi_x, dpi_y);
+  COM_VERIFY(canvas->CreateBitmap(size, nullptr, 0, &properties, &bitmap_));
+}
+
+//////////////////////////////////////////////////////////////////////
+//
+// Brush
+//
+class Brush final {
+  private: ComPtr<ID2D1SolidColorBrush> brush_;
+
+  public: Brush(ID2D1RenderTarget* render_target, gfx::ColorF::Enum color,
+                float alpha = 1.0f);
+  public: Brush(ID2D1RenderTarget* render_target, gfx::ColorF color);
+  public: ~Brush() = default;
+
+  public: operator ID2D1SolidColorBrush*() const { return brush_; }
+
+  DISALLOW_COPY_AND_ASSIGN(Brush);
+};
+
+Brush::Brush(ID2D1RenderTarget* render_target, gfx::ColorF::Enum name,
+             float alpha) {
+  COM_VERIFY(render_target->CreateSolidColorBrush(gfx::ColorF(name, alpha),
+                                                  &brush_));
+}
+
+Brush::Brush(ID2D1RenderTarget* render_target, gfx::ColorF color) {
+  COM_VERIFY(render_target->CreateSolidColorBrush(color, &brush_));
+}
+
 }  // namespace gfx
 
 namespace ui {
@@ -826,96 +920,6 @@ class Layer;
 
 //////////////////////////////////////////////////////////////////////
 //
-// Factory
-//
-// This class is a singleton class provides:
-//  - D2D1Factory
-//  - D3D11 Device
-//  - Composition Device
-//
-class Factory final : public Singleton<Factory> {
-  DECLARE_SINGLETON_CLASS(Factory);
-
-  private: D2D1_BITMAP_PROPERTIES1 bitmap_properties_;
-  private: ComPtr<ID2D1Factory1> d2d_factory_;
-  private: ComPtr<IDWriteFactory> dwrite_factory_;
-  private: ComPtr<IDXGIDevice3> dxgi_device_;
-
-  private: Factory();
-  private: virtual ~Factory();
-
-  public: const D2D1_BITMAP_PROPERTIES1* bitmap_properties() const {
-    return &bitmap_properties_;
-  }
-  public: ID2D1Factory1* d2d_factory() const { return d2d_factory_; }
-  public: IDWriteFactory* dwrite() const { return dwrite_factory_; }
-  public: IDXGIDevice3* dxgi_device() const { return dxgi_device_; }
-
-  public: ComPtr<IDCompositionDesktopDevice> CreateCompositionDevice();
-
-  DISALLOW_COPY_AND_ASSIGN(Factory);
-};
-
-Factory::Factory() {
-  // Create DWrite factory.
-  COM_VERIFY(::DWriteCreateFactory(
-      DWRITE_FACTORY_TYPE_SHARED,
-      __uuidof(IDWriteFactory),
-      dwrite_factory_.locationUnknown()));
-
-  // Create Direct 2D factory.
-  COM_VERIFY(::D2D1CreateFactory(D2D1_FACTORY_TYPE_SINGLE_THREADED,
-                                 &d2d_factory_));
-
-  float dpi_x, dpi_y;
-  d2d_factory_->GetDesktopDpi(&dpi_x, &dpi_y);
-  bitmap_properties_ = D2D1::BitmapProperties1(
-      D2D1_BITMAP_OPTIONS_TARGET | D2D1_BITMAP_OPTIONS_CANNOT_DRAW,
-      D2D1::PixelFormat(DXGI_FORMAT_B8G8R8A8_UNORM,
-                        D2D1_ALPHA_MODE_PREMULTIPLIED),
-      dpi_x, dpi_y);
-
-  // Create Direct 3D device.
-  D3D_FEATURE_LEVEL feature_levels[] = {
-      D3D_FEATURE_LEVEL_11_1,
-      D3D_FEATURE_LEVEL_11_0,
-  };
-
-  auto const d3d11_flags = D3D11_CREATE_DEVICE_BGRA_SUPPORT |
-                           D3D11_CREATE_DEVICE_SINGLETHREADED |
-                           D3D11_CREATE_DEVICE_DEBUG;
-
-  ComPtr<ID3D11Device> d3d_device;
-  COM_VERIFY(::D3D11CreateDevice(
-      nullptr, D3D_DRIVER_TYPE_HARDWARE, nullptr,
-      d3d11_flags, nullptr, 0, D3D11_SDK_VERSION,
-      &d3d_device, feature_levels, nullptr));
-  COM_VERIFY(dxgi_device_.QueryFrom(d3d_device));
-}
-
-Factory::~Factory(){
-  {
-    auto const event = ::CreateEvent(nullptr, false, false, nullptr);
-    COM_VERIFY(dxgi_device_->EnqueueSetEvent(event));
-    ::WaitForSingleObject(event, INFINITE);
-    ::CloseHandle(event);
-    dxgi_device_->Trim();
-  }
-  d2d_factory_.reset();
-  dwrite_factory_.reset();
-  dxgi_device_.reset();
-}
-
-ComPtr<IDCompositionDesktopDevice> Factory::CreateCompositionDevice() {
-  // Create Direct Composition device.
-  ComPtr<IDCompositionDesktopDevice> composition_device;
-  COM_VERIFY(::DCompositionCreateDevice2(dxgi_device_,
-      __uuidof(IDCompositionDesktopDevice), composition_device.location()));
-  return composition_device;
-}
-
-//////////////////////////////////////////////////////////////////////
-//
 // cc::Layer
 //
 class Layer : protected ui::Animatable {
@@ -943,8 +947,6 @@ class Layer : protected ui::Animatable {
   public: IDCompositionVisual2* visual() const { return visual_; }
 
   public: void AppendChild(Layer* new_child);
-  private: ComPtr<ID2D1DeviceContext> CreateD2DDeviceContext(
-      IDXGISwapChain2* swap_chain, uint32_t width, uint32_t height);
   private: ComPtr<IDXGISwapChain2> CreateSwapChain(uint32_t width,
                                                    uint32_t height);
   public: virtual void DidActive();
@@ -1005,33 +1007,10 @@ void Layer::AppendChild(Layer* new_child) {
   COM_VERIFY(visual_->AddVisual(new_child->visual_, true, nullptr));
 }
 
-ComPtr<ID2D1DeviceContext> Layer::CreateD2DDeviceContext(
-      IDXGISwapChain2* swap_chain, uint32_t width, uint32_t height) {
-  ComPtr<ID2D1Device> d2d_device;
-  COM_VERIFY(Factory::instance()->d2d_factory()->CreateDevice(
-      Factory::instance()->dxgi_device(), &d2d_device));
-
-  ComPtr<ID2D1DeviceContext> d2d_device_context;
-  COM_VERIFY(d2d_device->CreateDeviceContext(
-      D2D1_DEVICE_CONTEXT_OPTIONS_NONE, &d2d_device_context));
-
-  ComPtr<IDXGISurface> dxgi_back_buffer;
-  swap_chain->GetBuffer(0, IID_PPV_ARGS(&dxgi_back_buffer));
-
-  ComPtr<ID2D1Bitmap1> d2d_back_buffer;
-  COM_VERIFY(d2d_device_context->CreateBitmapFromDxgiSurface(
-      dxgi_back_buffer, Factory::instance()->bitmap_properties(),
-      &d2d_back_buffer));
-  d2d_device_context->SetTarget(d2d_back_buffer);
-  d2d_device_context->SetTextAntialiasMode(D2D1_TEXT_ANTIALIAS_MODE_CLEARTYPE);
-  d2d_device_context.MustBeNoOtherUse();
-  return d2d_device_context;
-}
-
 ComPtr<IDXGISwapChain2> Layer::CreateSwapChain(
     uint32_t width, uint32_t height) {
   ComPtr<IDXGIAdapter> dxgi_adapter;
-  Factory::instance()->dxgi_device()->GetAdapter(&dxgi_adapter);
+  gfx::Factory::instance()->dxgi_device()->GetAdapter(&dxgi_adapter);
 
   ComPtr<IDXGIFactory2> dxgi_factory;
   dxgi_adapter->GetParent(IID_PPV_ARGS(&dxgi_factory));
@@ -1051,7 +1030,7 @@ ComPtr<IDXGISwapChain2> Layer::CreateSwapChain(
 
   ComPtr<IDXGISwapChain1> swap_chain1;
   COM_VERIFY(dxgi_factory->CreateSwapChainForComposition(
-      Factory::instance()->dxgi_device(), &swap_chain_desc, nullptr,
+      gfx::Factory::instance()->dxgi_device(), &swap_chain_desc, nullptr,
       &swap_chain1));
   ComPtr<IDXGISwapChain2> swap_chain2;
   COM_VERIFY(swap_chain2.QueryFrom(swap_chain1));
@@ -1110,35 +1089,52 @@ void Layer::SetBounds(const gfx::RectF& new_bounds) {
     bounds_.set_size(new_bounds.size());
 
     if (swap_chain_) {
+      // Prepare for d2d back buffer.
       d2d_device_context_->SetTarget(nullptr);
       COM_VERIFY(swap_chain_->ResizeBuffers(0u,
           static_cast<uint32_t>(bounds_.width()),
           static_cast<uint32_t>(bounds_.height()),
           DXGI_FORMAT_UNKNOWN,
           DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT));
-      ComPtr<IDXGISurface> dxgi_back_buffer;
-      swap_chain_->GetBuffer(0, IID_PPV_ARGS(&dxgi_back_buffer));
-      swap_chain_waitable_ = swap_chain_->GetFrameLatencyWaitableObject();
-
-      ComPtr<ID2D1Bitmap1> d2d_back_buffer;
-      COM_VERIFY(d2d_device_context_->CreateBitmapFromDxgiSurface(
-          dxgi_back_buffer, Factory::instance()->bitmap_properties(),
-          &d2d_back_buffer));
-      d2d_device_context_->SetTarget(d2d_back_buffer);
-      d2d_device_context_->SetTextAntialiasMode(
-          D2D1_TEXT_ANTIALIAS_MODE_CLEARTYPE);
     } else {
+      // Create swap chain and d2d device context
       swap_chain_.reset(CreateSwapChain(
           static_cast<uint32_t>(bounds_.width()),
           static_cast<uint32_t>(bounds_.height())));
       swap_chain_.MustBeNoOtherUse();
       swap_chain_waitable_ = swap_chain_->GetFrameLatencyWaitableObject();
       COM_VERIFY(visual_->SetContent(swap_chain_));
-      d2d_device_context_ = CreateD2DDeviceContext(swap_chain_,
-          static_cast<uint32_t>(bounds_.width()),
-          static_cast<uint32_t>(bounds_.height()));
-      d2d_device_context_.MustBeNoOtherUse();
+
+      ComPtr<ID2D1Device> d2d_device;
+      COM_VERIFY(gfx::Factory::instance()->d2d_factory()->CreateDevice(
+          gfx::Factory::instance()->dxgi_device(), &d2d_device));
+
+      COM_VERIFY(d2d_device->CreateDeviceContext(
+          D2D1_DEVICE_CONTEXT_OPTIONS_NONE, &d2d_device_context_));
     }
+
+    // Allocate back buffer for d2d device context.
+    {
+      ComPtr<IDXGISurface> dxgi_back_buffer;
+      swap_chain_->GetBuffer(0, IID_PPV_ARGS(&dxgi_back_buffer));
+
+      float dpi_x, dpi_y;
+      gfx::Factory::instance()->d2d_factory()->GetDesktopDpi(&dpi_x, &dpi_y);
+      auto const bitmap_properties = D2D1::BitmapProperties1(
+          D2D1_BITMAP_OPTIONS_TARGET | D2D1_BITMAP_OPTIONS_CANNOT_DRAW,
+          D2D1::PixelFormat(DXGI_FORMAT_B8G8R8A8_UNORM,
+                            D2D1_ALPHA_MODE_PREMULTIPLIED),
+          dpi_x, dpi_y);
+
+      ComPtr<ID2D1Bitmap1> d2d_back_buffer;
+      COM_VERIFY(d2d_device_context_->CreateBitmapFromDxgiSurface(
+          dxgi_back_buffer, bitmap_properties, &d2d_back_buffer));
+      d2d_device_context_->SetTarget(d2d_back_buffer);
+    }
+
+    d2d_device_context_->SetTextAntialiasMode(
+        D2D1_TEXT_ANTIALIAS_MODE_CLEARTYPE);
+
     changed = true;
   }
 
@@ -1500,8 +1496,10 @@ void Card::PaintBackground(ID2D1DeviceContext* canvas) const {
   auto const radius = 2.0f;
   canvas->Clear(gfx::ColorF(gfx::ColorF::White, 0.0f));
 
-  ComPtr<ID2D1BitmapRenderTarget> canvas2;
-  COM_VERIFY(canvas->CreateCompatibleRenderTarget(&canvas2));
+  ComPtr<ID2D1Image> current_target;
+  canvas->GetTarget(&current_target);
+
+  gfx::Bitmap bitmap(canvas, canvas->GetPixelSize());
 
   ComPtr<ID2D1Effect> blur_effect;
   COM_VERIFY(canvas->CreateEffect(CLSID_D2D1GaussianBlur, &blur_effect));
@@ -1512,17 +1510,17 @@ void Card::PaintBackground(ID2D1DeviceContext* canvas) const {
     const auto shadow_bounds = gfx::RectF(
        content_bounds().origin() + shadow.offset,
        content_bounds().size());
-    ComPtr<ID2D1Bitmap> bitmap;
-    canvas2->BeginDraw();
-    canvas2->Clear(gfx::ColorF(0, 0, 0, 0));
-    canvas2->FillRoundedRectangle(
+
+    canvas->SetTarget(bitmap);
+    canvas->Clear(gfx::ColorF(0, 0, 0, 0));
+    canvas->FillRoundedRectangle(
          D2D1::RoundedRect(shadow_bounds, radius, radius),
-         gfx::Brush(canvas2, shadow.color));
-    COM_VERIFY(canvas2->EndDraw());
-    COM_VERIFY(canvas2->GetBitmap(&bitmap));
+         gfx::Brush(canvas, shadow.color));
+
     blur_effect->SetInput(0, bitmap);
     COM_VERIFY(blur_effect->SetValue(D2D1_GAUSSIANBLUR_PROP_STANDARD_DEVIATION,
                                      shadow.blur_radius));
+    canvas->SetTarget(current_target);
     canvas->DrawImage(blur_effect, gfx::PointF());
     COM_VERIFY(canvas->Flush());
   }
@@ -1545,13 +1543,13 @@ void Card::DidInactive() {
   // Paint "Paused" in center of layer.
   auto const font_size = 40;
   ComPtr<IDWriteTextFormat> text_format;
-  COM_VERIFY(cc::Factory::instance()->dwrite()->CreateTextFormat(
+  COM_VERIFY(gfx::Factory::instance()->dwrite()->CreateTextFormat(
     L"Verdana", nullptr, DWRITE_FONT_WEIGHT_REGULAR, DWRITE_FONT_STYLE_NORMAL,
     DWRITE_FONT_STRETCH_NORMAL, font_size, L"en-us", &text_format));
 
   base::string16 text(L"Paused");
   ComPtr<IDWriteTextLayout> text_layout;
-  COM_VERIFY(cc::Factory::instance()->dwrite()->CreateTextLayout(
+  COM_VERIFY(gfx::Factory::instance()->dwrite()->CreateTextLayout(
       text.data(), static_cast<UINT>(text.length()), text_format,
       bounds.width(), bounds.width(),
       &text_layout));
@@ -1644,7 +1642,7 @@ CartoonCard::CartoonCard(IDCompositionDesktopDevice* composition_device)
                            last_tick_count_));
 
   auto const font_size = 13;
-  COM_VERIFY(cc::Factory::instance()->dwrite()->CreateTextFormat(
+  COM_VERIFY(gfx::Factory::instance()->dwrite()->CreateTextFormat(
     L"Consolas", nullptr, DWRITE_FONT_WEIGHT_REGULAR, DWRITE_FONT_STYLE_NORMAL,
     DWRITE_FONT_STRETCH_NORMAL, font_size, L"en-us", &text_format_));
 }
@@ -1701,7 +1699,7 @@ bool CartoonCard::DoAnimate(uint32_t tick_count) {
 
   const auto text = stream.str();
   ComPtr<IDWriteTextLayout> text_layout;
-  COM_VERIFY(cc::Factory::instance()->dwrite()->CreateTextLayout(
+  COM_VERIFY(gfx::Factory::instance()->dwrite()->CreateTextLayout(
       text.data(), static_cast<UINT>(text.length()), text_format_,
       content_bounds().width(), content_bounds().height(), &text_layout));
 
@@ -1808,7 +1806,7 @@ StatusLayer::StatusLayer(IDCompositionDesktopDevice* composition_device)
   COM_VERIFY(composition_device_->GetFrameStatistics(&last_stats_));
 
   auto const font_size = 13;
-  COM_VERIFY(cc::Factory::instance()->dwrite()->CreateTextFormat(
+  COM_VERIFY(gfx::Factory::instance()->dwrite()->CreateTextFormat(
     L"Consolas", nullptr, DWRITE_FONT_WEIGHT_REGULAR, DWRITE_FONT_STYLE_NORMAL,
     DWRITE_FONT_STRETCH_NORMAL, font_size, L"en-us", &text_format_));
 }
@@ -1879,7 +1877,7 @@ bool StatusLayer::DoAnimate(uint32_t tick_count) {
   const auto text = stream.str();
 
   text_layout_.reset();
-  COM_VERIFY(cc::Factory::instance()->dwrite()->CreateTextLayout(
+  COM_VERIFY(gfx::Factory::instance()->dwrite()->CreateTextLayout(
       text.data(), static_cast<UINT>(text.length()), text_format_,
       bounds.width(), bounds.height(), &text_layout_));
 
@@ -1961,7 +1959,7 @@ DemoApp::~DemoApp() {
 
 void DemoApp::Run() {
   float dpi_x, dpi_y;
-  cc::Factory::instance()->d2d_factory()->GetDesktopDpi(&dpi_x, &dpi_y);
+  gfx::Factory::instance()->d2d_factory()->GetDesktopDpi(&dpi_x, &dpi_y);
 
   Window::Creator creator(this);
   auto const hwnd = ::CreateWindow(
@@ -2031,7 +2029,10 @@ void DemoApp::DidActive() {
 void DemoApp::DidCreate() {
   ui::Window::DidCreate();
 
-  composition_device_ = cc::Factory::instance()->CreateCompositionDevice();
+  // Create Direct Composition device.
+  COM_VERIFY(::DCompositionCreateDevice2(
+      gfx::Factory::instance()->dxgi_device(),
+      __uuidof(IDCompositionDesktopDevice), composition_device_.location()));
   composition_device_.MustBeNoOtherUse();
 
   // Build visual tree
