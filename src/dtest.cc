@@ -1238,7 +1238,7 @@ class SimpleLayer : public Layer {
   public: class ScopedCanvas {
     private: ComPtr<ID2D1DeviceContext> d2d_device_context_;
     private: SimpleLayer* layer_;
-    private: gfx::PointF origin_;
+    private: gfx::RectF bounds_;
 
     public: ScopedCanvas(SimpleLayer* layer);
     public: ~ScopedCanvas();
@@ -1246,7 +1246,7 @@ class SimpleLayer : public Layer {
     public: ID2D1DeviceContext* d2d_device_context() const {
       return d2d_device_context_;
     }
-    public: const gfx::PointF& origin() const { return origin_; }
+    public: const gfx::RectF& bounds() const { return bounds_; }
   };
   friend class ScopedCanvas;
 
@@ -1296,8 +1296,9 @@ SimpleLayer::ScopedCanvas::ScopedCanvas(SimpleLayer* layer) : layer_(layer) {
   POINT offset;
   COM_VERIFY(layer_->surface_->BeginDraw(
       nullptr, IID_PPV_ARGS(&d2d_device_context_), &offset));
-  origin_ = gfx::PointF(static_cast<float>(offset.x),
-                        static_cast<float>(offset.y));
+  bounds_ = gfx::RectF(gfx::PointF(static_cast<float>(offset.x),
+                                   static_cast<float>(offset.y)),
+                       layer_->bounds().size());
 }
 
 SimpleLayer::ScopedCanvas::~ScopedCanvas() {
@@ -2050,7 +2051,8 @@ RootLayer::RootLayer(cc::Compositor* compositor)
 
 void RootLayer::DidChangeBounds() {
   cc::SimpleLayer::DidChangeBounds();
-  cc::SimpleLayer::ScopedCanvas scoped_canvas(this);
+  ScopedCanvas scoped_canvas(this);
+  auto const bounds = scoped_canvas.bounds();
   auto const canvas = scoped_canvas.d2d_device_context();
   canvas->Clear(gfx::ColorF(0, 0, 1, 0.2));
   gfx::Brush white_brush(canvas,
@@ -2058,14 +2060,12 @@ void RootLayer::DidChangeBounds() {
   gfx::Brush red_brush(canvas,
                          gfx::ColorF(gfx::ColorF::White, 0.3f));
 
-  canvas->DrawLine(bounds().origin(), bounds().bottom_right(), white_brush,
+  canvas->DrawLine(bounds.origin(), bounds.bottom_right(), white_brush,
                    5.0f);
-  canvas->DrawLine(gfx::PointF(bounds().right(), bounds().top()),
-                   gfx::PointF(bounds().left(), bounds().bottom()),
+  canvas->DrawLine(gfx::PointF(bounds.right(), bounds.top()),
+                   gfx::PointF(bounds.left(), bounds.bottom()),
                    white_brush, 5.0f);
-  canvas->FillEllipse(D2D1::Ellipse(scoped_canvas.origin(), 10, 10),
-                      white_brush);
-  canvas->FillRectangle(bounds(), red_brush);
+  canvas->FillRectangle(bounds, red_brush);
 }
 
 //////////////////////////////////////////////////////////////////////
