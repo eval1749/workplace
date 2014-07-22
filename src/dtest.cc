@@ -279,6 +279,193 @@ class Singleton : public SingletonBase {
 #define DECLARE_SINGLETON_CLASS(name) \
   friend class Singleton<name>
 
+namespace base {
+
+class Time;
+class TimeDelta;
+class TimeTicks;
+
+class TimeDelta {
+  friend class Time;
+  friend class TimeTicks;
+
+  private: int64_t delta_;
+
+  public: TimeDelta() : delta_(0) {}
+  private: explicit TimeDelta(int64_t delta) : delta_(delta) {}
+
+  public: bool operator==(const TimeDelta& other) const;
+  public: bool operator!=(const TimeDelta& other) const;
+  public: bool operator<(const TimeDelta& other) const;
+  public: bool operator<=(const TimeDelta& other) const;
+  public: bool operator>(const TimeDelta& other) const;
+  public: bool operator>=(const TimeDelta& other) const;
+
+  public: TimeDelta operator+(const TimeDelta& other) const;
+  public: TimeDelta operator-(const TimeDelta& other) const;
+
+  public: static TimeDelta FromMilliseconds(int64_t ms);
+  public: static TimeDelta FromMicroseconds(int64_t us);
+
+  public: int64_t InMilliseconds() const;
+  public: double InMillisecondsF() const;
+  public: int64_t InMicroseconds() const;
+};
+
+bool TimeDelta::operator==(const TimeDelta& other) const {
+  return delta_ == other.delta_;
+}
+
+bool TimeDelta::operator!=(const TimeDelta& other) const {
+  return delta_ != other.delta_;
+}
+
+bool TimeDelta::operator<(const TimeDelta& other) const {
+  return delta_ < other.delta_;
+}
+
+bool TimeDelta::operator<=(const TimeDelta& other) const {
+  return delta_ <= other.delta_;
+}
+
+bool TimeDelta::operator>(const TimeDelta& other) const {
+  return delta_ > other.delta_;
+}
+
+bool TimeDelta::operator>=(const TimeDelta& other) const {
+  return delta_ >= other.delta_;
+}
+
+TimeDelta TimeDelta::operator+(const TimeDelta& other) const {
+  return TimeDelta(delta_ + other.delta_);
+}
+
+TimeDelta TimeDelta::operator-(const TimeDelta& other) const {
+  return TimeDelta(delta_ - other.delta_);
+}
+
+//////////////////////////////////////////////////////////////////////
+//
+// Time
+//
+class Time {
+  public: static const int64_t kMillisecondsPerSecond = 1000;
+  public: static const int64_t kMicrosecondsPerMillisecond = 1000;
+  public: static const int64_t kMicrosecondsPerSecond =
+      kMicrosecondsPerMillisecond * kMillisecondsPerSecond;
+  public: static const int64_t kMicrosecondsPerMinute =
+      kMicrosecondsPerSecond * 60;
+  public: static const int64_t kMicrosecondsPerHour = kMicrosecondsPerMinute * 60;
+  public: static const int64_t kMicrosecondsPerDay = kMicrosecondsPerHour * 24;
+  public: static const int64_t kMicrosecondsPerWeek = kMicrosecondsPerDay * 7;
+  public: static const int64_t kNanosecondsPerMicrosecond = 1000;
+  public: static const int64_t kNanosecondsPerSecond =
+      kNanosecondsPerMicrosecond * kMicrosecondsPerSecond;
+};
+
+TimeDelta TimeDelta::FromMilliseconds(int64_t ms) {
+  return TimeDelta(ms * Time::kMicrosecondsPerMillisecond);
+}
+
+TimeDelta TimeDelta::FromMicroseconds(int64_t us) {
+  return TimeDelta(us);
+}
+
+int64_t TimeDelta::InMilliseconds() const {
+  return delta_ / Time::kMicrosecondsPerMillisecond;
+}
+
+double TimeDelta::InMillisecondsF() const {
+  return static_cast<double>(delta_) / Time::kMicrosecondsPerMillisecond;
+}
+
+int64_t TimeDelta::InMicroseconds() const {
+  return delta_ * Time::kMicrosecondsPerMillisecond;
+}
+
+class TimeTicks {
+  // Tick count in microseconds.
+  private: int64_t ticks_;
+
+  public: TimeTicks(const TimeTicks& other);
+  private: explicit TimeTicks(int64_t ticks);
+  public: TimeTicks();
+  public: ~TimeTicks() = default;
+
+  public: bool operator==(const TimeTicks& other) const;
+  public: bool operator!=(const TimeTicks& other) const;
+  public: bool operator<(const TimeTicks& other) const;
+  public: bool operator<=(const TimeTicks& other) const;
+  public: bool operator>(const TimeTicks& other) const;
+  public: bool operator>=(const TimeTicks& other) const;
+
+  public: TimeTicks operator+(const TimeDelta& delta) const;
+  public: TimeTicks operator-(const TimeDelta& delta) const;
+  public: TimeDelta operator-(const TimeTicks& other) const;
+
+  public: int64_t milliseconds() const;
+
+  public: static TimeTicks Now();
+};
+
+TimeTicks::TimeTicks(const TimeTicks& other) : ticks_(other.ticks_) {
+}
+
+TimeTicks::TimeTicks(int64_t ticks) : ticks_(ticks) {
+}
+
+TimeTicks::TimeTicks() : TimeTicks(0) {
+}
+
+bool TimeTicks::operator==(const TimeTicks& other) const {
+  return ticks_ == other.ticks_;
+}
+
+bool TimeTicks::operator!=(const TimeTicks& other) const {
+  return ticks_ != other.ticks_;
+}
+
+bool TimeTicks::operator<(const TimeTicks& other) const {
+  return ticks_ < other.ticks_;
+}
+
+bool TimeTicks::operator<=(const TimeTicks& other) const {
+  return ticks_ <= other.ticks_;
+}
+
+bool TimeTicks::operator>(const TimeTicks& other) const {
+  return ticks_ > other.ticks_;
+}
+
+bool TimeTicks::operator>=(const TimeTicks& other) const {
+  return ticks_ >= other.ticks_;
+}
+
+TimeTicks TimeTicks::operator+(const TimeDelta& delta) const {
+  return TimeTicks(ticks_ + delta.delta_);
+}
+
+
+TimeTicks TimeTicks::operator-(const TimeDelta& delta) const {
+  return TimeTicks(ticks_ - delta.delta_);
+}
+
+TimeDelta TimeTicks::operator-(const TimeTicks& other) const {
+  return TimeDelta::FromMicroseconds(ticks_ - other.ticks_);
+}
+
+TimeTicks TimeTicks::Now() {
+  static LARGE_INTEGER ticks_per_sec;
+  if (!ticks_per_sec.QuadPart)
+    ::QueryPerformanceFrequency(&ticks_per_sec);
+  LARGE_INTEGER counter;
+  ::QueryPerformanceCounter(&counter);
+  return TimeTicks(counter.QuadPart * Time::kMicrosecondsPerSecond /
+                   ticks_per_sec.QuadPart);
+}
+
+}  // namespace base
+
 namespace gfx {
 
 using D2D1::ColorF;
@@ -898,9 +1085,6 @@ class Animatable;
 // Animation
 //
 class Animation  {
-  public: typedef double Time;
-  public: typedef double TimeSpan;
-
   public: enum class FillMode {
     Auto,
     Backward,
@@ -923,13 +1107,13 @@ class Animation  {
   };
 
   public: struct Timing {
-    TimeSpan delay;
-    TimeSpan duration;
-    TimeSpan end_delay;
-    FillMode fill;
-    TimeSpan iteration_start;
-    double iterations;
+    base::TimeDelta delay;
     PlaybackDirection direction;
+    base::TimeDelta duration;
+    base::TimeDelta end_delay;
+    FillMode fill;
+    double iterations;
+    base::TimeDelta iteration_start;
 
     Timing();
     ~Timing() = default;
@@ -949,9 +1133,9 @@ class Animation  {
   };
 
   private: Animatable* animatable_;
-  private: Time current_time_;
+  private: base::TimeTicks current_time_;
   private: State state_;
-  private: Time start_time_;
+  private: base::TimeTicks start_time_;
   private: Timing timing_;
 
   public: Animation(Animatable* animatable, const Timing& timing);
@@ -959,8 +1143,8 @@ class Animation  {
 
   public: Variable* CreateVariable(double start_value, double end_value);
   public: double GetDouble(const Variable* variable) const;
-  public: void Play(Time time);
-  public: void Start(Time time);
+  public: void Play(base::TimeTicks time);
+  public: void Start(base::TimeTicks time);
   public: void Stop();
 
   DISALLOW_COPY_AND_ASSIGN(Animation);
@@ -985,8 +1169,7 @@ class Animatable {
 // Animation
 //
 Animation::Animation(Animatable* animatable, const Timing& timing)
-    : animatable_(animatable), current_time_(0), state_(State::NotStarted),
-      start_time_(0), timing_(timing) {
+    : animatable_(animatable), state_(State::NotStarted), timing_(timing) {
 }
 
 Animation::~Animation() {
@@ -1000,15 +1183,16 @@ Animation::Variable* Animation::CreateVariable(double start_value,
 double Animation::GetDouble(const Variable* variable) const {
   DCHECK_EQ(state_, State::Running);
   auto const max_time = start_time_ + timing_.delay + timing_.duration;
-  auto const time = std::min(current_time_ - start_time_ - timing_.delay,
-                             max_time);
+  auto const animate_start_time = start_time_ + timing_.delay;
+  auto const animate_time = std::min(current_time_, max_time);
   auto const duration = timing_.duration - timing_.delay - timing_.end_delay;
-  auto const scale = time / duration;
+  auto const scale = (animate_time - animate_start_time).InMillisecondsF() /
+      duration.InMillisecondsF();
   auto const span = variable->end_value() - variable->start_value();
   return variable->start_value() + span * scale;
 }
 
-void Animation::Play(Time current_time) {
+void Animation::Play(base::TimeTicks current_time) {
   if (state_ == State::NotStarted) {
     Start(current_time);
     return;
@@ -1025,11 +1209,11 @@ void Animation::Play(Time current_time) {
   animatable_->DidFinishAnimation();
 }
 
-void Animation::Start(Time time) {
+void Animation::Start(base::TimeTicks time_ticks) {
   DCHECK_EQ(state_, State::NotStarted);
   state_ = State::Running;
-  start_time_ = time;
-  current_time_ = time;
+  start_time_ = time_ticks;
+  current_time_ = time_ticks;
 }
 
 void Animation::Stop() {
@@ -1041,8 +1225,8 @@ void Animation::Stop() {
 // Animation::Timing
 //
 Animation::Timing::Timing()
-    : delay(0), duration(0), end_delay(0), fill(FillMode::None),
-      iteration_start(0), iterations(0), direction(PlaybackDirection::Normal) {
+    : direction(PlaybackDirection::Normal), fill(FillMode::None),
+      iterations(0) {
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -1130,7 +1314,7 @@ class Layer : protected ui::Animatable {
   public: virtual void DidActive();
   protected: virtual void DidChangeBounds();
   public: virtual void DidInactive();
-  public: virtual bool DoAnimate(uint32_t tick_count);
+  public: virtual bool DoAnimate(base::TimeTicks tick_count);
   public: void SetBounds(const gfx::RectF& new_bounds);
 
   // ui::Animatable
@@ -1189,7 +1373,7 @@ void Layer::DidInactive() {
   }
 }
 
-bool Layer::DoAnimate(uint32_t tick_count) {
+bool Layer::DoAnimate(base::TimeTicks tick_count) {
   auto animated = false;
   for (auto const child : child_layers_) {
     animated |= child->DoAnimate(tick_count);
@@ -1575,7 +1759,8 @@ class Sampling {
   public: float maximum() const { return maximum_; }
   public: float minimum() const { return minimum_; }
 
-  public: void AddSample(float);
+  public: void AddSample(base::TimeDelta sample);
+  public: void AddSample(float sample);
   public: void Paint(ID2D1RenderTarget* canvas, const gfx::Brush& brush,
                      const gfx::RectF& bounds) const;
 
@@ -1585,6 +1770,10 @@ class Sampling {
 Sampling::Sampling(size_t max_samples) :
     max_samples_(max_samples), samples_(max_samples) {
   maximum_ = minimum_ = samples_.front();
+}
+
+void Sampling::AddSample(base::TimeDelta sample) {
+  AddSample(sample.InMillisecondsF());
 }
 
 void Sampling::AddSample(float sample) {
@@ -1666,7 +1855,7 @@ class Card : public cc::Layer {
   // cc::Layer
   protected: virtual void DidChangeBounds() override;
   protected: virtual void DidInactive() override;
-  protected: virtual bool DoAnimate(uint32_t tick_count) override;
+  protected: virtual bool DoAnimate(base::TimeTicks tick_count) override;
 
   DISALLOW_COPY_AND_ASSIGN(Card);
 };
@@ -1749,7 +1938,7 @@ void Card::DidInactive() {
   state_ = State::WillBeInactive;
 }
 
-bool Card::DoAnimate(uint32_t) {
+bool Card::DoAnimate(base::TimeTicks) {
   if (!swap_chain()->IsReady())
     return false;
 
@@ -1804,11 +1993,11 @@ class CartoonCard : public Card {
     private: gfx::PointF center_;
     private: gfx::SizeF motion_;
     private: float size_;
-    private: uint32_t tick_count_;
+    private: base::TimeTicks tick_count_;
 
     public: Ball(float angle, float size, const gfx::PointF& center,
                  const gfx::SizeF& motion,
-                 uint32_t tick_count);
+                 base::TimeTicks tick_count);
     public: ~Ball() = default;
 
     public: const gfx::PointF& center() const { return center_; }
@@ -1817,12 +2006,12 @@ class CartoonCard : public Card {
     public: void DidChangeBounds(const gfx::RectF& bounds);
     public: void DoAnimate(ID2D1RenderTarget* canvas,
                            const gfx::RectF& bounds,
-                           uint32_t tick_count);
+                           base::TimeTicks tick_count);
     public: void DidColision(const Ball& other);
   };
 
   private: std::vector<std::unique_ptr<Ball>> balls_;
-  private: uint32_t last_tick_count_;
+  private: base::TimeTicks last_tick_count_;
   private: DXGI_FRAME_STATISTICS last_stats_;
   private: int not_present_count_;
   private: Sampling present_sample_;
@@ -1834,7 +2023,7 @@ class CartoonCard : public Card {
 
   // cc::Layer
   private: virtual void DidChangeBounds() override;
-  private: virtual bool DoAnimate(uint32_t tick_count) override;
+  private: virtual bool DoAnimate(base::TimeTicks tick_count) override;
 
   DISALLOW_COPY_AND_ASSIGN(CartoonCard);
 };
@@ -1845,7 +2034,7 @@ class CartoonCard : public Card {
 //
 CartoonCard::CartoonCard(cc::Compositor* compositor)
     : Card(compositor), balls_(5),
-      last_tick_count_(::GetTickCount()), not_present_count_(0) {
+      last_tick_count_(base::TimeTicks::Now()), not_present_count_(0) {
   last_stats_ = {0};
 
   balls_[0].reset(new Ball(0.0f, 10.0f,
@@ -1880,7 +2069,7 @@ void CartoonCard::DidChangeBounds() {
   }
 }
 
-bool CartoonCard::DoAnimate(uint32_t tick_count) {
+bool CartoonCard::DoAnimate(base::TimeTicks tick_count) {
   Card::DoAnimate(tick_count);
 
   if (!is_active())
@@ -1975,7 +2164,7 @@ bool CartoonCard::DoAnimate(uint32_t tick_count) {
 //
 CartoonCard::Ball::Ball(float angle, float size,
                         const gfx::PointF& center,
-                        const gfx::SizeF& motion, uint32_t tick_count)
+                        const gfx::SizeF& motion, base::TimeTicks tick_count)
     : angle_(angle), center_(center), motion_(motion), size_(size),
       tick_count_(tick_count) {
   motion_ = 1.0f;
@@ -1988,11 +2177,13 @@ void CartoonCard::Ball::DidChangeBounds(const gfx::RectF& bounds) {
 
 void CartoonCard::Ball::DoAnimate(ID2D1RenderTarget* canvas,
                                   const gfx::RectF& content_bounds,
-                                  uint32_t tick_count) {
+                                  base::TimeTicks tick_count) {
   if (tick_count_ == tick_count)
     return;
   auto const bounds = content_bounds - size_;
-  auto const tick_delta = std::max((tick_count - tick_count_) / 16, 1u);
+  auto const tick_delta = std::max(
+      (tick_count - tick_count_).InMilliseconds() / 16,
+      static_cast<int64_t>(1));
   tick_count_ = tick_count;
   for (auto count = 0u; count < tick_delta; ++count) {
     center_ += motion_;
@@ -2074,7 +2265,7 @@ void RootLayer::DidChangeBounds() {
 //
 class StatusLayer : public Card {
   private: DCOMPOSITION_FRAME_STATISTICS last_stats_;
-  private: uint32_t last_tick_count_;
+  private: base::TimeTicks last_tick_count_;
   private: Sampling sample_duration_;
   private: Sampling sample_last_frame_;
   private: Sampling sample_next_frame_;
@@ -2085,14 +2276,14 @@ class StatusLayer : public Card {
   public: StatusLayer(cc::Compositor* compositor);
   public: virtual ~StatusLayer();
 
-  private: virtual bool DoAnimate(uint32_t tick_count) override;
+  private: virtual bool DoAnimate(base::TimeTicks tick_count) override;
 
   DISALLOW_COPY_AND_ASSIGN(StatusLayer);
 };
 
 StatusLayer::StatusLayer(cc::Compositor* compositor)
     : Card(compositor),
-      last_tick_count_(::GetTickCount()), sample_duration_(100),
+      last_tick_count_(base::TimeTicks::Now()), sample_duration_(100),
       sample_last_frame_(100), sample_next_frame_(100), sample_tick_(100) {
   COM_VERIFY(compositor->device()->GetFrameStatistics(&last_stats_));
 
@@ -2105,7 +2296,7 @@ StatusLayer::StatusLayer(cc::Compositor* compositor)
 StatusLayer::~StatusLayer() {
 }
 
-bool StatusLayer::DoAnimate(uint32_t tick_count) {
+bool StatusLayer::DoAnimate(base::TimeTicks tick_count) {
   if (!swap_chain()->IsReady())
     return false;
 
@@ -2216,7 +2407,7 @@ class DemoApp final : public ui::Window, private ui::Schedulable,
     public: Type type() const { return type_; }
     public: double value1() const;
 
-    public: void Play(ui::Animation::Time current_time);
+    public: void Play(base::TimeTicks current_time);
     public: void SetValues1(double start, double end);
     public: void Start();
   };
@@ -2224,7 +2415,7 @@ class DemoApp final : public ui::Window, private ui::Schedulable,
   private: std::unique_ptr<Animation> animation_;
   private: std::unique_ptr<cc::Compositor> compositor_;
   private: ComPtr<IDCompositionTarget> composition_target_;
-  private: uint32_t last_animate_tick_;
+  private: base::TimeTicks last_animate_tick_;
   private: std::unique_ptr<CartoonCard> cartoon_layer_;
   private: std::unique_ptr<RootLayer> root_layer_;
   private: std::unique_ptr<StatusLayer> status_layer_;
@@ -2251,7 +2442,7 @@ class DemoApp final : public ui::Window, private ui::Schedulable,
   DISALLOW_COPY_AND_ASSIGN(DemoApp);
 };
 
-DemoApp::DemoApp() : last_animate_tick_(0) {
+DemoApp::DemoApp() {
   float dpi_x, dpi_y;
   gfx::Factory::instance()->d2d_factory()->GetDesktopDpi(&dpi_x, &dpi_y);
 
@@ -2297,17 +2488,17 @@ void DemoApp::DidFireAnimationTimer() {
 
 // ui::Schedulable
 void DemoApp::DoAnimate() {
-  if (!root_layer_)
+  if (!root_layer_ || !is_active())
     return;
-  auto const tick_count = ::GetTickCount();
-  auto const delta = tick_count - last_animate_tick_;
+  auto const current_tick = base::TimeTicks::Now();
+  auto const delta = current_tick - last_animate_tick_;
   auto const kBackgroundAnimate = 100;
-  if (!is_active() && delta < kBackgroundAnimate)
+  if (delta < base::TimeDelta::FromMilliseconds(kBackgroundAnimate))
     return;
   if (animation_)
-    animation_->Play(tick_count);
-  last_animate_tick_ = tick_count;
-  root_layer_->DoAnimate(tick_count);
+    animation_->Play(current_tick);
+  last_animate_tick_ = current_tick;
+  root_layer_->DoAnimate(current_tick);
   compositor_->Commit();
 }
 
@@ -2332,7 +2523,7 @@ void DemoApp::DidChangeBounds() {
 
   // Resize status visual
   if (status_layer_) {
-    const gfx::SizeF status_size(240.0f, 200.0f);
+    const gfx::SizeF status_size(320.0f, 200.0f);
     status_layer_->SetBounds(gfx::RectF(gfx::PointF(20, height / 2),
                                         status_size));
 
@@ -2416,7 +2607,7 @@ LRESULT DemoApp::OnMessage(UINT message, WPARAM wParam, LPARAM lParam) {
       auto const num_frames = 10;
       auto const speed = 10;
       auto const sign = delta > 0 ? 1 : -1;
-      timing.duration = 16 * num_frames;
+      timing.duration = base::TimeDelta::FromMilliseconds(16 * num_frames);
       animation_.reset(new Animation(Animation::Type::Scroll, this, timing));
       animation_->SetValues1(origin.y(),
                              origin.y() + sign * speed * num_frames);
@@ -2451,7 +2642,7 @@ DemoApp::Animation::Animation(Type type,
 DemoApp::Animation::~Animation() {
 }
 
-void DemoApp::Animation::Play(ui::Animation::Time current_time) {
+void DemoApp::Animation::Play(base::TimeTicks current_time) {
   animation_->Play(current_time);
 }
 
