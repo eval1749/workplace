@@ -1187,18 +1187,20 @@ void Layer::DidFireAnimationTimer() {
 // This class represents a layer with direct composition surface.
 //
 class SimpleLayer : public Layer {
-  public: class CanvasScope {
+  public: class ScopedCanvas {
     private: ComPtr<ID2D1DeviceContext> d2d_device_context_;
     private: SimpleLayer* layer_;
+    private: gfx::PointF origin_;
 
-    public: CanvasScope(SimpleLayer* layer);
-    public: ~CanvasScope();
+    public: ScopedCanvas(SimpleLayer* layer);
+    public: ~ScopedCanvas();
 
     public: ID2D1DeviceContext* d2d_device_context() const {
       return d2d_device_context_;
     }
+    public: const gfx::PointF& origin() const { return origin_; }
   };
-  friend class CanvasScope;
+  friend class ScopedCanvas;
 
   private: ComPtr<IDCompositionDesktopDevice> composition_device_;
   private: ComPtr<IDCompositionSurface> surface_;
@@ -1207,6 +1209,9 @@ class SimpleLayer : public Layer {
   public: virtual ~SimpleLayer();
 
   private: void AttachSurfaceIfNeeded();
+
+  // cc::Layer
+  protected: virtual void DidChangeBounds() override;
 
   DISALLOW_COPY_AND_ASSIGN(SimpleLayer);
 };
@@ -1225,22 +1230,30 @@ void SimpleLayer::AttachSurfaceIfNeeded() {
   COM_VERIFY(composition_device_->CreateSurface(
       bounds().width(), bounds().height(),
       DXGI_FORMAT_B8G8R8A8_UNORM, DXGI_ALPHA_MODE_PREMULTIPLIED, &surface_));
-  visual()->SetContent(surface_);
+  COM_VERIFY(visual()->SetContent(surface_));
+}
+
+// cc::Layer
+void SimpleLayer::DidChangeBounds() {
+  Layer::DidChangeBounds();
+  surface_.reset();
 }
 
 //////////////////////////////////////////////////////////////////////
 //
-// SimpleLayer::CanvasScope
+// SimpleLayer::ScopedCanvas
 //
-SimpleLayer::CanvasScope::CanvasScope(SimpleLayer* layer) : layer_(layer) {
+SimpleLayer::ScopedCanvas::ScopedCanvas(SimpleLayer* layer) : layer_(layer) {
  layer_->AttachSurfaceIfNeeded();
 
   POINT offset;
   COM_VERIFY(layer_->surface_->BeginDraw(
       nullptr, IID_PPV_ARGS(&d2d_device_context_), &offset));
+  origin_ = gfx::PointF(static_cast<float>(offset.x),
+                        static_cast<float>(offset.y));
 }
 
-SimpleLayer::CanvasScope::~CanvasScope() {
+SimpleLayer::ScopedCanvas::~ScopedCanvas() {
   // Note: We also need to call DDirectCompositionDevice::Commit() for making
   // canvas appeared in screen.
   COM_VERIFY(layer_->surface_->EndDraw());
@@ -1979,7 +1992,7 @@ class RootLayer : public cc::SimpleLayer {
   public: virtual ~RootLayer() = default;
 
   // cc::Layer
-  private: void DidChangeBounds();
+  private: virtual void DidChangeBounds() override;
 
   DISALLOW_COPY_AND_ASSIGN(RootLayer);
 };
@@ -1989,29 +2002,23 @@ RootLayer::RootLayer(IDCompositionDesktopDevice* composition_device)
 }
 
 void RootLayer::DidChangeBounds() {
-#if 0
-  cc::SimpleLayer::CanvasScope canvas_scope(this);
-  auto const canvas = canvas_scope.d2d_device_context();
-  canvas->Clear(gfx::ColorF(0, 0, 0, 0));
-
+  cc::SimpleLayer::DidChangeBounds();
+  cc::SimpleLayer::ScopedCanvas scoped_canvas(this);
+  auto const canvas = scoped_canvas.d2d_device_context();
+  canvas->Clear(gfx::ColorF(0, 0, 1));
   gfx::Brush white_brush(canvas,
-                          gfx::ColorF(gfx::ColorF::White, 0.3f));
+                         gfx::ColorF(gfx::ColorF::White, 0.3f));
+  gfx::Brush red_brush(canvas,
+                         gfx::ColorF(gfx::ColorF::White, 0.3f));
 
-  gfx::Brush green_brush(canvas,
-                         gfx::ColorF(gfx::ColorF::Green, 0.5f));
-
-  for (auto i = 0; i < 2; ++i) {
-    canvas->FillRectangle(pane_bounds[i], white_brush);
-    auto const pane_height = pane_bounds[i].bottom - pane_bounds[i].top;
-    auto const pane_width = pane_bounds[i].right - pane_bounds[i].left;
-    D2D1_ELLIPSE ellipse;
-    ellipse.point = gfx::PointF(pane_bounds[i].left + pane_width / 2,
-                                  pane_bounds[i].top + pane_height / 2);
-    ellipse.radiusX = pane_width / 3;
-    ellipse.radiusY = pane_height / 3;
-    canvas->FillEllipse(ellipse, green_brush);
-  }
-#endif
+  canvas->DrawLine(bounds().origin(), bounds().bottom_right(), white_brush,
+                   5.0f);
+  canvas->DrawLine(gfx::PointF(bounds().right(), bounds().top()),
+                   gfx::PointF(bounds().left(), bounds().bottom()),
+                   white_brush, 5.0f);
+  canvas->FillEllipse(D2D1::Ellipse(scoped_canvas.origin(), 10, 10),
+                      white_brush);
+  canvas->FillRectangle(bounds(), red_brush);
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -2074,8 +2081,8 @@ bool StatusLayer::DoAnimate(uint32_t tick_count) {
      1000 / stats.timeFrequency).QuadPart);
   last_stats_ = stats;
 
-  //cc::SimpleLayer::CanvasScope canvas_scope(this);
-  //auto const canvas = canvas_scope.d2d_device_context();
+  //cc::SimpleLayer::ScopedCanvas scoped_canvas(this);
+  //auto const canvas = scoped_canvas.d2d_device_context();
   auto const canvas = d2d_device_context();
   canvas->BeginDraw();
   PaintBackground(canvas);
@@ -2338,7 +2345,7 @@ void DemoApp::DidResize() {
     cartoon_layer_->SetBounds(pane_bounds[0]);
 
   // Update composition
-  composition_device_->Commit();
+  COM_VERIFY(composition_device_->Commit());
 }
 
 LRESULT DemoApp::OnMessage(UINT message, WPARAM wParam, LPARAM lParam) {
