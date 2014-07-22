@@ -455,6 +455,7 @@ TimeDelta TimeTicks::operator-(const TimeTicks& other) const {
 }
 
 TimeTicks TimeTicks::Now() {
+#if 1
   static LARGE_INTEGER ticks_per_sec;
   if (!ticks_per_sec.QuadPart)
     ::QueryPerformanceFrequency(&ticks_per_sec);
@@ -462,6 +463,16 @@ TimeTicks TimeTicks::Now() {
   ::QueryPerformanceCounter(&counter);
   return TimeTicks(counter.QuadPart * Time::kMicrosecondsPerSecond /
                    ticks_per_sec.QuadPart);
+#else
+  // For Win8 or later.
+  // The number of 100-naooseconds until since the start of January 1, 1601.
+  FILETIME ft_now;
+  ::GetSystemTimePreciseAsFileTime(&ft_now);
+  LARGE_INTEGER now;
+  now.HighPart = ft_now.dwHighDateTime;
+  now.LowPart = ft_now.dwLowDateTime;
+  return TimeTicks(now.QuadPart / (Time::kNanosecondsPerMicrosecond / 100));
+#endif
 }
 
 }  // namespace base
@@ -2488,12 +2499,13 @@ void DemoApp::DidFireAnimationTimer() {
 
 // ui::Schedulable
 void DemoApp::DoAnimate() {
-  if (!root_layer_ || !is_active())
+  if (!root_layer_)
     return;
   auto const current_tick = base::TimeTicks::Now();
   auto const delta = current_tick - last_animate_tick_;
   auto const kBackgroundAnimate = 100;
-  if (delta < base::TimeDelta::FromMilliseconds(kBackgroundAnimate))
+  if (!is_active() &&
+      delta < base::TimeDelta::FromMilliseconds(kBackgroundAnimate))
     return;
   if (animation_)
     animation_->Play(current_tick);
