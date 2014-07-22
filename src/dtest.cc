@@ -1106,7 +1106,8 @@ Layer::Layer(IDCompositionDesktopDevice* composition_device)
 
   ComPtr<IDCompositionVisualDebug> debug_visual;
   COM_VERIFY(debug_visual.QueryFrom(visual_));
-  COM_VERIFY(debug_visual->EnableHeatMap(gfx::ColorF(0, 255, 0, 0.5)));
+  // TODO(eval1749) It seems heat map is painted with alpha=1.0.
+  //COM_VERIFY(debug_visual->EnableHeatMap(gfx::ColorF(255, 255, 0, 0.1)));
   //COM_VERIFY(debug_visual->EnableRedrawRegions());
 }
 
@@ -2005,7 +2006,7 @@ void RootLayer::DidChangeBounds() {
   cc::SimpleLayer::DidChangeBounds();
   cc::SimpleLayer::ScopedCanvas scoped_canvas(this);
   auto const canvas = scoped_canvas.d2d_device_context();
-  canvas->Clear(gfx::ColorF(0, 0, 1));
+  canvas->Clear(gfx::ColorF(0, 0, 1, 0.2));
   gfx::Brush white_brush(canvas,
                          gfx::ColorF(gfx::ColorF::White, 0.3f));
   gfx::Brush red_brush(canvas,
