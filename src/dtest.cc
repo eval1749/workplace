@@ -1061,18 +1061,65 @@ class Layer;
 
 //////////////////////////////////////////////////////////////////////
 //
+// cc::Compositor
+//
+class Compositor {
+  private: ComPtr<IDCompositionDesktopDevice> composition_device_;
+  private: bool need_commit_;
+
+  public: Compositor();
+  public: ~Compositor();
+
+  public: IDCompositionDesktopDevice* device() const {
+    return composition_device_;
+  }
+
+  public: void Commit();
+  public: ComPtr<IDCompositionVisual2> CreateVisual();
+  public: void NeedCommit() { need_commit_ = true; }
+
+  DISALLOW_COPY_AND_ASSIGN(Compositor);
+};
+
+Compositor::Compositor() : need_commit_(false) {
+  COM_VERIFY(::DCompositionCreateDevice2(
+      gfx::Factory::instance()->d2d_device(),
+      IID_PPV_ARGS(&composition_device_)));
+  composition_device_.MustBeNoOtherUse();
+}
+
+Compositor::~Compositor() {
+}
+
+void Compositor::Commit() {
+  if (!need_commit_)
+    return;
+  COM_VERIFY(composition_device_->Commit());
+  need_commit_ = false;
+}
+
+ComPtr<IDCompositionVisual2> Compositor::CreateVisual() {
+  ComPtr<IDCompositionVisual2> visual;
+  COM_VERIFY(composition_device_->CreateVisual(&visual));
+  return visual;
+}
+
+//////////////////////////////////////////////////////////////////////
+//
 // cc::Layer
 //
 class Layer : protected ui::Animatable {
   private: std::unique_ptr<ui::Animation> animation_;
   private: gfx::RectF bounds_;
   private: std::vector<Layer*> child_layers_;
+  private: Compositor* compositor_;
   private: bool is_active_;
   private: ComPtr<IDCompositionVisual2> visual_;
 
-  public: Layer(IDCompositionDesktopDevice* composition_device);
+  public: Layer(Compositor* compositor);
   public: virtual ~Layer();
 
+  public: Compositor* compositor() const { return compositor_; }
   public: operator IDCompositionVisual2*() const { return visual_; }
 
   public: const gfx::RectF& bounds() const { return bounds_; }
@@ -1097,9 +1144,9 @@ class Layer : protected ui::Animatable {
 //
 // Layer
 //
-Layer::Layer(IDCompositionDesktopDevice* composition_device)
-    : is_active_(false) {
-  COM_VERIFY(composition_device->CreateVisual(&visual_));
+Layer::Layer(Compositor* compositor)
+    : compositor_(compositor), is_active_(false),
+      visual_(compositor->CreateVisual()) {
   COM_VERIFY(visual_->SetBitmapInterpolationMode(
       DCOMPOSITION_BITMAP_INTERPOLATION_MODE_LINEAR));
   COM_VERIFY(visual_->SetBorderMode(DCOMPOSITION_BORDER_MODE_SOFT));
@@ -1203,10 +1250,9 @@ class SimpleLayer : public Layer {
   };
   friend class ScopedCanvas;
 
-  private: ComPtr<IDCompositionDesktopDevice> composition_device_;
   private: ComPtr<IDCompositionSurface> surface_;
 
-  public: SimpleLayer(IDCompositionDesktopDevice* composition_device);
+  public: SimpleLayer(Compositor* compositor);
   public: virtual ~SimpleLayer();
 
   private: void AttachSurfaceIfNeeded();
@@ -1217,8 +1263,8 @@ class SimpleLayer : public Layer {
   DISALLOW_COPY_AND_ASSIGN(SimpleLayer);
 };
 
-SimpleLayer::SimpleLayer(IDCompositionDesktopDevice* composition_device)
-    : Layer(composition_device), composition_device_(composition_device) {
+SimpleLayer::SimpleLayer(Compositor* compositor)
+    : Layer(compositor) {
 }
 
 SimpleLayer::~SimpleLayer() {
@@ -1228,7 +1274,7 @@ void SimpleLayer::AttachSurfaceIfNeeded() {
   DCHECK(!bounds().empty());
   if (surface_)
     return;
-  COM_VERIFY(composition_device_->CreateSurface(
+  COM_VERIFY(compositor()->device()->CreateSurface(
       bounds().width(), bounds().height(),
       DXGI_FORMAT_B8G8R8A8_UNORM, DXGI_ALPHA_MODE_PREMULTIPLIED, &surface_));
   COM_VERIFY(visual()->SetContent(surface_));
@@ -1605,7 +1651,7 @@ class Card : public cc::Layer {
   private: State state_;
   private: std::unique_ptr<gfx::SwapChain> swap_chain_;
 
-  protected: Card(IDCompositionDesktopDevice* composition_device);
+  protected: Card(cc::Compositor* compositor);
   protected: virtual ~Card() = default;
 
   public: const gfx::RectF& content_bounds() const { return content_bounds_; }
@@ -1624,8 +1670,8 @@ class Card : public cc::Layer {
   DISALLOW_COPY_AND_ASSIGN(Card);
 };
 
-Card::Card(IDCompositionDesktopDevice* composition_device)
-    : Layer(composition_device), state_(State::Inactive) {
+Card::Card(cc::Compositor* compositor)
+    : Layer(compositor), state_(State::Inactive) {
   // Below values are obtained from
   // http://www.polymer-project.org/tools/designer/
   shadows_ = {
@@ -1782,7 +1828,7 @@ class CartoonCard : public Card {
   private: ComPtr<IDWriteTextFormat> text_format_;
   private: Sampling tick_count_sample_;
 
-  public: CartoonCard(IDCompositionDesktopDevice* composition_device);
+  public: CartoonCard(cc::Compositor* compositor);
   public: virtual ~CartoonCard();
 
   // cc::Layer
@@ -1796,8 +1842,8 @@ class CartoonCard : public Card {
 //
 // CartoonCard
 //
-CartoonCard::CartoonCard(IDCompositionDesktopDevice* composition_device)
-    : Card(composition_device), balls_(5),
+CartoonCard::CartoonCard(cc::Compositor* compositor)
+    : Card(compositor), balls_(5),
       last_tick_count_(::GetTickCount()), not_present_count_(0) {
   last_stats_ = {0};
 
@@ -1989,7 +2035,7 @@ void CartoonCard::Ball::DidColision(const Ball& other) {
 // RootLayer
 //
 class RootLayer : public cc::SimpleLayer {
-  public: RootLayer(IDCompositionDesktopDevice* composition_device);
+  public: RootLayer(cc::Compositor* compositor);
   public: virtual ~RootLayer() = default;
 
   // cc::Layer
@@ -1998,8 +2044,8 @@ class RootLayer : public cc::SimpleLayer {
   DISALLOW_COPY_AND_ASSIGN(RootLayer);
 };
 
-RootLayer::RootLayer(IDCompositionDesktopDevice* composition_device)
-    : cc::SimpleLayer(composition_device) {
+RootLayer::RootLayer(cc::Compositor* compositor)
+    : cc::SimpleLayer(compositor) {
 }
 
 void RootLayer::DidChangeBounds() {
@@ -2027,7 +2073,6 @@ void RootLayer::DidChangeBounds() {
 // StatusLayer
 //
 class StatusLayer : public Card {
-  private: ComPtr<IDCompositionDesktopDevice> composition_device_;
   private: DCOMPOSITION_FRAME_STATISTICS last_stats_;
   private: uint32_t last_tick_count_;
   private: Sampling sample_duration_;
@@ -2037,7 +2082,7 @@ class StatusLayer : public Card {
   private: ComPtr<IDWriteTextFormat> text_format_;
   private: ComPtr<IDWriteTextLayout> text_layout_;
 
-  public: StatusLayer(IDCompositionDesktopDevice* composition_device);
+  public: StatusLayer(cc::Compositor* compositor);
   public: virtual ~StatusLayer();
 
   private: virtual bool DoAnimate(uint32_t tick_count) override;
@@ -2045,11 +2090,11 @@ class StatusLayer : public Card {
   DISALLOW_COPY_AND_ASSIGN(StatusLayer);
 };
 
-StatusLayer::StatusLayer(IDCompositionDesktopDevice* composition_device)
-    : Card(composition_device), composition_device_(composition_device),
+StatusLayer::StatusLayer(cc::Compositor* compositor)
+    : Card(compositor),
       last_tick_count_(::GetTickCount()), sample_duration_(100),
       sample_last_frame_(100), sample_next_frame_(100), sample_tick_(100) {
-  COM_VERIFY(composition_device_->GetFrameStatistics(&last_stats_));
+  COM_VERIFY(compositor->device()->GetFrameStatistics(&last_stats_));
 
   auto const font_size = 13;
   COM_VERIFY(gfx::Factory::instance()->dwrite()->CreateTextFormat(
@@ -2065,7 +2110,7 @@ bool StatusLayer::DoAnimate(uint32_t tick_count) {
     return false;
 
   DCOMPOSITION_FRAME_STATISTICS stats;
-  COM_VERIFY(composition_device_->GetFrameStatistics(&stats));
+  COM_VERIFY(compositor()->device()->GetFrameStatistics(&stats));
 
   // Update samples
   sample_tick_.AddSample(tick_count - last_tick_count_);
@@ -2177,12 +2222,11 @@ class DemoApp final : public ui::Window, private ui::Schedulable,
   };
 
   private: std::unique_ptr<Animation> animation_;
-  private: ComPtr<IDCompositionDesktopDevice> composition_device_;
+  private: std::unique_ptr<cc::Compositor> compositor_;
   private: ComPtr<IDCompositionTarget> composition_target_;
   private: uint32_t last_animate_tick_;
   private: std::unique_ptr<CartoonCard> cartoon_layer_;
   private: std::unique_ptr<RootLayer> root_layer_;
-  private: bool should_commit_;
   private: std::unique_ptr<StatusLayer> status_layer_;
 
   public: DemoApp();
@@ -2207,7 +2251,7 @@ class DemoApp final : public ui::Window, private ui::Schedulable,
   DISALLOW_COPY_AND_ASSIGN(DemoApp);
 };
 
-DemoApp::DemoApp() : last_animate_tick_(0), should_commit_(false) {
+DemoApp::DemoApp() : last_animate_tick_(0) {
   float dpi_x, dpi_y;
   gfx::Factory::instance()->d2d_factory()->GetDesktopDpi(&dpi_x, &dpi_y);
 
@@ -2245,7 +2289,7 @@ void DemoApp::DidFireAnimationTimer() {
       root_layer_->SetBounds(gfx::RectF(
         gfx::PointF(root_layer_->bounds().left(), origin_top),
         root_layer_->bounds().size()));
-      should_commit_ = true;
+      compositor_->NeedCommit();
       break;
     }
   }
@@ -2264,10 +2308,7 @@ void DemoApp::DoAnimate() {
     animation_->Play(tick_count);
   last_animate_tick_ = tick_count;
   root_layer_->DoAnimate(tick_count);
-  if (should_commit_) {
-    composition_device_->Commit();
-    should_commit_ = false;
-  }
+  compositor_->Commit();
 }
 
 // ui::Window
@@ -2278,6 +2319,8 @@ void DemoApp::DidActive() {
 }
 
 void DemoApp::DidChangeBounds() {
+  compositor_->NeedCommit();
+
   auto const width = bounds().right - bounds().left;
   auto const height = bounds().bottom - bounds().top;
 
@@ -2295,7 +2338,7 @@ void DemoApp::DidChangeBounds() {
 
     // Setup transform for status visual
     ComPtr<IDCompositionRotateTransform> rotate_transform;
-    COM_VERIFY(composition_device_->CreateRotateTransform(&rotate_transform));
+    COM_VERIFY(compositor_->device()->CreateRotateTransform(&rotate_transform));
     COM_VERIFY(rotate_transform->SetCenterX(status_size.width() / 2));
     COM_VERIFY(rotate_transform->SetCenterY(status_size.height() / 2));
     COM_VERIFY(rotate_transform->SetAngle(-5));
@@ -2312,7 +2355,7 @@ void DemoApp::DidChangeBounds() {
     cartoon_layer_->SetBounds(pane_bounds[0]);
 
   // Update composition
-  COM_VERIFY(composition_device_->Commit());
+  compositor_->Commit();
 }
 
 // Build visual tree and set composition target to this window.
@@ -2320,22 +2363,19 @@ void DemoApp::DidCreate() {
   ui::Window::DidCreate();
 
   // Create Direct Composition device.
-  COM_VERIFY(::DCompositionCreateDevice2(
-      gfx::Factory::instance()->d2d_device(),
-      IID_PPV_ARGS(&composition_device_)));
-  composition_device_.MustBeNoOtherUse();
+  compositor_.reset(new cc::Compositor());
 
   // Build visual tree
-  root_layer_.reset(new RootLayer(composition_device_));
+  root_layer_.reset(new RootLayer(compositor_.get()));
 
-  cartoon_layer_.reset(new CartoonCard(composition_device_));
+  cartoon_layer_.reset(new CartoonCard(compositor_.get()));
   root_layer_->AppendChild(cartoon_layer_.get());
 
-  status_layer_.reset(new StatusLayer(composition_device_));
+  status_layer_.reset(new StatusLayer(compositor_.get()));
   root_layer_->AppendChild(status_layer_.get());
 
   // Set composition target to this window.
-  COM_VERIFY(composition_device_->CreateTargetForHwnd(
+  COM_VERIFY(compositor_->device()->CreateTargetForHwnd(
       *this, true, &composition_target_));
   composition_target_.MustBeNoOtherUse();
   COM_VERIFY(composition_target_->SetRoot(root_layer_->visual()));
@@ -2393,7 +2433,7 @@ void DemoApp::WillDestroy() {
   status_layer_.reset();
   composition_target_.MustBeNoOtherUse();
   composition_target_.reset();
-  composition_device_.reset();
+  compositor_.reset();
 #endif
   ui::Window::WillDestroy();
 }
