@@ -2052,7 +2052,7 @@ RootLayer::RootLayer(cc::Compositor* compositor)
 void RootLayer::DidChangeBounds() {
   cc::SimpleLayer::DidChangeBounds();
   ScopedCanvas scoped_canvas(this);
-  auto const bounds = scoped_canvas.bounds();
+  auto const bounds = scoped_canvas.bounds() - gfx::SizeF(20, 20);
   auto const canvas = scoped_canvas.d2d_device_context();
   canvas->Clear(gfx::ColorF(0, 0, 1, 0.2));
   gfx::Brush white_brush(canvas,
