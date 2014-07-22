@@ -719,7 +719,7 @@ class SwapChain {
   }
   public: IDXGISwapChain2* swap_chain() const { return swap_chain_; }
 
-  public: void DidResize(const D2D1_SIZE_U& size);
+  public: void DidChangeBounds(const D2D1_SIZE_U& size);
   public: bool IsReady();
   public: void Present();
   private: void UpdateDeviceContext();
@@ -783,7 +783,7 @@ SwapChain::~SwapChain() {
   swap_chain_.MustBeNoOtherUse();
 }
 
-void SwapChain::DidResize(const D2D1_SIZE_U& size) {
+void SwapChain::DidChangeBounds(const D2D1_SIZE_U& size) {
   d2d_device_context_->SetTarget(nullptr);
   COM_VERIFY(swap_chain_->ResizeBuffers(0u, size.width, size.height,
       DXGI_FORMAT_UNKNOWN,
@@ -1287,9 +1287,9 @@ class Window {
   public: bool is_active() const { return is_active_; }
 
   protected: virtual void DidActive();
+  protected: virtual void DidChangeBounds();
   protected: virtual void DidCreate();
   protected: virtual void DidInactive();
-  protected: virtual void DidResize();
 
   protected: static LPWSTR GetWindowClass();
   private: static Window* GetWindowFromHwnd(HWND hwnd);
@@ -1330,14 +1330,14 @@ void Window::DidActive() {
   is_active_ = true;
 }
 
+void Window::DidChangeBounds() {
+}
+
 void Window::DidCreate() {
 }
 
 void Window::DidInactive() {
   is_active_ = false;
-}
-
-void Window::DidResize() {
 }
 
 LPWSTR Window::GetWindowClass() {
@@ -1394,7 +1394,7 @@ LRESULT Window::OnMessage(UINT message, WPARAM wParam, LPARAM lParam) {
         return 0;
       if (!::IsIconic(*this)) {
         ::GetClientRect(*this, &bounds_);
-        DidResize();
+        DidChangeBounds();
       }
       return 0;
     }
@@ -1686,7 +1686,7 @@ void Card::DidChangeBounds() {
   };
 
   if (swap_chain_) {
-    swap_chain_->DidResize(size);
+    swap_chain_->DidChangeBounds(size);
     return;
   }
 
@@ -2196,9 +2196,9 @@ class DemoApp final : public ui::Window, private ui::Schedulable,
 
   // ui::Window
   private: virtual void DidActive() override;
+  private: virtual void DidChangeBounds() override;
   private: virtual void DidCreate() override;
   private: virtual void DidInactive() override;
-  private: virtual void DidResize() override;
   private: virtual LRESULT OnMessage(UINT message, WPARAM wParam,
                                      LPARAM lParam) override;
   private: virtual void WillDestroy() override;
@@ -2276,41 +2276,7 @@ void DemoApp::DidActive() {
     root_layer_->DidActive();
 }
 
-// Build visual tree and set composition target to this window.
-void DemoApp::DidCreate() {
-  ui::Window::DidCreate();
-
-  // Create Direct Composition device.
-  COM_VERIFY(::DCompositionCreateDevice2(
-      gfx::Factory::instance()->d2d_device(),
-      IID_PPV_ARGS(&composition_device_)));
-  composition_device_.MustBeNoOtherUse();
-
-  // Build visual tree
-  root_layer_.reset(new RootLayer(composition_device_));
-
-  cartoon_layer_.reset(new CartoonCard(composition_device_));
-  root_layer_->AppendChild(cartoon_layer_.get());
-
-  status_layer_.reset(new StatusLayer(composition_device_));
-  root_layer_->AppendChild(status_layer_.get());
-
-  // Set composition target to this window.
-  COM_VERIFY(composition_device_->CreateTargetForHwnd(
-      *this, true, &composition_target_));
-  composition_target_.MustBeNoOtherUse();
-  COM_VERIFY(composition_target_->SetRoot(root_layer_->visual()));
-
-  // Setup visual tree bounds
-  DidResize();
-}
-
-void DemoApp::DidInactive() {
-  if (root_layer_)
-    root_layer_->DidInactive();
-}
-
-void DemoApp::DidResize() {
+void DemoApp::DidChangeBounds() {
   auto const width = bounds().right - bounds().left;
   auto const height = bounds().bottom - bounds().top;
 
@@ -2346,6 +2312,40 @@ void DemoApp::DidResize() {
 
   // Update composition
   COM_VERIFY(composition_device_->Commit());
+}
+
+// Build visual tree and set composition target to this window.
+void DemoApp::DidCreate() {
+  ui::Window::DidCreate();
+
+  // Create Direct Composition device.
+  COM_VERIFY(::DCompositionCreateDevice2(
+      gfx::Factory::instance()->d2d_device(),
+      IID_PPV_ARGS(&composition_device_)));
+  composition_device_.MustBeNoOtherUse();
+
+  // Build visual tree
+  root_layer_.reset(new RootLayer(composition_device_));
+
+  cartoon_layer_.reset(new CartoonCard(composition_device_));
+  root_layer_->AppendChild(cartoon_layer_.get());
+
+  status_layer_.reset(new StatusLayer(composition_device_));
+  root_layer_->AppendChild(status_layer_.get());
+
+  // Set composition target to this window.
+  COM_VERIFY(composition_device_->CreateTargetForHwnd(
+      *this, true, &composition_target_));
+  composition_target_.MustBeNoOtherUse();
+  COM_VERIFY(composition_target_->SetRoot(root_layer_->visual()));
+
+  // Setup visual tree bounds
+  DidChangeBounds();
+}
+
+void DemoApp::DidInactive() {
+  if (root_layer_)
+    root_layer_->DidInactive();
 }
 
 LRESULT DemoApp::OnMessage(UINT message, WPARAM wParam, LPARAM lParam) {
