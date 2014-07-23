@@ -5,6 +5,8 @@
 #if !defined(INCLUDE_common_memory_singleton_h)
 #define INCLUDE_common_memory_singleton_h
 
+namespace common {
+
 class SingletonBase {
   protected: SingletonBase() = default;
   public: virtual ~SingletonBase() = default;
@@ -32,6 +34,8 @@ class Singleton : public SingletonBase {
 };
 
 #define DECLARE_SINGLETON_CLASS(name) \
-  friend class Singleton<name>
+  friend class ::common::Singleton<name>
+
+}  // namespace common
 
 #endif //!defined(INCLUDE_common_memory_singleton_h)

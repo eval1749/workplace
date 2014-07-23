@@ -5,6 +5,8 @@
 #if !defined(INCLUDE_common_win_scoped_comptr_h)
 #define INCLUDE_common_win_scoped_comptr_h
 
+namespace common {
+
 //////////////////////////////////////////////////////////////////////
 //
 // ComPtr
@@ -117,5 +119,7 @@ class ComInitializer {
     ::CoUninitialize();
   }
 };
+
+}  // namespace common
 
 #endif //!defined(INCLUDE_common_win_scoped_comptr_h)

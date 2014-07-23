@@ -400,11 +400,11 @@ RectF RectF::Offset(const SizeF& size) const {
 //  - D3D11 Device
 //  - Composition Device
 //
-class Factory final : public Singleton<Factory> {
+class Factory final : public common::Singleton<Factory> {
   DECLARE_SINGLETON_CLASS(Factory);
 
-  private: ComPtr<ID2D1Factory1> d2d_factory_;
-  private: ComPtr<IDWriteFactory> dwrite_factory_;
+  private: common::ComPtr<ID2D1Factory1> d2d_factory_;
+  private: common::ComPtr<IDWriteFactory> dwrite_factory_;
 
   private: Factory();
   private: virtual ~Factory();
@@ -437,9 +437,9 @@ Factory::~Factory(){
 // DxDevice
 //
 class DxDevice {
-  private: ComPtr<ID2D1Device> d2d_device_;
-  private: ComPtr<IDXGIDevice3> dxgi_device_;
-  private: ComPtr<IDXGIFactory2> dxgi_factory_;
+  private: common::ComPtr<ID2D1Device> d2d_device_;
+  private: common::ComPtr<IDXGIDevice3> dxgi_device_;
+  private: common::ComPtr<IDXGIFactory2> dxgi_factory_;
 
   public: DxDevice();
   public: ~DxDevice();
@@ -462,14 +462,14 @@ DxDevice::DxDevice() {
                            D3D11_CREATE_DEVICE_SINGLETHREADED |
                            D3D11_CREATE_DEVICE_DEBUG;
 
-  ComPtr<ID3D11Device> d3d_device;
+  common::ComPtr<ID3D11Device> d3d_device;
   COM_VERIFY(::D3D11CreateDevice(
       nullptr, D3D_DRIVER_TYPE_HARDWARE, nullptr,
       d3d11_flags, nullptr, 0, D3D11_SDK_VERSION,
       &d3d_device, feature_levels, nullptr));
   COM_VERIFY(dxgi_device_.QueryFrom(d3d_device));
 
-  ComPtr<IDXGIAdapter> dxgi_adapter;
+  common::ComPtr<IDXGIAdapter> dxgi_adapter;
   dxgi_device_->GetAdapter(&dxgi_adapter);
   dxgi_adapter->GetParent(IID_PPV_ARGS(&dxgi_factory_));
 
@@ -494,9 +494,9 @@ DxDevice::~DxDevice(){
 // SwapChain
 //
 class SwapChain {
-  private: ComPtr<ID2D1DeviceContext> d2d_device_context_;
+  private: common::ComPtr<ID2D1DeviceContext> d2d_device_context_;
   private: bool is_ready_;
-  private: ComPtr<IDXGISwapChain2> swap_chain_;
+  private: common::ComPtr<IDXGISwapChain2> swap_chain_;
   private: HANDLE swap_chain_waitable_;
 
   public: SwapChain(DxDevice* dx_device, const D2D1_SIZE_U& size);
@@ -530,7 +530,7 @@ SwapChain::SwapChain(DxDevice* dx_device, const D2D1_SIZE_U& size)
   swap_chain_desc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL;
   swap_chain_desc.Flags = DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT;
 
-  ComPtr<IDXGISwapChain1> swap_chain1;
+  common::ComPtr<IDXGISwapChain1> swap_chain1;
   COM_VERIFY(dx_device->dxgi_factory()->CreateSwapChainForComposition(
       dx_device->dxgi_device(), &swap_chain_desc, nullptr,
       &swap_chain1));
@@ -599,7 +599,7 @@ void SwapChain::Present() {
 void SwapChain::UpdateDeviceContext() {
   // Allocate back buffer for d2d device context.
   {
-    ComPtr<IDXGISurface> dxgi_back_buffer;
+    common::ComPtr<IDXGISurface> dxgi_back_buffer;
     swap_chain_->GetBuffer(0, IID_PPV_ARGS(&dxgi_back_buffer));
 
     float dpi_x, dpi_y;
@@ -610,7 +610,7 @@ void SwapChain::UpdateDeviceContext() {
                           D2D1_ALPHA_MODE_PREMULTIPLIED),
         dpi_x, dpi_y);
 
-    ComPtr<ID2D1Bitmap1> d2d_back_buffer;
+    common::ComPtr<ID2D1Bitmap1> d2d_back_buffer;
     COM_VERIFY(d2d_device_context_->CreateBitmapFromDxgiSurface(
         dxgi_back_buffer, bitmap_properties, &d2d_back_buffer));
     d2d_device_context_->SetTarget(d2d_back_buffer);
@@ -624,7 +624,7 @@ void SwapChain::UpdateDeviceContext() {
 // Bitmap
 //
 class Bitmap final {
-  private: ComPtr<ID2D1Bitmap1> bitmap_;
+  private: common::ComPtr<ID2D1Bitmap1> bitmap_;
 
   public: Bitmap(ID2D1DeviceContext* canvas, const D2D1_SIZE_U& size);
   public: ~Bitmap() = default;
@@ -647,7 +647,7 @@ Bitmap::Bitmap(ID2D1DeviceContext* canvas, const D2D1_SIZE_U& size) {
 // Brush
 //
 class Brush final {
-  private: ComPtr<ID2D1SolidColorBrush> brush_;
+  private: common::ComPtr<ID2D1SolidColorBrush> brush_;
 
   public: Brush(ID2D1RenderTarget* render_target, gfx::ColorF::Enum color,
                 float alpha = 1.0f);
@@ -843,7 +843,7 @@ class Layer;
 // ui::Compositor
 //
 class Compositor {
-  private: ComPtr<IDCompositionDesktopDevice> composition_device_;
+  private: common::ComPtr<IDCompositionDesktopDevice> composition_device_;
   private: gfx::DxDevice* dx_device_;
   private: bool need_commit_;
 
@@ -856,7 +856,7 @@ class Compositor {
   public: gfx::DxDevice* dx_device() const { return dx_device_; }
 
   public: void Commit();
-  public: ComPtr<IDCompositionVisual2> CreateVisual();
+  public: common::ComPtr<IDCompositionVisual2> CreateVisual();
   public: void NeedCommit() { need_commit_ = true; }
 
   DISALLOW_COPY_AND_ASSIGN(Compositor);
@@ -880,8 +880,8 @@ void Compositor::Commit() {
   need_commit_ = false;
 }
 
-ComPtr<IDCompositionVisual2> Compositor::CreateVisual() {
-  ComPtr<IDCompositionVisual2> visual;
+common::ComPtr<IDCompositionVisual2> Compositor::CreateVisual() {
+  common::ComPtr<IDCompositionVisual2> visual;
   COM_VERIFY(composition_device_->CreateVisual(&visual));
   return visual;
 }
@@ -896,7 +896,7 @@ class Layer : protected ui::Animatable {
   private: std::vector<Layer*> child_layers_;
   private: Compositor* compositor_;
   private: bool is_active_;
-  private: ComPtr<IDCompositionVisual2> visual_;
+  private: common::ComPtr<IDCompositionVisual2> visual_;
 
   public: Layer(Compositor* compositor);
   public: virtual ~Layer();
@@ -933,7 +933,7 @@ Layer::Layer(Compositor* compositor)
       DCOMPOSITION_BITMAP_INTERPOLATION_MODE_LINEAR));
   COM_VERIFY(visual_->SetBorderMode(DCOMPOSITION_BORDER_MODE_SOFT));
 
-  ComPtr<IDCompositionVisualDebug> debug_visual;
+  common::ComPtr<IDCompositionVisualDebug> debug_visual;
   COM_VERIFY(debug_visual.QueryFrom(visual_));
   // TODO(eval1749) It seems heat map is painted with alpha=1.0.
   //COM_VERIFY(debug_visual->EnableHeatMap(gfx::ColorF(255, 255, 0, 0.1)));
@@ -1018,7 +1018,7 @@ void Layer::DidFireAnimationTimer() {
 //
 class SimpleLayer : public Layer {
   public: class ScopedCanvas {
-    private: ComPtr<ID2D1DeviceContext> d2d_device_context_;
+    private: common::ComPtr<ID2D1DeviceContext> d2d_device_context_;
     private: SimpleLayer* layer_;
     private: gfx::RectF bounds_;
 
@@ -1032,7 +1032,7 @@ class SimpleLayer : public Layer {
   };
   friend class ScopedCanvas;
 
-  private: ComPtr<IDCompositionSurface> surface_;
+  private: common::ComPtr<IDCompositionSurface> surface_;
 
   public: SimpleLayer(Compositor* compositor);
   public: virtual ~SimpleLayer();
@@ -1258,7 +1258,7 @@ class Schedulable {
 //
 // Scheduler
 //
-class Scheduler final : public Singleton<Scheduler> {
+class Scheduler final : public common::Singleton<Scheduler> {
   public: enum class Method {
     NoWait, // NoPresentContent=3901 9649 5344, CPU=26%
     Timer, // NoPresentContent=0 1 0, CPU=12%
@@ -1478,12 +1478,12 @@ void Card::PaintBackground(ID2D1DeviceContext* canvas) const {
   auto const radius = 2.0f;
   canvas->Clear(gfx::ColorF(gfx::ColorF::White, 0.0f));
 
-  ComPtr<ID2D1Image> current_target;
+  common::ComPtr<ID2D1Image> current_target;
   canvas->GetTarget(&current_target);
 
   gfx::Bitmap bitmap(canvas, canvas->GetPixelSize());
 
-  ComPtr<ID2D1Effect> blur_effect;
+  common::ComPtr<ID2D1Effect> blur_effect;
   COM_VERIFY(canvas->CreateEffect(CLSID_D2D1GaussianBlur, &blur_effect));
 
   for (const auto& shadow : shadows_) {
@@ -1548,13 +1548,13 @@ bool Card::DoAnimate(base::TimeTicks) {
 
   // Paint "Paused" in center of layer.
   auto const font_size = 40;
-  ComPtr<IDWriteTextFormat> text_format;
+  common::ComPtr<IDWriteTextFormat> text_format;
   COM_VERIFY(gfx::Factory::instance()->dwrite()->CreateTextFormat(
     L"Verdana", nullptr, DWRITE_FONT_WEIGHT_REGULAR, DWRITE_FONT_STYLE_NORMAL,
     DWRITE_FONT_STRETCH_NORMAL, font_size, L"en-us", &text_format));
 
   base::string16 text(L"Paused");
-  ComPtr<IDWriteTextLayout> text_layout;
+  common::ComPtr<IDWriteTextLayout> text_layout;
   COM_VERIFY(gfx::Factory::instance()->dwrite()->CreateTextLayout(
       text.data(), static_cast<UINT>(text.length()), text_format,
       bounds.width(), bounds.width(),
@@ -1613,7 +1613,7 @@ class CartoonCard : public Card {
   private: DXGI_FRAME_STATISTICS last_stats_;
   private: int not_present_count_;
   private: Sampling present_sample_;
-  private: ComPtr<IDWriteTextFormat> text_format_;
+  private: common::ComPtr<IDWriteTextFormat> text_format_;
   private: Sampling tick_count_sample_;
 
   public: CartoonCard(ui::Compositor* compositor);
@@ -1740,7 +1740,7 @@ bool CartoonCard::DoAnimate(base::TimeTicks tick_count) {
           last_stats_.SyncGPUTime.QuadPart << std::endl;
 
   const auto text = stream.str();
-  ComPtr<IDWriteTextLayout> text_layout;
+  common::ComPtr<IDWriteTextLayout> text_layout;
   COM_VERIFY(gfx::Factory::instance()->dwrite()->CreateTextLayout(
       text.data(), static_cast<UINT>(text.length()), text_format_,
       content_bounds().width(), content_bounds().height(), &text_layout));
@@ -1868,8 +1868,8 @@ class StatusLayer : public Card {
   private: Sampling sample_last_frame_;
   private: Sampling sample_next_frame_;
   private: Sampling sample_tick_;
-  private: ComPtr<IDWriteTextFormat> text_format_;
-  private: ComPtr<IDWriteTextLayout> text_layout_;
+  private: common::ComPtr<IDWriteTextFormat> text_format_;
+  private: common::ComPtr<IDWriteTextLayout> text_layout_;
 
   public: StatusLayer(ui::Compositor* compositor);
   public: virtual ~StatusLayer();
@@ -2012,7 +2012,7 @@ class DemoApp final : public ui::Window, private ui::Schedulable,
 
   private: std::unique_ptr<Animation> animation_;
   private: std::unique_ptr<ui::Compositor> compositor_;
-  private: ComPtr<IDCompositionTarget> composition_target_;
+  private: common::ComPtr<IDCompositionTarget> composition_target_;
   private: base::TimeTicks last_animate_tick_;
   private: std::unique_ptr<CartoonCard> cartoon_layer_;
   private: std::unique_ptr<RootLayer> root_layer_;
@@ -2127,7 +2127,7 @@ void DemoApp::DidChangeBounds() {
                                         status_size));
 
     // Setup transform for status visual
-    ComPtr<IDCompositionRotateTransform> rotate_transform;
+    common::ComPtr<IDCompositionRotateTransform> rotate_transform;
     COM_VERIFY(compositor_->device()->CreateRotateTransform(&rotate_transform));
     COM_VERIFY(rotate_transform->SetCenterX(status_size.width() / 2));
     COM_VERIFY(rotate_transform->SetCenterY(status_size.height() / 2));
@@ -2274,7 +2274,7 @@ void ReportLiveObjects() {
       ::GetProcAddress(dll, "DXGIGetDebugInterface"));
   if (!func)
     return;
-  ComPtr<IDXGIDebug> repoter;
+  common::ComPtr<IDXGIDebug> repoter;
   COM_VERIFY(func(__uuidof(IDXGIDebug), repoter.location()));
   repoter->ReportLiveObjects(DXGI_DEBUG_DXGI, DXGI_DEBUG_RLO_ALL);
 }
@@ -2285,10 +2285,10 @@ void ReportLiveObjects() {
 // WinMain
 //
 int WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
-  std::vector<SingletonBase*> singletons;
-  all_singletons = &singletons;
+  std::vector<common::SingletonBase*> singletons;
+  common::all_singletons = &singletons;
   ::AllocConsole();
-  ComInitializer com_initializer;
+  common::ComInitializer com_initializer;
   my::DemoApp application;
   //ui::Scheduler::instance()->Run(ui::Scheduler::Method::NoWait);
   ui::Scheduler::instance()->Run(ui::Scheduler::Method::Timer);
