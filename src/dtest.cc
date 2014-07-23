@@ -838,18 +838,14 @@ RectF RectF::Offset(const SizeF& size) const {
 class Factory final : public Singleton<Factory> {
   DECLARE_SINGLETON_CLASS(Factory);
 
-  private: ComPtr<ID2D1Device> d2d_device_;
   private: ComPtr<ID2D1Factory1> d2d_factory_;
   private: ComPtr<IDWriteFactory> dwrite_factory_;
-  private: ComPtr<IDXGIDevice3> dxgi_device_;
 
   private: Factory();
   private: virtual ~Factory();
 
-  public: ID2D1Device* d2d_device() const { return d2d_device_; }
   public: ID2D1Factory1* d2d_factory() const { return d2d_factory_; }
   public: IDWriteFactory* dwrite() const { return dwrite_factory_; }
-  public: IDXGIDevice3* dxgi_device() const { return dxgi_device_; }
 
   DISALLOW_COPY_AND_ASSIGN(Factory);
 };
@@ -864,7 +860,33 @@ Factory::Factory() {
   // Create Direct 2D factory.
   COM_VERIFY(::D2D1CreateFactory(D2D1_FACTORY_TYPE_SINGLE_THREADED,
                                  &d2d_factory_));
+}
 
+Factory::~Factory(){
+  d2d_factory_.reset();
+  dwrite_factory_.reset();
+}
+
+//////////////////////////////////////////////////////////////////////
+//
+// DxDevice
+//
+class DxDevice {
+  private: ComPtr<ID2D1Device> d2d_device_;
+  private: ComPtr<IDXGIDevice3> dxgi_device_;
+  private: ComPtr<IDXGIFactory2> dxgi_factory_;
+
+  public: DxDevice();
+  public: ~DxDevice();
+
+  public: ID2D1Device* d2d_device() const { return d2d_device_; }
+  public: IDXGIDevice3* dxgi_device() const { return dxgi_device_; }
+  public: IDXGIFactory2* dxgi_factory() const { return dxgi_factory_; }
+
+  DISALLOW_COPY_AND_ASSIGN(DxDevice);
+};
+
+DxDevice::DxDevice() {
   // Create Direct 3D device.
   D3D_FEATURE_LEVEL feature_levels[] = {
       D3D_FEATURE_LEVEL_11_1,
@@ -882,11 +904,16 @@ Factory::Factory() {
       &d3d_device, feature_levels, nullptr));
   COM_VERIFY(dxgi_device_.QueryFrom(d3d_device));
 
-  // Create d2d device context
-  COM_VERIFY(d2d_factory_->CreateDevice(dxgi_device_, &d2d_device_));
+  ComPtr<IDXGIAdapter> dxgi_adapter;
+  dxgi_device_->GetAdapter(&dxgi_adapter);
+  dxgi_adapter->GetParent(IID_PPV_ARGS(&dxgi_factory_));
+
+// Create d2d device context
+  COM_VERIFY(Factory::instance()->d2d_factory()->CreateDevice(dxgi_device_,
+                                                              &d2d_device_));
 }
 
-Factory::~Factory(){
+DxDevice::~DxDevice(){
   {
     auto const event = ::CreateEvent(nullptr, false, false, nullptr);
     COM_VERIFY(dxgi_device_->EnqueueSetEvent(event));
@@ -894,8 +921,6 @@ Factory::~Factory(){
     ::CloseHandle(event);
     dxgi_device_->Trim();
   }
-  d2d_factory_.reset();
-  dwrite_factory_.reset();
   dxgi_device_.reset();
 }
 
@@ -909,7 +934,7 @@ class SwapChain {
   private: ComPtr<IDXGISwapChain2> swap_chain_;
   private: HANDLE swap_chain_waitable_;
 
-  public: SwapChain(IDXGIDevice* dxgi_device, const D2D1_SIZE_U& size);
+  public: SwapChain(DxDevice* dx_device, const D2D1_SIZE_U& size);
   public: ~SwapChain();
 
   public: ID2D1DeviceContext* d2d_device_context() const {
@@ -925,14 +950,8 @@ class SwapChain {
   DISALLOW_COPY_AND_ASSIGN(SwapChain);
 };
 
-SwapChain::SwapChain(IDXGIDevice* dxgi_device, const D2D1_SIZE_U& size)
+SwapChain::SwapChain(DxDevice* dx_device, const D2D1_SIZE_U& size)
     : is_ready_(false), swap_chain_waitable_(nullptr) {
-  ComPtr<IDXGIAdapter> dxgi_adapter;
-  dxgi_device->GetAdapter(&dxgi_adapter);
-
-  ComPtr<IDXGIFactory2> dxgi_factory;
-  dxgi_adapter->GetParent(IID_PPV_ARGS(&dxgi_factory));
-
   DXGI_SWAP_CHAIN_DESC1 swap_chain_desc = {0};
   swap_chain_desc.AlphaMode = DXGI_ALPHA_MODE_PREMULTIPLIED;
   swap_chain_desc.Width = size.width;
@@ -947,8 +966,8 @@ SwapChain::SwapChain(IDXGIDevice* dxgi_device, const D2D1_SIZE_U& size)
   swap_chain_desc.Flags = DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT;
 
   ComPtr<IDXGISwapChain1> swap_chain1;
-  COM_VERIFY(dxgi_factory->CreateSwapChainForComposition(
-      dxgi_device, &swap_chain_desc, nullptr,
+  COM_VERIFY(dx_device->dxgi_factory()->CreateSwapChainForComposition(
+      dx_device->dxgi_device(), &swap_chain_desc, nullptr,
       &swap_chain1));
   COM_VERIFY(swap_chain_.QueryFrom(swap_chain1));
 
@@ -968,7 +987,7 @@ SwapChain::SwapChain(IDXGIDevice* dxgi_device, const D2D1_SIZE_U& size)
   // minimizing power consumption.
   // COM_VERIFY(swap_chain_->SetMaximumFrameLatency(1));
 
-  COM_VERIFY(Factory::instance()->d2d_device()->CreateDeviceContext(
+  COM_VERIFY(dx_device->d2d_device()->CreateDeviceContext(
       D2D1_DEVICE_CONTEXT_OPTIONS_NONE, &d2d_device_context_));
 
   UpdateDeviceContext();
@@ -1250,24 +1269,26 @@ Animation::Variable::Variable(double start_value, double end_value)
 
 }  // namespace ui
 
-namespace cc {
+namespace ui {
 
 class Layer;
 
 //////////////////////////////////////////////////////////////////////
 //
-// cc::Compositor
+// ui::Compositor
 //
 class Compositor {
   private: ComPtr<IDCompositionDesktopDevice> composition_device_;
+  private: gfx::DxDevice* dx_device_;
   private: bool need_commit_;
 
-  public: Compositor();
+  public: Compositor(gfx::DxDevice* dx_device);
   public: ~Compositor();
 
   public: IDCompositionDesktopDevice* device() const {
     return composition_device_;
   }
+  public: gfx::DxDevice* dx_device() const { return dx_device_; }
 
   public: void Commit();
   public: ComPtr<IDCompositionVisual2> CreateVisual();
@@ -1276,9 +1297,10 @@ class Compositor {
   DISALLOW_COPY_AND_ASSIGN(Compositor);
 };
 
-Compositor::Compositor() : need_commit_(false) {
+Compositor::Compositor(gfx::DxDevice* dx_device)
+    : dx_device_(dx_device), need_commit_(false) {
   COM_VERIFY(::DCompositionCreateDevice2(
-      gfx::Factory::instance()->d2d_device(),
+      dx_device->d2d_device(),
       IID_PPV_ARGS(&composition_device_)));
   composition_device_.MustBeNoOtherUse();
 }
@@ -1301,7 +1323,7 @@ ComPtr<IDCompositionVisual2> Compositor::CreateVisual() {
 
 //////////////////////////////////////////////////////////////////////
 //
-// cc::Layer
+// ui::Layer
 //
 class Layer : protected ui::Animatable {
   private: std::unique_ptr<ui::Animation> animation_;
@@ -1452,7 +1474,7 @@ class SimpleLayer : public Layer {
 
   private: void AttachSurfaceIfNeeded();
 
-  // cc::Layer
+  // ui::Layer
   protected: virtual void DidChangeBounds() override;
 
   DISALLOW_COPY_AND_ASSIGN(SimpleLayer);
@@ -1475,7 +1497,7 @@ void SimpleLayer::AttachSurfaceIfNeeded() {
   COM_VERIFY(visual()->SetContent(surface_));
 }
 
-// cc::Layer
+// ui::Layer
 void SimpleLayer::DidChangeBounds() {
   Layer::DidChangeBounds();
   surface_.reset();
@@ -1502,7 +1524,7 @@ SimpleLayer::ScopedCanvas::~ScopedCanvas() {
   COM_VERIFY(layer_->surface_->EndDraw());
 }
 
-}  // namespace cc
+}  // namespace ui
 
 namespace ui {
 
@@ -1839,7 +1861,7 @@ struct BoxShadow {
 //
 // Card
 //
-class Card : public cc::Layer {
+class Card : public ui::Layer {
   private: enum class State {
     Active,
     Inactive,
@@ -1852,7 +1874,7 @@ class Card : public cc::Layer {
   private: State state_;
   private: std::unique_ptr<gfx::SwapChain> swap_chain_;
 
-  protected: Card(cc::Compositor* compositor);
+  protected: Card(ui::Compositor* compositor);
   protected: virtual ~Card() = default;
 
   public: const gfx::RectF& content_bounds() const { return content_bounds_; }
@@ -1863,7 +1885,7 @@ class Card : public cc::Layer {
 
   protected: void PaintBackground(ID2D1DeviceContext* canvas) const;
 
-  // cc::Layer
+  // ui::Layer
   protected: virtual void DidChangeBounds() override;
   protected: virtual void DidInactive() override;
   protected: virtual bool DoAnimate(base::TimeTicks tick_count) override;
@@ -1871,7 +1893,7 @@ class Card : public cc::Layer {
   DISALLOW_COPY_AND_ASSIGN(Card);
 };
 
-Card::Card(cc::Compositor* compositor)
+Card::Card(ui::Compositor* compositor)
     : Layer(compositor), state_(State::Inactive) {
   // Below values are obtained from
   // http://www.polymer-project.org/tools/designer/
@@ -1925,7 +1947,7 @@ void Card::PaintBackground(ID2D1DeviceContext* canvas) const {
                                gfx::Brush(canvas, gfx::ColorF::White));
 }
 
-// cc::Layer
+// ui::Layer
 void Card::DidChangeBounds() {
   content_bounds_.set_size(bounds().size() - shadow_size_);
   D2D1_SIZE_U size = {
@@ -1940,7 +1962,7 @@ void Card::DidChangeBounds() {
 
   // Create swap chain and d2d device context
   swap_chain_.reset(new gfx::SwapChain(
-      gfx::Factory::instance()->dxgi_device(), size));
+      compositor()->dx_device(), size));
   COM_VERIFY(visual()->SetContent(swap_chain_->swap_chain()));
 }
 
@@ -2029,10 +2051,10 @@ class CartoonCard : public Card {
   private: ComPtr<IDWriteTextFormat> text_format_;
   private: Sampling tick_count_sample_;
 
-  public: CartoonCard(cc::Compositor* compositor);
+  public: CartoonCard(ui::Compositor* compositor);
   public: virtual ~CartoonCard();
 
-  // cc::Layer
+  // ui::Layer
   private: virtual void DidChangeBounds() override;
   private: virtual bool DoAnimate(base::TimeTicks tick_count) override;
 
@@ -2043,7 +2065,7 @@ class CartoonCard : public Card {
 //
 // CartoonCard
 //
-CartoonCard::CartoonCard(cc::Compositor* compositor)
+CartoonCard::CartoonCard(ui::Compositor* compositor)
     : Card(compositor), balls_(5),
       last_tick_count_(base::TimeTicks::Now()), not_present_count_(0) {
   last_stats_ = {0};
@@ -2237,22 +2259,22 @@ void CartoonCard::Ball::DidColision(const Ball& other) {
 //
 // RootLayer
 //
-class RootLayer : public cc::SimpleLayer {
-  public: RootLayer(cc::Compositor* compositor);
+class RootLayer : public ui::SimpleLayer {
+  public: RootLayer(ui::Compositor* compositor);
   public: virtual ~RootLayer() = default;
 
-  // cc::Layer
+  // ui::Layer
   private: virtual void DidChangeBounds() override;
 
   DISALLOW_COPY_AND_ASSIGN(RootLayer);
 };
 
-RootLayer::RootLayer(cc::Compositor* compositor)
-    : cc::SimpleLayer(compositor) {
+RootLayer::RootLayer(ui::Compositor* compositor)
+    : ui::SimpleLayer(compositor) {
 }
 
 void RootLayer::DidChangeBounds() {
-  cc::SimpleLayer::DidChangeBounds();
+  ui::SimpleLayer::DidChangeBounds();
   ScopedCanvas scoped_canvas(this);
   auto const bounds = scoped_canvas.bounds() - gfx::SizeF(20, 20);
   auto const canvas = scoped_canvas.d2d_device_context();
@@ -2284,7 +2306,7 @@ class StatusLayer : public Card {
   private: ComPtr<IDWriteTextFormat> text_format_;
   private: ComPtr<IDWriteTextLayout> text_layout_;
 
-  public: StatusLayer(cc::Compositor* compositor);
+  public: StatusLayer(ui::Compositor* compositor);
   public: virtual ~StatusLayer();
 
   private: virtual bool DoAnimate(base::TimeTicks tick_count) override;
@@ -2292,7 +2314,7 @@ class StatusLayer : public Card {
   DISALLOW_COPY_AND_ASSIGN(StatusLayer);
 };
 
-StatusLayer::StatusLayer(cc::Compositor* compositor)
+StatusLayer::StatusLayer(ui::Compositor* compositor)
     : Card(compositor),
       last_tick_count_(base::TimeTicks::Now()), sample_duration_(100),
       sample_last_frame_(100), sample_next_frame_(100), sample_tick_(100) {
@@ -2329,7 +2351,7 @@ bool StatusLayer::DoAnimate(base::TimeTicks tick_count) {
      1000 / stats.timeFrequency).QuadPart);
   last_stats_ = stats;
 
-  //cc::SimpleLayer::ScopedCanvas scoped_canvas(this);
+  //ui::SimpleLayer::ScopedCanvas scoped_canvas(this);
   //auto const canvas = scoped_canvas.d2d_device_context();
   auto const canvas = d2d_device_context();
   canvas->BeginDraw();
@@ -2424,7 +2446,7 @@ class DemoApp final : public ui::Window, private ui::Schedulable,
   };
 
   private: std::unique_ptr<Animation> animation_;
-  private: std::unique_ptr<cc::Compositor> compositor_;
+  private: std::unique_ptr<ui::Compositor> compositor_;
   private: ComPtr<IDCompositionTarget> composition_target_;
   private: base::TimeTicks last_animate_tick_;
   private: std::unique_ptr<CartoonCard> cartoon_layer_;
@@ -2566,7 +2588,7 @@ void DemoApp::DidCreate() {
   ui::Window::DidCreate();
 
   // Create Direct Composition device.
-  compositor_.reset(new cc::Compositor());
+  compositor_.reset(new ui::Compositor(new gfx::DxDevice()));
 
   // Build visual tree
   root_layer_.reset(new RootLayer(compositor_.get()));
