@@ -844,6 +844,7 @@ class Layer;
 //
 class Compositor {
   private: common::ComPtr<IDCompositionDesktopDevice> composition_device_;
+  private: common::ComPtr<IDCompositionTarget> composition_target_;
   private: gfx::DxDevice* dx_device_;
   private: bool need_commit_;
 
@@ -858,6 +859,7 @@ class Compositor {
   public: void Commit();
   public: common::ComPtr<IDCompositionVisual2> CreateVisual();
   public: void NeedCommit() { need_commit_ = true; }
+  public: void SetTarget(HWND hwnd, Layer* layer);
 
   DISALLOW_COPY_AND_ASSIGN(Compositor);
 };
@@ -871,6 +873,8 @@ Compositor::Compositor(gfx::DxDevice* dx_device)
 }
 
 Compositor::~Compositor() {
+  composition_target_.MustBeNoOtherUse();
+  composition_target_.reset();
 }
 
 void Compositor::Commit() {
@@ -921,6 +925,14 @@ class Layer : protected ui::Animatable {
 
   DISALLOW_COPY_AND_ASSIGN(Layer);
 };
+
+void Compositor::SetTarget(HWND hwnd, Layer* layer) {
+  // Set composition target to this window.
+  COM_VERIFY(composition_device_->CreateTargetForHwnd(
+      hwnd, true, &composition_target_));
+  composition_target_.MustBeNoOtherUse();
+  COM_VERIFY(composition_target_->SetRoot(layer->visual()));
+}
 
 //////////////////////////////////////////////////////////////////////
 //
@@ -1824,7 +1836,7 @@ void CartoonCard::Ball::DidColision(const Ball& other) {
 //
 // RootLayer
 //
-class RootLayer : public ui::SimpleLayer {
+class RootLayer final : public ui::SimpleLayer {
   public: RootLayer(ui::Compositor* compositor);
   public: virtual ~RootLayer() = default;
 
@@ -2012,7 +2024,6 @@ class DemoApp final : public ui::Window, private ui::Schedulable,
 
   private: std::unique_ptr<Animation> animation_;
   private: std::unique_ptr<ui::Compositor> compositor_;
-  private: common::ComPtr<IDCompositionTarget> composition_target_;
   private: base::TimeTicks last_animate_tick_;
   private: std::unique_ptr<CartoonCard> cartoon_layer_;
   private: std::unique_ptr<RootLayer> root_layer_;
@@ -2164,11 +2175,7 @@ void DemoApp::DidCreate() {
   status_layer_.reset(new StatusLayer(compositor_.get()));
   root_layer_->AppendChild(status_layer_.get());
 
-  // Set composition target to this window.
-  COM_VERIFY(compositor_->device()->CreateTargetForHwnd(
-      *this, true, &composition_target_));
-  composition_target_.MustBeNoOtherUse();
-  COM_VERIFY(composition_target_->SetRoot(root_layer_->visual()));
+  compositor_->SetTarget(*this, root_layer_.get());
 
   // Setup visual tree bounds
   DidChangeBounds();
@@ -2221,8 +2228,6 @@ void DemoApp::WillDestroy() {
   composition_target_->SetRoot(nullptr);
   root_layer_.reset();
   status_layer_.reset();
-  composition_target_.MustBeNoOtherUse();
-  composition_target_.reset();
   compositor_.reset();
 #endif
   ui::Window::WillDestroy();
