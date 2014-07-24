@@ -1224,6 +1224,7 @@ RootLayer::RootLayer(ui::Compositor* compositor)
 
 void RootLayer::DidChangeBounds() {
   ui::SimpleLayer::DidChangeBounds();
+#if 0
   ScopedCanvas scoped_canvas(this);
   auto const bounds = scoped_canvas.bounds() - gfx::SizeF(20, 20);
   auto const canvas = scoped_canvas.d2d_device_context();
@@ -1239,6 +1240,7 @@ void RootLayer::DidChangeBounds() {
                    gfx::PointF(bounds.left(), bounds.bottom()),
                    white_brush, 5.0f);
   canvas->FillRectangle(bounds, red_brush);
+#endif
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -1431,7 +1433,7 @@ DemoApp::DemoApp() {
   auto const hwnd = ::CreateWindow(
     GetWindowClass(),
     L"Window Title",
-    WS_OVERLAPPEDWINDOW,
+    WS_OVERLAPPEDWINDOW | WS_VISIBLE,
     CW_USEDEFAULT,
     CW_USEDEFAULT,
     static_cast<UINT>(ceil(640.f * dpi_x / 96.f)),
@@ -1442,7 +1444,7 @@ DemoApp::DemoApp() {
     nullptr);
   if (!hwnd)
     return;
-  ::ShowWindow(hwnd, SW_SHOWNORMAL);
+  //::ShowWindow(hwnd, SW_SHOWNORMAL);
   ui::Scheduler::instance()->Add(this);
 }
 
@@ -1546,7 +1548,6 @@ void DemoApp::DidCreate() {
 
   status_layer_.reset(new StatusLayer(compositor_.get()));
   root_layer_->AppendChild(status_layer_.get());
-
 
   // Setup visual tree bounds
   DidChangeBounds();
