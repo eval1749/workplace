@@ -301,7 +301,7 @@ class Layer : protected ui::Animatable {
 void Compositor::SetTarget(HWND hwnd, Layer* layer) {
   // Set composition target to this window.
   COM_VERIFY(composition_device_->CreateTargetForHwnd(
-      hwnd, true, &composition_target_));
+      hwnd, false, &composition_target_));
   composition_target_.MustBeNoOtherUse();
   COM_VERIFY(composition_target_->SetRoot(layer->visual()));
 }
@@ -1537,17 +1537,16 @@ void DemoApp::DidCreate() {
 
   // Create Direct Composition device.
   compositor_.reset(new ui::Compositor(new gfx::DxDevice()));
+  root_layer_.reset(new RootLayer(compositor_.get()));
+  compositor_->SetTarget(*this, root_layer_.get());
 
   // Build visual tree
-  root_layer_.reset(new RootLayer(compositor_.get()));
-
   cartoon_layer_.reset(new CartoonCard(compositor_.get()));
   root_layer_->AppendChild(cartoon_layer_.get());
 
   status_layer_.reset(new StatusLayer(compositor_.get()));
   root_layer_->AppendChild(status_layer_.get());
 
-  compositor_->SetTarget(*this, root_layer_.get());
 
   // Setup visual tree bounds
   DidChangeBounds();
@@ -1664,7 +1663,7 @@ void ReportLiveObjects() {
 int WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
   std::vector<common::SingletonBase*> singletons;
   common::all_singletons = &singletons;
-  ::AllocConsole();
+  //::AllocConsole();
   common::ComInitializer com_initializer;
   my::DemoApp application;
   //ui::Scheduler::instance()->Run(ui::Scheduler::Method::NoWait);
