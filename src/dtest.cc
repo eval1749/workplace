@@ -27,6 +27,9 @@
 #include <sstream>
 #include <unordered_set>
 
+#include <commctrl.h>
+//#pragma comment(lib, "commctrl.lib")
+
 #pragma comment(lib, "d2d1.lib")
 #pragma comment(lib, "d3d11.lib")
 #pragma comment(lib, "dcomp.lib")
@@ -1402,6 +1405,7 @@ class DemoApp final : public ui::Window, private ui::Schedulable,
   private: std::unique_ptr<CartoonCard> cartoon_layer_;
   private: std::unique_ptr<RootLayer> root_layer_;
   private: std::unique_ptr<StatusLayer> status_layer_;
+  private: HWND status_hwnd_;
 
   public: DemoApp();
   public: virtual ~DemoApp();
@@ -1425,7 +1429,7 @@ class DemoApp final : public ui::Window, private ui::Schedulable,
   DISALLOW_COPY_AND_ASSIGN(DemoApp);
 };
 
-DemoApp::DemoApp() {
+DemoApp::DemoApp() : status_hwnd_(nullptr) {
   float dpi_x, dpi_y;
   gfx::Factory::instance()->d2d_factory()->GetDesktopDpi(&dpi_x, &dpi_y);
 
@@ -1537,6 +1541,17 @@ void DemoApp::DidChangeBounds() {
 void DemoApp::DidCreate() {
   ui::Window::DidCreate();
 
+  status_hwnd_ = ::CreateWindowEx(
+      0,
+      STATUSCLASSNAMEW,
+      nullptr,
+      WS_CHILD | WS_VISIBLE,
+      0, 0, 0, 0,
+      *this,
+      reinterpret_cast<HMENU>(this),
+      HINST_THISCOMPONENT,
+      nullptr);
+
   // Create Direct Composition device.
   compositor_.reset(new ui::Compositor(new gfx::DxDevice()));
   root_layer_.reset(new RootLayer(compositor_.get()));
@@ -1591,6 +1606,9 @@ LRESULT DemoApp::OnMessage(UINT message, WPARAM wParam, LPARAM lParam) {
                              origin.y() + sign * speed * num_frames);
       return 1;
     }
+    case WM_WINDOWPOSCHANGED:
+      ::SendMessage(status_hwnd_, message, wParam, lParam);
+      break;
   }
   return ui::Window::OnMessage(message, wParam, lParam);
 }
