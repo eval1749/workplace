@@ -1,0 +1,77 @@
+<html>
+<head>
+<title>Canvas tutorial</title>
+<script>
+'use strict';
+
+var global = {context: null};
+
+window.onload = function() {
+  init();
+  requestAnimationFrame(run);
+};
+
+var init = function() {
+  global.canvas = document.getElementById('canvas');
+  global.context = canvas.getContext('2d');
+};
+
+var run = function() {
+  update();
+  draw();
+  requestAnimationFrame(run);
+};
+
+var arcarray = [309, 286.5, 264, 241.5, 219, 196.5, 174, 151.5];
+
+var update = function() {
+  for(var i=0; i < 8; ++i) {
+    if(arcarray[i] >= 360)
+      arcarray[i] = 0;
+    else
+      arcarray[i] += 0.5;
+  }
+};
+
+var draw = function() {
+  var ctx = global.context;
+  var width = global.canvas.width;
+  var height = global.canvas.height;
+  ctx.fillStyle = 'black';
+  ctx.fillRect(0, 0, width, height);
+
+  // Draw big circle
+  ctx.fillStyle = 'red';
+  ctx.beginPath();
+  ctx.arc(width / 2, height / 2, height / 2, 0, Math.PI * 2, false);
+  ctx.fill();
+  ctx.closePath();
+
+  // Draw small circles
+  var rad = 22.5 * Math.PI / 180;
+  arcarray.forEach(function(arc, index) {
+    ctx.translate(width / 2, height / 2);
+    ctx.fillStyle = 'white';
+    ctx.beginPath();
+    ctx.rotate(rad * index);
+    ctx.arc(0, 220 * Math.sin(arc * Math.PI / 180), 20, 0,
+            Math.PI * 2, false);
+    ctx.fill();
+    ctx.closePath();
+    ctx.beginPath();
+    ctx.fillStyle = 'black';
+    ctx.font = 'bold 20px Arial';
+    ctx.fillText(index, 0, 220 * Math.sin(arc * Math.PI / 180) );
+    ctx.closePath();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+  });
+};
+</script>
+<style type="text/css">
+  canvas { border: 1px solid #999; }
+</style>
+</head>
+<body>
+<canvas id="canvas" width="640" height="480"></canvas>
+</body>
+</html>
