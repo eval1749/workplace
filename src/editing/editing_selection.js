@@ -216,26 +216,6 @@ console.log('EditingSelection SEL', this.anchorNode_, this.anchorOffset_,
             this.focusNode_, this.focusOffset_);
   }
 
-  /**
-   * @this {!EditingSelection}
-   * @return {?editing.EditingNode}
-   */
-  function anchorNode() {
-    if (!this.anchorPosition_)
-      throw new Error('Selection is empty.');
-    return this.anchorPosition_.containerNode;
-  }
-
-  /**
-   * @this {!EditingSelection}
-   * @return {number}
-   */
-  function anchorOffset() {
-    if (!this.anchorPosition_)
-      throw new Error('Selection is empty.');
-    return this.anchorPosition_.offsetInContainer;
-  }
-
   /*
    * @this {!EditingSelection}
    * @param {!editing.EditingNode} node
