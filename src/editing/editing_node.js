@@ -34,7 +34,8 @@ editing.define('EditingNode', (function() {
     this.lastChild_ = null;
     this.nextSibling_ = null;
     this.previousSibling_ = null;
-    this.splitOffset_ = 0;
+    this.textEndOffset_ = this.isText ? domNode.length : 0;
+    this.textStartOffset_ = 0;
   };
 
   /**
@@ -211,7 +212,7 @@ editing.define('EditingNode', (function() {
    * @return {boolean}
    */
   function isText() {
-    return this.domNode_.nodeType === Node.TEXT_NODE;
+    return this.domNode_ instanceof CharacterData;
   }
 
   /**
@@ -230,10 +231,11 @@ editing.define('EditingNode', (function() {
     if (!(this.domNode instanceof CharacterData))
       return null;
     var nodeValue = this.domNode.nodeValue;
-    var offset = this.splitOffset_;
-    if (!offset)
+    if (!this.textStartOffset_ && nodeValue.length == this.textEndOffset_) {
+      // Avoid string copy.
       return nodeValue;
-    return offset > 0 ? nodeValue.substr(0, offset) : nodeValue.substr(-offset);
+    }
+    return nodeValue.substring(this.textStartOffset_, this.textEndOffset_);
   }
 
   /**
@@ -284,9 +286,11 @@ editing.define('EditingNode', (function() {
       throw new Error('offset(' + offset + ') must be greater than zero.');
     if (offset >= nodeValue.length)
       throw new Error('offset(' + offset + ') must be less than length.');
-    this.splitOffset_ = offset;
     var newNode = new editing.EditingNode(this.context_, this.domNode_);
-    newNode.splitOffset_ = -offset;
+    newNode.textStartOffset_ = this.textStartOffset_ + offset;
+    newNode.textEndOffset_ = this.textEndOffset_;
+    this.textEndOffset_ = newNode.textStartOffset_;
+console.log('splitText', offset, this.nodeValue, newNode.nodeValue);
     this.context_.splitText(this, offset, newNode);
     return newNode;
   }
@@ -301,7 +305,8 @@ editing.define('EditingNode', (function() {
     console.assert(treeRoot.isElement);
     console.assert(isDescendantOf(refNode, treeRoot));
     var lastNode = null;
-    for (var runner = refNode; runner !== treeRoot; runner = runner.parentNode) {
+    for (var runner = refNode; runner !== treeRoot;
+         runner = runner.parentNode) {
 console.log('splitTree', 'runner', runner);
       var newNode = runner.cloneNode(false);
       if (lastNode)
@@ -347,10 +352,12 @@ console.log('splitTree', 'runner', runner);
     removeChild: {get: removeChild},
     replaceChild: {get: replaceChild},
     setAttribute: {value: setAttribute},
-    splitOffset: {get: function() { return this.splitOffset_; }},
-    splitOffset_: {writable: true},
     splitText: {value: splitText},
-    splitTree: {value: splitTree}
+    splitTree: {value: splitTree},
+    textEndOffset: {get: function() { return this.textEndOffset_; }},
+    textEndOffset_: {writable: true},
+    textStartOffset: {get: function() { return this.textStartOffset_; }},
+    textStartOffset_: {writable: true},
   });
 
   return EditingNode;

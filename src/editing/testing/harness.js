@@ -188,7 +188,7 @@ Object.defineProperty(testing, 'define', {
   }
 });
 
-testing.define('createTree', (function() {
+testing.define('TestingSelection', (function() {
   function indexOfNode(node) {
     var parentNode = node.parentNode;
     var index = 0;
@@ -201,60 +201,69 @@ testing.define('createTree', (function() {
     NOTREACEHD();
   }
 
-  function locateMarkers(node, markers) {
+  function visit(selection, node) {
     var child = node.firstChild;
     if (child) {
       while (child){
         var nextSibling = child.nextSibling;
-        locateMarkers(child, markers);
-        if (markers.anchorNode && markers.focusNode)
-          return markers;
+        visit(selection, child);
+        if (selection.anchorNode && selection.focusNode)
+          return;
         child = nextSibling;
       }
-      return markers;
+      return;
     }
 
     if (node.nodeType != Node.TEXT_NODE)
-      return markers;
+      return;
 
-    var templateText = node.nodeValue;
-    var text = templateText.replace('^', '').replace('|', '');
+    var sampleText = node.nodeValue;
+    var text = sampleText.replace('^', '').replace('|', '');
 
-    var anchorOffset = templateText.replace('|', '').indexOf('^');
-    var focusOffset = templateText.replace('^', '').indexOf('|');
+    var anchorOffset = sampleText.replace('|', '').indexOf('^');
+    var focusOffset = sampleText.replace('^', '').indexOf('|');
 
     if (anchorOffset < 0 && focusOffset < 0)
-      return markers;
+      return;
 
     if (text.length) {
       if (anchorOffset >= 0) {
-        markers.anchorNode = node;
-        markers.anchorOffset = anchorOffset;
+        selection.anchorNode_ = node;
+        selection.anchorOffset_ = anchorOffset;
       }
       if (focusOffset >= 0) {
-        markers.focusNode = node;
-        markers.focusOffset = focusOffset;
+        selection.focusNode_ = node;
+        selection.focusOffset_ = focusOffset;
       }
-console.log('createTree', 'Foo', templateText, anchorOffset, focusOffset);
       node.nodeValue = text;
-      return markers;
-    }
+    } else {
+      if (anchorOffset >= 0) {
+        selection.anchorNode_ = node.parentNode;
+        selection.anchorOffset_ = indexOfNode(node);
+      }
 
-    if (anchorOffset >= 0) {
-      markers.anchorNode = node.parentNode;
-      markers.anchorOffset = indexOfNode(node);
+      if (focusOffset >= 0) {
+        selection.focusNode_ = node.parentNode;
+        selection.focusOffset_ = indexOfNode(node);
+      }
+      node.parentNode.removeChild(node);
     }
-    if (focusOffset >= 0) {
-      markers.focusNode = node.parentNode;
-      markers.focusOffset = indexOfNode(node);
+    if (selection.focusNode && !selection.anchorNode) {
+      selection.startIsAnchor_ = false;
+      selection.anchorNode_ = selection.focusNode;
+      selection.anchorOffset_ = selection.focusOffset;
     }
-    node.parentNode.removeChild(node);
   }
 
-  function createTree(htmlText) {
-    var rootElement = document.createElement('div');
-    rootElement.innerHTML = htmlText;
-    document.body.appendChild(rootElement);
+  function TestingSelection(htmlText) {
+    this.range_ = document.createRange();
+    this.root_ = document.createElement('div');
+    this.root_.innerHTML = htmlText;
+    this.startIsAnchor_ = true;
+
+    // TODO(yosin) Once, debug is done, we should not add sample HTML into
+    // testing HTML.
+    document.body.appendChild(this.root_);
 
     if (htmlText.indexOf('^') != htmlText.lastIndexOf('^'))
       throw new Error('More than one focus marker in "' + htmlText + '"');
@@ -262,22 +271,55 @@ console.log('createTree', 'Foo', templateText, anchorOffset, focusOffset);
     if (htmlText.indexOf('|') != htmlText.lastIndexOf('|'))
       throw new Error('More than one focus marker in "' + htmlText + '"');
 
-    var markers = locateMarkers(rootElement, {});
-    var selection = window.getSelection();
-    selection.removeAllRanges();
-    if (markers.anchodNode) {
-      selection.collapse(markers.anchorNode, markers.anchorOffset);
-      if (markers.focusNode)
-        selection.extend(markers.focusNode, markers.focusOffset);
-    } else if (markers.focusNode) {
-      selection.collapse(markers.focusNode, markers.focusOffset);
+    visit(this, this.root_);
+    if (!this.anchorNode_)
+      return;
+    if (this.startIsAnchor_) {
+      this.range_.setStart(this.anchorNode_, this.anchorOffset_);
+      this.range_.setEnd(this.focusNode_, this.focusOffset_);
+    } else {
+      this.range_.setStart(this.focusNode_, this.focusOffset_);
+      this.range_.setEnd(this.anchorNode_, this.anchorOffset_);
     }
-    console.log('createTree HTM', rootElement.outerHTML);
+  }
+
+  /**
+   * @this {!TestingSelection}
+   * @return {boolean}
+   */
+  function collapsed() {
+    return this.anchorNode_ && this.anchorNode_ === this.focusNode_ &&
+           this.anchorOffset_ === this.focusOffset_;
+  }
+
+  Object.defineProperties(TestingSelection.prototype, {
+    anchorNode: {get: function() { return this.anchorNode_; }},
+    anchorNode_: {writable: true},
+    anchorOffset: {get: function() { return this.anchorOffset_; }},
+    anchorOffset_: {writable: true},
+    collapsed: {value: collapsed},
+    focusNode: {get: function() { return this.focusNode_; }},
+    focusNode_: {writable: true},
+    focusOffset: {get: function() { return this.focusOffset_; }},
+    focusOffset_: {writable: true},
+    getRangeAt: {value: function() { return this.range_; }},
+    range_: {writable: true},
+    rangeCount: {get: function() { return this.anchorNode ? 1 : 0}},
+    rootForTesting: {get: function() { return this.root_; }},
+    root_: {writable: true},
+    startIsAnchor_: {writable: true},
+  });
+  return TestingSelection;
+})());
+
+testing.define('createTree', (function() {
+  function createTree(htmlText) {
+    var selection = new testing.TestingSelection(htmlText);
+    console.log('createTree HTM', selection.rootForTesting.outerHTML);
     console.log('creareTree SEL', selection.anchorNode, selection.anchorOffset,
-                selection.focusNode, selection.focusOffset);
-    var context = new editing.EditingContext(document);
-    //rootElement.parentNode.removeChild(rootElement);
-    return context;
+                selection.focusNode, selection.focusOffset,
+                selection.collapsed());
+    return new editing.EditingContext(document, selection);
   }
 
   return createTree;

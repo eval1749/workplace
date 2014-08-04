@@ -29,24 +29,23 @@ testCase('EditingSelection.splitTextCaretInTree', function() {
 });
 
 testCase('EditingSelection.splitTextAnchorFocus', function() {
-  var context = testing.createTree('a^bc|d');
+  var context = testing.createTree('<p contenteditable>a^bc|d</p>');
   var selection = context.selection;
-  expectTrue(selection.isCaret);
+  expectFalse(selection.isCaret);
   expectFalse(selection.isEmpty);
-  expectFalse(selection.isRange);
+  expectTrue(selection.isRange);
   expectEq('bc', selection.anchorNode.nodeValue);
-console.log('splitTextAnchorFocus', selection.anchorNode);
   expectEq(0, selection.anchorOffset);
-  expectEq('d', selection.focusNode.nodeValue);
-  expectEq(0, selection.focusOffset);
+  expectEq('bc', selection.focusNode.nodeValue);
+  expectEq(2, selection.focusOffset);
 });
 
 testCase('EditingSelection.splitTextFocusAnchor', function() {
-  var context = testing.createTree('a|bc^d');
+  var context = testing.createTree('<p contenteditable>a|bc^d</p>');
   var selection = context.selection;
-  expectTrue(selection.isCaret);
+  expectFalse(selection.isCaret);
   expectFalse(selection.isEmpty);
-  expectFalse(selection.isRange);
+  expectTrue(selection.isRange);
   expectEq('bc', selection.anchorNode.nodeValue);
   expectEq(2, selection.anchorOffset, 2);
   expectEq('bc', selection.focusNode.nodeValue);

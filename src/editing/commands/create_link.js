@@ -24,7 +24,7 @@ function createLinkAtCaret(context) {
 
   var focusPosition = context.selection.focusPosition;
   var containerNode = focusPosition.containerNode;
-  var focsuNode = focsuNode.nodeAtPosition();
+  var focsuNode = focsuPosition.nodeAtPosition();
   if (containerNode.isInteractive) {
     if (!containerNode.parentNode.isEditable) {
       // We can't insert anchor element before/after focus node.

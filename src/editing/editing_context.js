@@ -7,11 +7,13 @@
 editing.define('EditingContext', (function() {
   /**
    * @param {!Document} document
+   * @param {Object} domSelection Once |Selection| keeps passed node and offset,
+   *    we don't need to use |selection| parameter.
    */
-  function EditingContext(document) {
+  function EditingContext(document, domSelection) {
     this.document_ = document;
     this.instructions_ = [];
-    this.selection_ = new editing.EditingSelection(this);
+    this.selection_ = new editing.EditingSelection(this, domSelection);
   };
 
   /**
@@ -30,8 +32,9 @@ editing.define('EditingContext', (function() {
    * @return {!EditingNode}
    */
   function createElement(tagName) {
-    var realNode = this.document_.createElement(tagName);
-    return new editing.EditingNode(this, realNode);
+    var domNode = this.document_.createElement(tagName);
+    var node = new editing.EditingNode(this, domNode);
+    return node;
   }
 
   /**
@@ -40,8 +43,9 @@ editing.define('EditingContext', (function() {
    * @return {!EditingNode}
    */
   function createTextNode(text) {
-    var realNode = this.document_.createTextNode(text);
-    return new editing.EditingNode(this, realNode);
+    var domNode = this.document_.createTextNode(text);
+    var node = new editing.EditingNode(this, domNode);
+    return node;
   }
 
   /**
@@ -61,6 +65,14 @@ editing.define('EditingContext', (function() {
   function insertBefore(parentNode, newChild, refChild) {
     this.instructions_.push({name: 'appendChild', parentNode: parentNode,
                              newChild: newChild, refChild: refChild});
+  }
+
+  /**
+   * @this {!EditingContext}
+   * @param {!EditingNode} node
+   */
+  function registerNode(node) {
+    this.editingNodes_.push(node);
   }
 
   /**
@@ -110,6 +122,7 @@ editing.define('EditingContext', (function() {
     createTextNode: {value: createTextNode},
     insertBefore: {value: insertBefore},
     instructions_: {writable: true},
+    registerNode: {value: registerNode},
     removeChild: {value: removeChild},
     selection: {get: function() { return this.selection_; }},
     selection_: {writable: true},
