@@ -154,6 +154,9 @@ editing.define('EditingNode', (function() {
       throw new Error('Bad parent');
     if (newChild.preantNode_)
       internalRemoveChild(newChild.parentNode_, newChild);
+    console.assert(!newChild.parentNode);
+    console.assert(!newChild.nextSibling);
+    console.assert(!newChild.previousSibling);
     var previousSibling = refChild.previousSibling;
     newChild.parentNode_ = parentNode;
     newChild.nextSibling_ = refChild;
@@ -195,8 +198,29 @@ editing.define('EditingNode', (function() {
   function internalReplaceChild(parentNode, newChild, oldChild) {
     if (oldChild.parentNode_ !== parentNode)
       throw new Error('Bad parent');
-    internalInsertBefore(parentNode, newChild, oldChild);
-    internalRemoveChild(parentNode, oldChild);
+    if (newChild.parentNode)
+      internalRemoveChild(parentNode, newChild);
+
+    var nextSibling = oldChild.nextSibling;
+    var previousSibling = oldChild.previousSibling;
+
+    if (nextSibling)
+      nextSibling.previousSibling_ = newChild;
+    else
+      parentNode.lastChild_ = newChild;
+
+    if (previousSibling)
+      previousSibling.nextSibling_ = newChild;
+    else
+      parentNode.firstChild_ = newChild;
+
+    oldChild.nextSibling_ = null;
+    oldChild.parentNode_ = null;
+    oldChild.previousSibling_ = null;
+
+    newChild.nextSibling_ = nextSibling;
+    newChild.parentNode_ = parentNode;
+    newChild.previousSibling_ = previousSibling;
   }
 
   /**

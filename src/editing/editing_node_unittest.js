@@ -147,7 +147,7 @@ testCase('EditingNode.removeChildLastChild', function() {
 });
 
 // replaceChild
-testCase('EditingNode.replaceChildFirst', function() {
+testCase('EditingNode.replaceChildFirstChildByNew', function() {
   var context = new editing.EditingContext(document);
   var element1 = testing.createElement(context, 'e1');
   var element2 = testing.createElement(context, 'e2');
@@ -167,7 +167,7 @@ testCase('EditingNode.replaceChildFirst', function() {
   expectNull(element3.previousSibling);
 });
 
-testCase('EditingNode.replaceChildLast', function() {
+testCase('EditingNode.replaceChildLastChildByNew', function() {
   var context = new editing.EditingContext(document);
   var element1 = testing.createElement(context, 'e1');
   var element2 = testing.createElement(context, 'e2');
@@ -191,6 +191,55 @@ testCase('EditingNode.replaceChildLast', function() {
   expectEq(element1, element4.parentNode);
   expectNull(element4.nextSibling);
   expectEq(element2, element4.previousSibling);
+});
+
+testCase('EditingNode.replaceChildMiddleChildByNew', function() {
+  var context = new editing.EditingContext(document);
+  var element1 = testing.createElement(context, 'e1');
+  var element2 = testing.createElement(context, 'e2');
+  var element3 = testing.createElement(context, 'e3');
+  var element4 = testing.createElement(context, 'e4');
+  var element5 = testing.createElement(context, 'e5');
+  element1.appendChild(element2);
+  element1.appendChild(element3);
+  element1.appendChild(element4);
+  element1.replaceChild(element5, element3);
+
+  expectEq(element2, element1.firstChild);
+  expectEq(element4, element1.lastChild);
+
+  expectEq(element1, element2.parentNode);
+  expectEq(element5, element2.nextSibling);
+  expectNull(element2.previousSibling);
+
+  expectNull(element3.parentNode);
+  expectNull(element3.nextSibling);
+  expectNull(element3.previousSibling);
+
+  expectEq(element1, element5.parentNode);
+  expectEq(element4, element5.nextSibling);
+  expectEq(element2, element5.previousSibling);
+});
+
+testCase('EditingNode.replaceChildByChild', function() {
+  var context = new editing.EditingContext(document);
+  var element1 = testing.createElement(context, 'e1');
+  var element2 = testing.createElement(context, 'e2');
+  var element3 = testing.createElement(context, 'e3');
+  element1.appendChild(element2);
+  element1.appendChild(element3);
+  element1.replaceChild(element2, element3);
+
+  expectEq(element2, element1.firstChild);
+  expectEq(element2, element1.lastChild);
+
+  expectEq(element1, element2.parentNode);
+  expectNull(element2.nextSibling);
+  expectNull(element2.previousSibling);
+
+  expectNull(element3.parentNode);
+  expectNull(element3.nextSibling);
+  expectNull(element3.previousSibling);
 });
 
 // splitTree
