@@ -4,6 +4,16 @@
 
 'use strict';
 
+//////////////////////////////////////////////////////////////////////
+//
+// EditingSelection
+//
+// This class represent selection for editing initialized from DOM selection.
+// Unlike DOM selection API, |anchorNode| and |focusNode| are always container
+// node. If DOM selection API holds text node in |anchorNode| or |focusNode|,
+// |EditingSelection| constructor split text node at offset in |EditingNode|
+// with editing instructions.
+//
 editing.define('EditingSelection', (function() {
   /**
    * @param {!Node} node1
@@ -80,6 +90,20 @@ editing.define('EditingSelection', (function() {
       domChild = domChild.nextSibling;
     }
     return node;
+  }
+
+  /**
+   * @param {!EditingNode} node
+   * @return {number}
+   */
+  function indexOfNode(node) {
+    var parentNode = node.parentNode;
+    var childNodes = parentNode.childNodes;
+    for (var index = 0; index < childNodes.length; ++index) {
+      if (childNodes[index] === node)
+        return index;
+    }
+    throw 'NOTREACEHD';
   }
 
   /**
@@ -195,6 +219,23 @@ editing.define('EditingSelection', (function() {
       }
     }
 
+    // Convert text node + offset to container node + offset.
+    if (anchorNode.isText) {
+      console.assert(!anchorOffset ||
+                     anchorOffset == anchorNode.nodeValue.length);
+      anchorOffset = anchorOffset ? indexOfNode(anchorNode) + 1
+                                  : indexOfNode(anchorNode);
+      anchorNode = anchorNode.parentNode;
+    }
+
+    if (focusNode.isText) {
+      console.assert(!focusOffset ||
+                     focusOffset == focusNode.nodeValue.length);
+      focusOffset = focusOffset ? indexOfNode(focusNode) + 1
+                                : indexOfNode(focusNode);
+      focusNode = focusNode.parentNode;
+    }
+
     this.anchorNode_ = anchorNode;
     this.anchorOffset_ = anchorOffset;
     this.focusNode_ = focusNode;
@@ -206,19 +247,6 @@ editing.define('EditingSelection', (function() {
    * @param {!editing.EditingNode} node
    */
   function enclose(node) {
-    /**
-     * @param {!EditingNode} node
-     * @return {number}
-     */
-    function indexOfNode(node) {
-      var parentNode = node.parentNode;
-      var childNodes = parentNode.childNodes;
-      for (var index = 0; index < childNodes.length; ++index) {
-        if (childNodes[index] === node)
-          return index;
-      }
-      throw 'NOTREACEHD';
-    }
     console.assert(node instanceof EditingNode);
     var position = new EditingPosition(node.parentNode, indexOfNode(node));
     this.anchorNode_ = node.parentNode;
