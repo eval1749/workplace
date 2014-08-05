@@ -93,6 +93,12 @@ editing.define('EditingSelection', (function() {
   }
 
   /**
+   * @param {!editing.EditingNode} node
+   * @param {number} offset
+   * @return {!editing.EditingNode}
+   *
+   * TODO(yosin) We should remove |splitText| and |insertAfter| instructions
+   * if we don't change anchor and focus of selection.
    */
   function splitText(node, offset) {
     console.assert(node.parentNode);
