@@ -101,6 +101,7 @@ editing.define('EditingNode', (function() {
       throw new Error('newChild and refChild must be different');
     if (refChild.parentNode !== this)
       throw new Error('refChild ' + refChild + ' must be a child of ' + this);
+
     var nextSibling = refChild.nextSibling;
     if (nextSibling) {
       this.insertBefore(newChild, nextSibling);
@@ -115,6 +116,17 @@ editing.define('EditingNode', (function() {
    * @param {!EditingNode} refChild
    */
   function insertBefore(newChild, refChild) {
+    if (!refChild) {
+      this.appendChild(newChild);
+      return;
+    }
+    console.assert(newChild instanceof editing.EditingNode);
+    console.assert(refChild instanceof editing.EditingNode);
+    if (newChild === refChild)
+      throw new Error('newChild and refChild must be different');
+    if (refChild.parentNode !== this)
+      throw new Error('refChild ' + refChild + ' must be a child of ' + this);
+
     this.context_.insertBefore(newChild, refChild);
     internalInsertBefore(this, newChild, refChild);
     console.assert(newChild.parentNode === this);
@@ -331,8 +343,13 @@ editing.define('EditingNode', (function() {
    * @param {!EditingNode} oldChild
    */
   function replaceChild(newChild, oldChild) {
-    if (oldChild.parentNode_ !== this)
-      throw new Error('Bad parent');
+    console.assert(newChild instanceof editing.EditingNode);
+    console.assert(oldChild instanceof editing.EditingNode);
+    if (newChild === oldChild)
+      throw new Error('newChild and oldChild must be different');
+    if (oldChild.parentNode !== this)
+      throw new Error('oldChild ' + oldChild + ' must be a child of ' + this);
+
     this.context_.replaceChild(newChild, oldChild);
     internalReplaceChild(this, newChild, oldChild);
   }
