@@ -44,7 +44,7 @@ editing.define('contentModel', (function() {
   var contentModel = {};
   function defineContentModel(nameOrNames, categoryOrCategories,
                               usableContextIn, contextModelIn) {
-    var names = nameOrNames.split(' ');
+    var names = nameOrNames.toUpperCase().split(' ');
     var categories = toSet(toArray(categoryOrCategories));
     var usableContexts = typeof(usableContextIn) == 'string' ?
         usableContextIn.split(' ') : toSet(toArray(usableContextIn));
