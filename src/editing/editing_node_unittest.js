@@ -5,7 +5,7 @@
 'use strict';
 
 testCase('EditingNode.appendChild', function() {
-  var context = new editing.EditingContext(document);
+  var context = testing.createContext();
   var element1 = testing.createElement(context, 'e1');
   var element2 = testing.createElement(context, 'e2');
   element1.appendChild(element2);
@@ -20,7 +20,7 @@ testCase('EditingNode.appendChild', function() {
 });
 
 testCase('EditingNode.insertBeforeNull', function() {
-  var context = new editing.EditingContext(document);
+  var context = testing.createContext();
   var element1 = testing.createElement(context, 'e1');
   var element2 = testing.createElement(context, 'e2');
   element1.insertBefore(element2, null);
@@ -35,7 +35,7 @@ testCase('EditingNode.insertBeforeNull', function() {
 });
 
 testCase('EditingNode.insertBeforeToFirst', function() {
-  var context = new editing.EditingContext(document);
+  var context = testing.createContext();
   var element1 = testing.createElement(context, 'e1');
   var element2 = testing.createElement(context, 'e2');
   var element3 = testing.createElement(context, 'e3');
@@ -55,7 +55,7 @@ testCase('EditingNode.insertBeforeToFirst', function() {
 });
 
 testCase('EditingNode.insertBeforeToSecond', function() {
-  var context = new editing.EditingContext(document);
+  var context = testing.createContext();
   var element1 = testing.createElement(context, 'e1');
   var element2 = testing.createElement(context, 'e2');
   var element3 = testing.createElement(context, 'e3');
@@ -75,8 +75,26 @@ testCase('EditingNode.insertBeforeToSecond', function() {
   expectEq(element4, function() { return element3.previousSibling; });
 });
 
+//
+// isInteractive
+//
+testCase('EditingNode.isInteractive', function() {
+  var context = testing.createContext();
+  var elementA = testing.createElement(context, 'a');
+  var elementB = testing.createElement(context, 'b');
+  expectTrue(function () { return elementA.isInteractive; });
+  expectFalse(function () { return elementB.isInteractive; });
+
+  // <a><b></b></a>: <b> is now interactive.
+  elementA.appendChild(elementB);
+  expectTrue(function () { return elementB.isInteractive; });
+});
+
+//
+// removeChild
+//
 testCase('EditingNode.removeChildFirstChild', function() {
-  var context = new editing.EditingContext(document);
+  var context = testing.createContext();
   var element1 = testing.createElement(context, 'e1');
   var element2 = testing.createElement(context, 'e2');
   var element3 = testing.createElement(context, 'e3');
@@ -100,7 +118,7 @@ testCase('EditingNode.removeChildFirstChild', function() {
 });
 
 testCase('EditingNode.removeChildSecondChild', function() {
-  var context = new editing.EditingContext(document);
+  var context = testing.createContext();
   var element1 = testing.createElement(context, 'e1');
   var element2 = testing.createElement(context, 'e2');
   var element3 = testing.createElement(context, 'e3');
@@ -124,7 +142,7 @@ testCase('EditingNode.removeChildSecondChild', function() {
 });
 
 testCase('EditingNode.removeChildLastChild', function() {
-  var context = new editing.EditingContext(document);
+  var context = testing.createContext();
   var element1 = testing.createElement(context, 'e1');
   var element2 = testing.createElement(context, 'e2');
   var element3 = testing.createElement(context, 'e3');
@@ -148,7 +166,7 @@ testCase('EditingNode.removeChildLastChild', function() {
 
 // replaceChild
 testCase('EditingNode.replaceChildFirstChildByNew', function() {
-  var context = new editing.EditingContext(document);
+  var context = testing.createContext();
   var element1 = testing.createElement(context, 'e1');
   var element2 = testing.createElement(context, 'e2');
   var element3 = testing.createElement(context, 'e3');
@@ -168,7 +186,7 @@ testCase('EditingNode.replaceChildFirstChildByNew', function() {
 });
 
 testCase('EditingNode.replaceChildLastChildByNew', function() {
-  var context = new editing.EditingContext(document);
+  var context = testing.createContext();
   var element1 = testing.createElement(context, 'e1');
   var element2 = testing.createElement(context, 'e2');
   var element3 = testing.createElement(context, 'e3');
@@ -194,7 +212,7 @@ testCase('EditingNode.replaceChildLastChildByNew', function() {
 });
 
 testCase('EditingNode.replaceChildMiddleChildByNew', function() {
-  var context = new editing.EditingContext(document);
+  var context = testing.createContext();
   var element1 = testing.createElement(context, 'e1');
   var element2 = testing.createElement(context, 'e2');
   var element3 = testing.createElement(context, 'e3');
@@ -222,7 +240,7 @@ testCase('EditingNode.replaceChildMiddleChildByNew', function() {
 });
 
 testCase('EditingNode.replaceChildByChild', function() {
-  var context = new editing.EditingContext(document);
+  var context = testing.createContext();
   var element1 = testing.createElement(context, 'e1');
   var element2 = testing.createElement(context, 'e2');
   var element3 = testing.createElement(context, 'e3');

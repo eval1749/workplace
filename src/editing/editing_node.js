@@ -246,11 +246,25 @@ editing.define('EditingNode', (function() {
    * @this {!EditingNode}
    * @return {boolean}
    */
+  function isInteractive() {
+    /* @const */ var INTERACTIVE = editing.CONTENT_CATEGORY.INTERACTIVE;
+    for (var runner = this; runner; runner = runner.parentNode) {
+      var model = editing.contentModel[runner.domNode.nodeName];
+      if (model && model.categories[INTERACTIVE])
+        return true;
+    }
+    return false;
+  }
+
+  /**
+   * @this {!EditingNode}
+   * @return {boolean}
+   */
   function isPhrasing() {
     if (!this.isElement)
       return true;
-    var element = /** @type{!Element} */(this.domNode_);
-    return !!editing.contentModel[this.tagName][editing.category.PHRASING];
+    var model = editing.contentModel[this.domNode_.nodeName];
+    return model && Boolean(model.categories[editing.category.PHRASING]);
   }
 
   /**
@@ -425,6 +439,7 @@ editing.define('EditingNode', (function() {
     insertBefore: {value: insertBefore},
     isElement: {get: isElement},
     isEditable: {get: isEditable},
+    isInteractive: {get: isInteractive},
     isPhrasing: {get: isPhrasing},
     isText: {get: isText},
     lastChild: {get: function() { return this.lastChild_; }},
