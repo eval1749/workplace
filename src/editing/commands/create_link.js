@@ -5,45 +5,92 @@
 'use strict';
 
 editing.define('createLink', (function() {
-  // Insert an A element, link and content are specified URL, before selection
-  // focus position.
-  function createLinkAtCaret(context, url) {
+  /*
+   * Insert an A element, link and content are specified URL, before selection
+   * focus position.
+   * @param {!editing.EditingContext} context
+   * @param {string} url
+   */
+  function createLinkBeforeCaret(context, url) {
+    console.assert(url != '');
+
     var anchorElement = context.createElement('a');
-    anchorElement.setAttribue(anchorElement, 'href', url);
+    anchorElement.setAttribute('href', url);
     anchorElement.appendChild(context.createTextNode(url));
 
+    /** @const @type {!editing.EditingSelection} */
     var selection = context.selection;
+
+    /** @const @type {!editing.EditableNode} */
     var containerNode = selection.focusNode;
-    var caretNode = containerNode;
-    if (containerNode.isText) {
-      containerNode = caretNode.parentNode;
-      if (selection.focusOffset)
-        caretNode = null;
-    } else {
-      caretNode = containerNode[selection.focusOffset];
+
+    /** @const @type {?editing.EditableNode} */
+    var caretNode = containerNode.childNodes[selection.focusOffset];
+
+    if (!containerNode.isEditable)
+      throw new Error('Selection should be in editable element.');
+
+    var ancestors = [];
+    var interactive = null;
+    for (var runner = containerNode; runner; runner = runner.parentNode) {
+      if (runner.isInteractive)
+        interactive = runner;
+      ancestors.push(runner);
     }
-    if (containerNode.isInteractive) {
-      if (!containerNode.parentNode.isEditable) {
-        // We can't insert anchor element before/after focus node.
-        return false;
-      }
-      if (caretNode) {
-        // <a>foo|bar</a> => <a>foo</a><a>url</a><a>bar</a>
-        var followingTree = containerNode.splitTree(caretNode);
-        containerNode.parentNode.insertBefore(anchorElement, followingTree);
-      } else {
-        // <a>foobar|</a> => <a>foobar</a><a>url</a>
-        containerNode.parentNode.insertAfter(anchorElement, containerNode);
-      }
-    } else {
-      // <b>foo|bar</b> => <b>foo[<a>url</a>]bar</b>
-      containerNode.insertBefore(anchorElement, focusNode);
+
+    if (!interactive) {
+      // Insert anchor element before caret.
+      containerNode.insertBefore(anchorElement, caretNode);
+      context.selection.enclose(anchorElement);
+      return true;
     }
+
+    var editable = interactive.parentNode;
+    if (!editable || !editable.isEditable) {
+      // We can't insert anchor element before/after focus node.
+      return false;
+    }
+
+    // Shrink ancestors to child of |editable|.
+    while (ancestors[ancestors.length - 1] != editable) {
+      ancestors.pop();
+    }
+    ancestors.pop();
+
+console.log('createLinkBeforeCaret ancestors1', ancestors.map(function(x){return x.nodeName}));
+
+console.log('createLinkBeforeCaret ancestors2', ancestors.map(function(x){return x.nodeName}));
+    var anchorTree = ancestors.reverse().reduce(
+        function(previousValue, currentValue) {
+          if (currentValue.isInteractive)
+            return previousValue;
+          var newNode = currentValue.cloneNode(false);
+          newNode.appendChild(previousValue);
+          return newNode;
+       }, anchorElement);
+
+    if (!caretNode) {
+      editable.insertAfter(anchorTree, interactive);
+    } else if (selection.focusOffset) {
+      var followingTree = interactive.splitTree(caretNode);
+      editable.insertAfter(anchorTree, interactive);
+      editable.insertAfter(followingTree, anchorTree);
+    } else {
+      editable.insertBefore(anchorTree, interactive);
+    }
+
     context.selection.enclose(anchorElement);
-    return false;
+    return true;
   }
 
-  function createLinkForRange(context) {
+  /**
+   * @param {!editable.EditingContext} context
+   * @param {string} url
+   * @return {boolean}
+   */
+  function createLinkForRange(context, url) {
+    console.assert(url != '');
+
     var firstAnchorElement = null;
     var lastAnchorElement = null;
     function createAnchorElement() {
@@ -123,14 +170,14 @@ editing.define('createLink', (function() {
    * @return {boolean}
    */
   function createLink(context, url) {
+    if (url == '')
+      return false;
     if (context.selection.isEmpty)
       return false;
     if (context.selection.isCaret) {
-      createLinkAtCaret(context, url);
-      return false;
+      return createLinkBeforeCaret(context, url);
     }
-    createLinkForRange(context, url);
-    return false;
+    return createLinkForRange(context, url);
   }
 
   return createLink;
