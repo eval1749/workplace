@@ -247,13 +247,12 @@ editing.define('EditingSelection', (function() {
    * @param {!editing.EditingNode} node
    */
   function enclose(node) {
-    console.assert(node instanceof EditingNode);
-    var position = new EditingPosition(node.parentNode, indexOfNode(node));
+    console.assert(node instanceof editing.EditingNode);
     this.anchorNode_ = node.parentNode;
-    this.anchorOffset_ = indexOfNode(node);
-    this.focusNode = node.parentNode;
+    this.anchorOffset_ = node.nodeIndex;
+    this.focusNode_ = node.parentNode;
     this.focusOffset_ = this.anchorOffset_ + 1;
-    this.startIsAnchor_ = false;
+    this.startIsAnchor_ = true;
   }
 
   /**
