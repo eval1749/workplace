@@ -7,22 +7,29 @@
 editing.define('createLink', (function() {
   // Insert an A element, link and content are specified URL, before selection
   // focus position.
-  function createLinkAtCaret(context) {
+  function createLinkAtCaret(context, url) {
     var anchorElement = context.createElement('a');
     anchorElement.setAttribue(anchorElement, 'href', url);
     anchorElement.appendChild(context.createTextNode(url));
 
-    var focusPosition = context.selection.focusPosition;
-    var containerNode = focusPosition.containerNode;
-    var focsuNode = focsuPosition.nodeAtPosition();
+    var selection = context.selection;
+    var containerNode = selection.focusNode;
+    var caretNode = containerNode;
+    if (containerNode.isText) {
+      containerNode = caretNode.parentNode;
+      if (selection.focusOffset)
+        caretNode = null;
+    } else {
+      caretNode = containerNode[selection.focusOffset];
+    }
     if (containerNode.isInteractive) {
       if (!containerNode.parentNode.isEditable) {
         // We can't insert anchor element before/after focus node.
         return false;
       }
-      if (focusNode) {
+      if (caretNode) {
         // <a>foo|bar</a> => <a>foo</a><a>url</a><a>bar</a>
-        var followingTree = containerNode.splitTree(focusNode);
+        var followingTree = containerNode.splitTree(caretNode);
         containerNode.parentNode.insertBefore(anchorElement, followingTree);
       } else {
         // <a>foobar|</a> => <a>foobar</a><a>url</a>
@@ -119,10 +126,10 @@ editing.define('createLink', (function() {
     if (context.selection.isEmpty)
       return false;
     if (context.selection.isCaret) {
-      createLinkAtCaret(context);
+      createLinkAtCaret(context, url);
       return false;
     }
-    createLinkForRange(context);
+    createLinkForRange(context, url);
     return false;
   }
 
