@@ -36,6 +36,14 @@ editing.define('EditingNode', (function() {
     this.previousSibling_ = null;
     this.textEndOffset_ = this.isText ? domNode.length : 0;
     this.textStartOffset_ = 0;
+
+    if (domNode.nodeType == Node.ELEMENT_NODE) {
+      var attrs = domNode.attributes;
+      for (var index = 0; index < attrs.length; ++index) {
+        var attr = attrs[index];
+        this.attributes_[attr.name] = attr.value;
+      }
+    }
   };
 
   /**
@@ -69,11 +77,10 @@ editing.define('EditingNode', (function() {
     this.context_.cloneNode(false);
     var domNode = this.domNode_.cloneNode(false);
     var cloneNode = new EditingNode(this.context_, domNode);
-    if (this.domNode_.nodeType === Node.ELEMENT_TYPE) {
-      var attrs = this.domNode_.attributes;
-      for (var index = 0; attrs.length; ++index) {
-        var attr = attrs[index];
-        cloneNode.attributes_[attr.name] = attr.value;
+    if (this.domNode_.nodeType === Node.ELEMENT_NODE) {
+      var attrs = this.attributes_;
+      for (var attrName in attrs) {
+        cloneNode.attributes_[attrName] = attrs[attrName];
       }
     }
     return cloneNode;
@@ -85,8 +92,13 @@ editing.define('EditingNode', (function() {
    * @param {!EditingNode} refChild
    */
   function insertAfter(newChild, refChild) {
-    if (refChild.nextSibling) {
-      this.insertBefore(newChild, refChild.nextSibling);
+    console.assert(newChild instanceof editing.EditingNode);
+    console.assert(refChild instanceof editing.EditingNode);
+    if (newChild === refChild)
+      throw new Error('newChild and refChild must be different');
+    var nextSibling = refChild.nextSibling;
+    if (nextSibling) {
+      this.insertBefore(newChild, nextSibling);
       return;
     }
     this.appendChild(newChild);
@@ -99,7 +111,8 @@ editing.define('EditingNode', (function() {
    */
   function insertBefore(newChild, refChild) {
     this.context_.insertBefore(newChild, refChild);
-    internalInsertBefore(newChild, refChild);
+    internalInsertBefore(this, newChild, refChild);
+    console.assert(newChild.parentNode === this);
   }
 
   /**
@@ -109,7 +122,6 @@ editing.define('EditingNode', (function() {
   function internalAppendChild(parentNode, newChild) {
     console.assert(parentNode instanceof editing.EditingNode);
     console.assert(newChild instanceof editing.EditingNode);
-    console.assert(parentNode !== newChild.parentNode);
     if (!parentNode.isElement &&
          parentNode.domNode.nodeType != Node.DOCUMENT_NODE) {
         throw 'parentNode must be an Element: ' + parentNode.domNode_;
@@ -118,10 +130,12 @@ editing.define('EditingNode', (function() {
       internalRemoveChild(newChild.parentNode_, newChild);
     if (!parentNode.firstChild_)
       parentNode.firstChild_ = newChild;
-    if (parentNode.lastChild_)
-      parentNode.lastChild_.nextSibling_ = newChild;
+    var lastChild = parentNode.lastChild_;
+    if (lastChild)
+      lastChild.nextSibling_ = newChild;
     newChild.parentNode_ = parentNode;
-    newChild.previousSibling_ = parentNode.lastChild_;
+    newChild.nextSibling_ = null;
+    newChild.previousSibling_ = lastChild;
     parentNode.lastChild_ = newChild;
   }
 
@@ -140,15 +154,15 @@ editing.define('EditingNode', (function() {
       throw new Error('Bad parent');
     if (newChild.preantNode_)
       internalRemoveChild(newChild.parentNode_, newChild);
-    newChild.parentNode_ = this;
-    newChild.previousSibling_ = refChild.previousSibling;
+    var previousSibling = refChild.previousSibling;
+    newChild.parentNode_ = parentNode;
     newChild.nextSibling_ = refChild;
+    newChild.previousSibling_ = previousSibling;
     refChild.previousSibling_ = newChild;
-    if (newChild.previousSibling_)
-      newChild.previousSibling_.nextSibling_ = newChild;
+    if (previousSibling)
+      previousSibling.nextSibling_ = newChild;
     else
-      this.lastChild_ = newChild;
-    this.context_.insertBefore(this, newChild, refChild);
+      parentNode.firstChild_ = newChild;
   }
 
   /**
@@ -158,10 +172,19 @@ editing.define('EditingNode', (function() {
   function internalRemoveChild(parentNode, oldChild) {
     console.assert(parentNode.isElement);
     console.assert(parentNode === oldChild.parentNode_);
-    parentNode.nextSibling_ = null;
-    parentNode.previousSibling_ = null;
-    parentNode.parentNode_ = null;
-    parentNode.context_.removeChild(parentNode, oldChild);
+    var nextSibling = oldChild.nextSibling_;
+    var previousSibling = oldChild.previousSibling_;
+    if (nextSibling)
+      nextSibling.previousSibling_ = previousSibling;
+    else
+      parentNode.lastChild_ = previousSibling;
+    if (previousSibling)
+      previousSibling.nextSibling_ = nextSibling;
+    else
+      parentNode.firstChild_ = nextSibling;
+    oldChild.nextSibling_ = null;
+    oldChild.previousSibling_ = null;
+    oldChild.parentNode_ = null;
   }
 
   /**
@@ -170,7 +193,6 @@ editing.define('EditingNode', (function() {
    * @param {!EditingNode} oldChild
    */
   function internalReplaceChild(parentNode, newChild, oldChild) {
-    console.assert(parentNode.isElement);
     if (oldChild.parentNode_ !== parentNode)
       throw new Error('Bad parent');
     internalInsertBefore(parentNode, newChild, oldChild);
@@ -217,6 +239,21 @@ editing.define('EditingNode', (function() {
 
   /**
    * @this {!EditingNode}
+   * @return {number}
+   */
+  function nodeIndex(){
+    var index = 0;
+    var parentNode = this.parentNode;
+    for (var child = parentNode.firstChild; child; child = child.nextSibling) {
+      if (child === this)
+        return index;
+      ++index;
+    }
+    throw 'NOTREACEHD';
+  }
+
+  /**
+   * @this {!EditingNode}
    * @return {string}
    */
   function nodeName() {
@@ -243,10 +280,11 @@ editing.define('EditingNode', (function() {
    * @param {!EditingNode} oldChild
    */
   function removeChild(oldChild) {
+    console.assert(oldChild instanceof editing.EditingNode);
     if (oldChild.parentNode_ !== this)
       throw new Error('Bad parent');
-    this.context_.removeChld(oldChild.parentNode, oldChild);
-    internalRemoveChild(newChild.parentNode_, oldChild);
+    this.context_.removeChild(this, oldChild);
+    internalRemoveChild(this, oldChild);
   }
 
   /**
@@ -290,7 +328,6 @@ editing.define('EditingNode', (function() {
     newNode.textStartOffset_ = this.textStartOffset_ + offset;
     newNode.textEndOffset_ = this.textEndOffset_;
     this.textEndOffset_ = newNode.textStartOffset_;
-console.log('splitText', offset, this.nodeValue, newNode.nodeValue);
     this.context_.splitText(this, offset, newNode);
     return newNode;
   }
@@ -301,23 +338,50 @@ console.log('splitText', offset, this.nodeValue, newNode.nodeValue);
    * @return {!EditingNode}
    */
   function splitTree(refNode) {
-    var treeRoot = this;
-    console.assert(treeRoot.isElement);
-    console.assert(isDescendantOf(refNode, treeRoot));
-    var lastNode = null;
-    for (var runner = refNode; runner !== treeRoot;
+    /**
+     * @param {!EditingNode} parent
+     * @param {!EditingNode} child
+     * @return {!EditingNode}
+     *
+     * Split |parent| at |child|, and returns new node which contains |child|
+     * to its sibling nodes.
+     */
+    function splitNode(parent, child) {
+      var newParent = parent.cloneNode(false);
+      var sibling = child;
+      while (sibling) {
+        console.assert(sibling.parentNode === parent);
+        var nextSibling = sibling.nextSibling;
+        newParent.appendChild(sibling);
+        sibling = nextSibling;
+      }
+      return newParent;
+    }
+
+    var treeNode = this;
+    console.assert(isDescendantOf(refNode, treeNode));
+
+    var lastNode = refNode;
+    for (var runner = refNode.parentNode; runner !== treeNode;
          runner = runner.parentNode) {
-console.log('splitTree', 'runner', runner);
-      var newNode = runner.cloneNode(false);
-      if (lastNode)
-        newNode.appendChild(lastNode);
+      var newNode = splitNode(runner, lastNode);
+      runner.parentNode.insertAfter(newNode, runner);
       lastNode = newNode;
     }
-    console.log('splitTree', 'lastNode', lastNode);
-    var newTreeRoot = treeRoot.cloneNode(false);
-    newTreeRoot.appendChild(lastNode);
-    treeRoot.parentNode.insertAfter(newTreeRoot, treeRoot);
-    return newTreeRoot;
+    var newNode = splitNode(treeNode, lastNode);
+    return newNode;
+  }
+
+  /**
+   * @this {!EditingNode}
+   * @return {string}
+   */
+  function toString() {
+    var value = this.nodeValue || this.nodeName;
+    if (this.parentNode_) {
+      return '[EditingNode ' + value + ' @' + this.nodeIndex + ']';
+    }
+    return '[EditingNode ' + value + ']';
   }
 
   Object.defineProperties(EditingNode.prototype, {
@@ -343,14 +407,15 @@ console.log('splitTree', 'runner', runner);
     lastChild_: {writable: true},
     nextSibling: {get: function() { return this.nextSibling_; }},
     nextSibling_: {writable: true},
+    nodeIndex: {get: nodeIndex }, // for debugging
     nodeName: {get: nodeName},
     nodeValue: {get: nodeValue},
     parentNode: {get: function() { return this.parentNode_; }},
     parentNode_: {writable: true},
     previousSibling: {get: function() { return this.previousSibling_; }},
     previousSibling_: {writable: true},
-    removeChild: {get: removeChild},
-    replaceChild: {get: replaceChild},
+    removeChild: {value: removeChild},
+    replaceChild: {value: replaceChild},
     setAttribute: {value: setAttribute},
     splitText: {value: splitText},
     splitTree: {value: splitTree},
@@ -358,6 +423,7 @@ console.log('splitTree', 'runner', runner);
     textEndOffset_: {writable: true},
     textStartOffset: {get: function() { return this.textStartOffset_; }},
     textStartOffset_: {writable: true},
+    toString: {value: toString}
   });
 
   return EditingNode;

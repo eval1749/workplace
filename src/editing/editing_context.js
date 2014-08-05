@@ -63,7 +63,7 @@ editing.define('EditingContext', (function() {
    * @param {!EditingNode} refChild
    */
   function insertBefore(parentNode, newChild, refChild) {
-    this.instructions_.push({name: 'appendChild', parentNode: parentNode,
+    this.instructions_.push({name: 'insertBefore', parentNode: parentNode,
                              newChild: newChild, refChild: refChild});
   }
 
@@ -83,6 +83,17 @@ editing.define('EditingContext', (function() {
   function removeChild(parentNode, oldChild) {
     this.instructions_.push({name: 'removeChild', parentNode: parentNode,
                              oldChild: oldChild});
+  }
+
+  /**
+   * @this {!EditingContext}
+   * @param {!EditingNode} parentNode
+   * @param {!EditingNode} newChild
+   * @param {!EditingNode} oldChild
+   */
+  function replaceChild(parentNode, newChild, oldChild) {
+    this.instructions_.push({name: 'replaceChild', parentNode: parentNode,
+                             newChild: newChild, oldChild: oldChild});
   }
 
   /**
@@ -124,6 +135,7 @@ editing.define('EditingContext', (function() {
     instructions_: {writable: true},
     registerNode: {value: registerNode},
     removeChild: {value: removeChild},
+    replaceChild: {value: replaceChild},
     selection: {get: function() { return this.selection_; }},
     selection_: {writable: true},
     setAttribute: {value: setAttribute},

@@ -126,7 +126,7 @@ function expectEq(expected_result, actual_result) {
   var logElement = testRunner.failed();
   var listElement = document.createElement('ul');
   logElement.appendChild(listElement);
-  ['Expected:' + expected_result, 'Actual: ' + actual_result].forEach(
+  ['Expected:' + expected_result, 'Actual__:' + actual_result].forEach(
     function(value) {
       var listItemElement = document.createElement('li');
       listItemElement.textContent = value;
@@ -154,19 +154,12 @@ function expectUndefined(actual_result) {
 function testCase(name, testFunction) {
   testRunner.beginTest(name);
 
-  // TODO(yosin) We should use catch version.
-  try {
-    testFunction();
-  } finally {
-    testRunner.endTest(name);
-  }
-  return;
-
   try {
     testFunction();
   } catch (exception) {
     testRunner.log(name + ' exception: ' + exception.toString());
     testRunner.failed();
+    throw exception;
   } finally {
     testRunner.endTest(name);
   }
@@ -193,12 +186,12 @@ testing.define('TestingSelection', (function() {
     var parentNode = node.parentNode;
     var index = 0;
     for (var child = parentNode.firstChild; child;
-         child = child.previousSibling) {
-      if (child == node)
+         child = child.nextSibling) {
+      if (child === node)
         return index;
       ++index;
     }
-    NOTREACEHD();
+    NOTREACHED();
   }
 
   function visit(selection, node) {
@@ -312,6 +305,14 @@ testing.define('TestingSelection', (function() {
   return TestingSelection;
 })());
 
+testing.define('createElement', (function() {
+  function createElement(context, tagName) {
+    var domNode = document.createElement(tagName);
+    return new editing.EditingNode(context, domNode);
+  }
+  return createElement;
+})());
+
 testing.define('createTree', (function() {
   function createTree(htmlText) {
     var selection = new testing.TestingSelection(htmlText);
@@ -345,11 +346,16 @@ testing.define('serialzieNode', (function() {
       var tagName = node.domNode.nodeName.toLowerCase();
       var sink = '<' + tagName;
       var attributes = node.attributes;
-      for (var attrName in attributes) {
-        var attrValue = attributes[attrName].replace(/&/g, '&amp;')
-            .replace(/\u0022/g, '&quot;')
-        sink += ' ' + attrName + '="' + attrValue + '"';
-      }
+      Object.keys(attributes).sort().forEach(function(attrName) {
+        var attrValue = attributes[attrName];
+        if (attrValue){
+          attrValue = attrValue.replace(/&/g, '&amp;')
+              .replace(/\u0022/g, '&quot;')
+          sink += ' ' + attrName + '="' + attrValue + '"';
+        } else {
+          sink += ' ' + attrName;
+        }
+      });
       sink += '>';
       var child = node.firstChild;
       while (child) {

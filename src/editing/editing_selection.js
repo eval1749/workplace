@@ -50,9 +50,9 @@ editing.define('EditingSelection', (function() {
   /**
    * @return {!Node}
    */
-  function computeEditingRoot(domNode) {
+  function computeSelectionRoot(domNode) {
     var lastEditable = null;
-    while (domNode) {
+    while (domNode && document.body != domNode) {
       if (domNode.isContentEditable)
         lastEditable = domNode;
       else if (lastEditable)
@@ -83,20 +83,6 @@ editing.define('EditingSelection', (function() {
   }
 
   /**
-   * @param {!Node} node
-   * @return {number}
-   */
-  function indexOfNode(node) {
-    var parentNode = node.parentNode;
-    var childNodes = parentNode.childNodes;
-    for (var index = 0; index < childNodes.length; ++index) {
-      if (childNodes[index] === node)
-        return index;
-    }
-    throw 'NOTREACEHD';
-  }
-
-  /**
    * @param {!editing.EditingNode} node
    * @param {number} offset
    * @return {boolean}
@@ -109,8 +95,11 @@ editing.define('EditingSelection', (function() {
   /**
    */
   function splitText(node, offset) {
+    console.assert(node.parentNode);
     var newNode = node.splitText(offset);
     node.parentNode.insertAfter(newNode, node);
+    console.assert(node.nextSibling === newNode);
+    console.assert(newNode.previousSibling === node);
     return newNode;
   }
 
@@ -135,29 +124,23 @@ editing.define('EditingSelection', (function() {
     if (!domSelection || !domSelection.rangeCount)
       return;
 
-console.log('====================');
     var domCommonAncestor = computeCommonAncestor(domSelection.anchorNode,
                                                   domSelection.focusNode);
     console.assert(domCommonAncestor instanceof Node);
-console.log('EditingSelection DOM ca', domCommonAncestor);
-    var domEditingRoot = computeEditingRoot(domCommonAncestor);
-console.log('EditingSelection DOM', domEditingRoot);
     var treeContext = {
       context: context,
       domSelection: domSelection,
       selection: this
     };
-    var editingRoot = createEditingTree(treeContext, domEditingRoot);
-console.log('EditingSelection HTM', testing.serialzieNode(editingRoot));
+    var domRoot = computeSelectionRoot(domCommonAncestor);
+    var editingRoot = createEditingTree(treeContext, domRoot);
 
     var anchorNode = this.anchorNode_;
-console.log('EditingSelection domAnchor', domSelection.anchorNode, anchorNode.nodeValue);
     var anchorOffset = domSelection.anchorOffset;
     var focusNode = this.focusNode_;
     var focusOffset = domSelection.focusOffset;
 
     if (domSelection.collapsed()) {
-console.log('EditingSelection collapsed');
       if (isNeedSplit(anchorNode, anchorOffset)) {
         anchorNode = splitText(anchorNode, anchorOffset);
         anchorOffset = 0;
@@ -171,8 +154,6 @@ console.log('EditingSelection collapsed');
                             range.startOffset == anchorOffset;
       var splitAnchorNode = isNeedSplit(anchorNode, anchorOffset);
       var splitFocusNode = isNeedSplit(focusNode, focusOffset);
-
-console.log('EditingSelection split', splitAnchorNode, splitFocusNode);
 
       if (anchorNode === focusNode && splitAnchorNode && splitFocusNode) {
         if (this.startIsAnchor) {
@@ -212,8 +193,6 @@ console.log('EditingSelection split', splitAnchorNode, splitFocusNode);
     this.anchorOffset_ = anchorOffset;
     this.focusNode_ = focusNode;
     this.focusOffset_ = focusOffset;
-console.log('EditingSelection SEL', this.anchorNode_, this.anchorOffset_,
-            this.focusNode_, this.focusOffset_);
   }
 
   /*
@@ -221,6 +200,19 @@ console.log('EditingSelection SEL', this.anchorNode_, this.anchorOffset_,
    * @param {!editing.EditingNode} node
    */
   function enclose(node) {
+    /**
+     * @param {!EditingNode} node
+     * @return {number}
+     */
+    function indexOfNode(node) {
+      var parentNode = node.parentNode;
+      var childNodes = parentNode.childNodes;
+      for (var index = 0; index < childNodes.length; ++index) {
+        if (childNodes[index] === node)
+          return index;
+      }
+      throw 'NOTREACEHD';
+    }
     console.assert(node instanceof EditingNode);
     var position = new EditingPosition(node.parentNode, indexOfNode(node));
     this.anchorNode_ = node.parentNode;
