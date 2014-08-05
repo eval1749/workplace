@@ -7,6 +7,7 @@
 function TestRunner() {
   this.failedCount_ = 0;
   this.logListElement_ = null;
+  this.localFailedCount_ = 0;
   this.name_ = '';
   this.succeededCount_ = 0;
   this.testCount_ = 0;
@@ -30,6 +31,7 @@ Object.defineProperties(TestRunner.prototype, (function() {
   function beginTest(name) {
     console.assert(this.name_ == '');
     this.name_ = name;
+    this.localFailedCount_ = this.failedCount_;
     var item = document.createElement('li');
     item.textContent = name;
     getOrCreateListElement().appendChild(item);
@@ -44,6 +46,10 @@ Object.defineProperties(TestRunner.prototype, (function() {
    */
   function endTest(name){
     console.assert(this.name_ == name);
+    if (this.localFailedCount_ == this.failedCount_)
+      this.logListElement_.parentNode.classList.add('succeeded');
+    else
+      this.logListElement_.parentNode.classList.add('failed');
     this.logListElement_ = null;
     this.name_ = '';
   }
