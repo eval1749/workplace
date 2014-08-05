@@ -99,6 +99,8 @@ editing.define('EditingNode', (function() {
     console.assert(refChild instanceof editing.EditingNode);
     if (newChild === refChild)
       throw new Error('newChild and refChild must be different');
+    if (refChild.parentNode !== this)
+      throw new Error('refChild ' + refChild + ' must be a child of ' + this);
     var nextSibling = refChild.nextSibling;
     if (nextSibling) {
       this.insertBefore(newChild, nextSibling);
