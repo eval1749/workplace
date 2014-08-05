@@ -250,12 +250,8 @@ editing.define('EditingNode', (function() {
    * @return {boolean}
    */
   function isInteractive() {
-    for (var runner = this; runner; runner = runner.parentNode) {
-      var model = editing.contentModel[runner.domNode.nodeName];
-      if (model && model.categories[INTERACTIVE])
-        return true;
-    }
-    return false;
+    var model = editing.contentModel[this.domNode_.nodeName];
+    return model && Boolean(model.categories[INTERACTIVE]);
   }
 
   /**

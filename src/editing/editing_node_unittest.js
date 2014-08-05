@@ -84,10 +84,6 @@ testCase('EditingNode.isInteractive', function() {
   var elementB = testing.createElement(context, 'b');
   expectTrue(function () { return elementA.isInteractive; });
   expectFalse(function () { return elementB.isInteractive; });
-
-  // <a><b></b></a>: <b> is now interactive.
-  elementA.appendChild(elementB);
-  expectTrue(function () { return elementB.isInteractive; });
 });
 
 //
