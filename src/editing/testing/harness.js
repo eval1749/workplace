@@ -52,10 +52,10 @@ Object.defineProperties(TestRunner.prototype, (function() {
    * @this {!TestRunner}
    * @return {!HTMLElement}
    */
-  function failed() {
+  function failed(closure) {
     ++this.testCount_;
     ++this.failedCount_;
-    var element = this.log(this.name_);
+    var element = this.log(toPrettyString(closure));
     element.classList.add('failed');
     return element;
   }
@@ -86,12 +86,18 @@ Object.defineProperties(TestRunner.prototype, (function() {
    * @this {!TestRunner}
    * @return {!HTMLLIElement}
    */
-  function succeeded() {
+  function succeeded(closure) {
     ++this.testCount_;
     ++this.succeededCount_;
-    var element = this.log(this.name_);
+    var element = this.log(toPrettyString(closure));
     element.classList.add('succeeded');
     return element;
+  }
+
+  function toPrettyString(closure){
+    var text = closure.toString().replace('function () { return ', '')
+        .replace('; }', '');
+    return text;
   }
 
   return {
@@ -111,7 +117,13 @@ Object.defineProperties(TestRunner.prototype, (function() {
 })());
 var testRunner = new TestRunner();
 
-function expectEq(expected_result, actual_result) {
+function expectEq(expected_result, testFunction) {
+  var actual_result;
+  try {
+    actual_result = testFunction();
+  } catch (exception) {
+    actual_result = exception;
+  }
   function equal() {
     if (typeof(expected_result) != typeof(actual_result))
       return false;
@@ -120,10 +132,10 @@ function expectEq(expected_result, actual_result) {
     return expected_result == actual_result;
   }
   if (equal()) {
-    testRunner.succeeded();
+    testRunner.succeeded(testFunction);
     return;
   }
-  var logElement = testRunner.failed();
+  var logElement = testRunner.failed(testFunction);
   var listElement = document.createElement('ul');
   logElement.appendChild(listElement);
   ['Expected:' + expected_result, 'Actual__:' + actual_result].forEach(
@@ -134,22 +146,21 @@ function expectEq(expected_result, actual_result) {
   });
 }
 
-function expectFalse(actual_result) {
-  expectEq(false, actual_result);
+function expectFalse(testFunction) {
+  expectEq(false, testFunction);
 }
 
-function expectNull(actual_result) {
-  expectEq(null, actual_result);
+function expectNull(testFunction) {
+  expectEq(null, testFunction);
 }
 
-function expectTrue(actual_result) {
-  expectEq(true, actual_result);
+function expectTrue(testFunction) {
+  expectEq(true, testFunction);
 }
 
-function expectUndefined(actual_result) {
-  expectEq(undefined, actual_result);
+function expectUndefined(testFunction) {
+  expectEq(undefined, testFunction);
 }
-
 
 function testCase(name, testFunction) {
   testRunner.beginTest(name);
@@ -158,7 +169,7 @@ function testCase(name, testFunction) {
     testFunction();
   } catch (exception) {
     testRunner.log(name + ' exception: ' + exception.toString());
-    testRunner.failed();
+    testRunner.failed(name);
     throw exception;
   } finally {
     testRunner.endTest(name);
@@ -326,6 +337,12 @@ testing.define('createTree', (function() {
   return createTree;
 })());
 
+testing.define('getResultHtml', (function() {
+  function getResultHtml(context) {
+    return testing.serialzieNode(context.selection.rootForTesting);
+  }
+  return getResultHtml;
+})());
 
 testing.define('serialzieNode', (function() {
   /// TODO(yosin) We should add more end tag omissible tag names.

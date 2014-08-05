@@ -133,7 +133,7 @@ editing.define('EditingSelection', (function() {
       selection: this
     };
     var domRoot = computeSelectionRoot(domCommonAncestor);
-    var editingRoot = createEditingTree(treeContext, domRoot);
+    this.rootForTesting_ = createEditingTree(treeContext, domRoot);
 
     var anchorNode = this.anchorNode_;
     var anchorOffset = domSelection.anchorOffset;
@@ -262,6 +262,8 @@ editing.define('EditingSelection', (function() {
     isCaret: {get: isCaret},
     isEmpty: {get: isEmpty},
     isRange: {get: isRange},
+    rootForTesting: {get: function() { return this.rootForTesting_; }},
+    rootForTesting_: {writable: true},
     startIsAnchor: {get: function() { return this.startIsAnchor_; }},
     startIsAnchor_: {writable: true}
   });

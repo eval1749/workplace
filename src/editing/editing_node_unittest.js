@@ -10,13 +10,13 @@ testCase('EditingNode.appendChild', function() {
   var element2 = testing.createElement(context, 'e2');
   element1.appendChild(element2);
 
-  expectEq(element2, element1.firstChild);
-  expectEq(element2, element1.lastChild);
-  expectEq(1, element1.childNodes.length);
-  expectEq(element2, element1.childNodes[0]);
-  expectEq(element1, element2.parentNode);
-  expectNull(element2.previousSibling);
-  expectNull(element2.nextSibling);
+  expectEq(element2, function() { return element1.firstChild; });
+  expectEq(element2, function() { return element1.lastChild; });
+  expectEq(1, function() { return element1.childNodes.length; });
+  expectEq(element2, function() { return element1.childNodes[0]; });
+  expectEq(element1, function() { return element2.parentNode; });
+  expectNull(function() { return element2.previousSibling; });
+  expectNull(function() { return element2.nextSibling; });
 });
 
 testCase('EditingNode.insertBeforeNull', function() {
@@ -25,13 +25,13 @@ testCase('EditingNode.insertBeforeNull', function() {
   var element2 = testing.createElement(context, 'e2');
   element1.insertBefore(element2, null);
 
-  expectEq(element2, element1.firstChild);
-  expectEq(element2, element1.lastChild);
-  expectEq(1, element1.childNodes.length);
-  expectEq(element2, element1.childNodes[0]);
-  expectEq(element1, element2.parentNode);
-  expectNull(element2.previousSibling);
-  expectNull(element2.nextSibling);
+  expectEq(element2, function() { return element1.firstChild; });
+  expectEq(element2, function() { return element1.lastChild; });
+  expectEq(1, function() { return element1.childNodes.length; });
+  expectEq(element2, function() { return element1.childNodes[0]; });
+  expectEq(element1, function() { return element2.parentNode; });
+  expectNull(function() { return element2.previousSibling; });
+  expectNull(function() { return element2.nextSibling; });
 });
 
 testCase('EditingNode.insertBeforeToFirst', function() {
@@ -42,16 +42,16 @@ testCase('EditingNode.insertBeforeToFirst', function() {
   element1.appendChild(element3);
   element1.insertBefore(element2, element3);
 
-  expectEq(element2, element1.firstChild);
-  expectEq(element3, element1.lastChild);
+  expectEq(element2, function() { return element1.firstChild; });
+  expectEq(element3, function() { return element1.lastChild; });
 
-  expectEq(element1, element2.parentNode);
-  expectEq(element3, element2.nextSibling);
-  expectNull(element2.previousSibling);
+  expectEq(element1, function() { return element2.parentNode; });
+  expectEq(element3, function() { return element2.nextSibling; });
+  expectNull(function() { return element2.previousSibling; });
 
-  expectEq(element1, element3.parentNode);
-  expectNull(element3.nextSibling);
-  expectEq(element2, element3.previousSibling);
+  expectEq(element1, function() { return element3.parentNode; });
+  expectNull(function() { return element3.nextSibling; });
+  expectEq(element2, function() { return element3.previousSibling; });
 });
 
 testCase('EditingNode.insertBeforeToSecond', function() {
@@ -64,15 +64,15 @@ testCase('EditingNode.insertBeforeToSecond', function() {
   element1.appendChild(element3);
   element1.insertBefore(element4, element3);
 
-  expectEq(element2, element1.firstChild);
-  expectEq(element3, element1.lastChild);
+  expectEq(element2, function() { return element1.firstChild; });
+  expectEq(element3, function() { return element1.lastChild; });
 
-  expectEq(element1, element4.parentNode);
-  expectEq(element3, element4.nextSibling);
-  expectEq(element2, element4.previousSibling);
+  expectEq(element1, function() { return element4.parentNode; });
+  expectEq(element3, function() { return element4.nextSibling; });
+  expectEq(element2, function() { return element4.previousSibling; });
 
-  expectEq(element4, element2.nextSibling);
-  expectEq(element4, element3.previousSibling);
+  expectEq(element4, function() { return element2.nextSibling; });
+  expectEq(element4, function() { return element3.previousSibling; });
 });
 
 testCase('EditingNode.removeChildFirstChild', function() {
@@ -87,16 +87,16 @@ testCase('EditingNode.removeChildFirstChild', function() {
 
   element1.removeChild(element2);
 
-  expectEq(element3, element1.firstChild);
-  expectEq(element4, element1.lastChild);
-  expectEq(2, element1.childNodes.length);
+  expectEq(element3, function() { return element1.firstChild; });
+  expectEq(element4, function() { return element1.lastChild; });
+  expectEq(2, function() { return element1.childNodes.length; });
 
-  expectEq(element4, element3.nextSibling);
-  expectEq(element3, element4.previousSibling);
+  expectEq(element4, function() { return element3.nextSibling; });
+  expectEq(element3, function() { return element4.previousSibling; });
 
-  expectNull(element2.nextSibling);
-  expectNull(element2.parentNode);
-  expectNull(element2.previousSibling);
+  expectNull(function() { return element2.nextSibling; });
+  expectNull(function() { return element2.parentNode; });
+  expectNull(function() { return element2.previousSibling; });
 });
 
 testCase('EditingNode.removeChildSecondChild', function() {
@@ -111,16 +111,16 @@ testCase('EditingNode.removeChildSecondChild', function() {
 
   element1.removeChild(element3);
 
-  expectEq(element2, element1.firstChild);
-  expectEq(element4, element1.lastChild);
-  expectEq(2, element1.childNodes.length);
+  expectEq(element2, function() { return element1.firstChild; });
+  expectEq(element4, function() { return element1.lastChild; });
+  expectEq(2, function() { return element1.childNodes.length; });
 
-  expectEq(element4, element2.nextSibling);
-  expectEq(element2, element4.previousSibling);
+  expectEq(element4, function() { return element2.nextSibling; });
+  expectEq(element2, function() { return element4.previousSibling; });
 
-  expectNull(element3.nextSibling);
-  expectNull(element3.parentNode);
-  expectNull(element3.previousSibling);
+  expectNull(function() { return element3.nextSibling; });
+  expectNull(function() { return element3.parentNode; });
+  expectNull(function() { return element3.previousSibling; });
 });
 
 testCase('EditingNode.removeChildLastChild', function() {
@@ -134,16 +134,16 @@ testCase('EditingNode.removeChildLastChild', function() {
   element1.appendChild(element4);
   element1.removeChild(element4);
 
-  expectEq(element2, element1.firstChild);
-  expectEq(element3, element1.lastChild);
-  expectEq(2, element1.childNodes.length);
+  expectEq(element2, function() { return element1.firstChild; });
+  expectEq(element3, function() { return element1.lastChild; });
+  expectEq(2, function() { return element1.childNodes.length; });
 
-  expectEq(element3, element2.nextSibling);
-  expectEq(element2, element3.previousSibling);
+  expectEq(element3, function() { return element2.nextSibling; });
+  expectEq(element2, function() { return element3.previousSibling; });
 
-  expectNull(element4.nextSibling);
-  expectNull(element4.parentNode);
-  expectNull(element4.previousSibling);
+  expectNull(function() { return element4.nextSibling; });
+  expectNull(function() { return element4.parentNode; });
+  expectNull(function() { return element4.previousSibling; });
 });
 
 // replaceChild
@@ -155,16 +155,16 @@ testCase('EditingNode.replaceChildFirstChildByNew', function() {
   element1.appendChild(element2);
   element1.replaceChild(element3, element2);
 
-  expectEq(element3, element1.firstChild);
-  expectEq(element3, element1.lastChild);
+  expectEq(element3, function() { return element1.firstChild; });
+  expectEq(element3, function() { return element1.lastChild; });
 
-  expectNull(element2.parentNode);
-  expectNull(element2.nextSibling);
-  expectNull(element2.previousSibling);
+  expectNull(function() { return element2.parentNode; });
+  expectNull(function() { return element2.nextSibling; });
+  expectNull(function() { return element2.previousSibling; });
 
-  expectEq(element1, element3.parentNode);
-  expectNull(element3.nextSibling);
-  expectNull(element3.previousSibling);
+  expectEq(element1, function() { return element3.parentNode; });
+  expectNull(function() { return element3.nextSibling; });
+  expectNull(function() { return element3.previousSibling; });
 });
 
 testCase('EditingNode.replaceChildLastChildByNew', function() {
@@ -177,20 +177,20 @@ testCase('EditingNode.replaceChildLastChildByNew', function() {
   element1.appendChild(element3);
   element1.replaceChild(element4, element3);
 
-  expectEq(element2, element1.firstChild);
-  expectEq(element4, element1.lastChild);
+  expectEq(element2, function() { return element1.firstChild; });
+  expectEq(element4, function() { return element1.lastChild; });
 
-  expectEq(element1, element2.parentNode);
-  expectEq(element4, element2.nextSibling);
-  expectNull(element2.previousSibling);
+  expectEq(element1, function() { return element2.parentNode; });
+  expectEq(element4, function() { return element2.nextSibling; });
+  expectNull(function() { return element2.previousSibling; });
 
-  expectNull(element3.parentNode);
-  expectNull(element3.nextSibling);
-  expectNull(element3.previousSibling);
+  expectNull(function() { return element3.parentNode; });
+  expectNull(function() { return element3.nextSibling; });
+  expectNull(function() { return element3.previousSibling; });
 
-  expectEq(element1, element4.parentNode);
-  expectNull(element4.nextSibling);
-  expectEq(element2, element4.previousSibling);
+  expectEq(element1, function() { return element4.parentNode; });
+  expectNull(function() { return element4.nextSibling; });
+  expectEq(element2, function() { return element4.previousSibling; });
 });
 
 testCase('EditingNode.replaceChildMiddleChildByNew', function() {
@@ -205,20 +205,20 @@ testCase('EditingNode.replaceChildMiddleChildByNew', function() {
   element1.appendChild(element4);
   element1.replaceChild(element5, element3);
 
-  expectEq(element2, element1.firstChild);
-  expectEq(element4, element1.lastChild);
+  expectEq(element2, function() { return element1.firstChild; });
+  expectEq(element4, function() { return element1.lastChild; });
 
-  expectEq(element1, element2.parentNode);
-  expectEq(element5, element2.nextSibling);
-  expectNull(element2.previousSibling);
+  expectEq(element1, function() { return element2.parentNode; });
+  expectEq(element5, function() { return element2.nextSibling; });
+  expectNull(function() { return element2.previousSibling; });
 
-  expectNull(element3.parentNode);
-  expectNull(element3.nextSibling);
-  expectNull(element3.previousSibling);
+  expectNull(function() { return element3.parentNode; });
+  expectNull(function() { return element3.nextSibling; });
+  expectNull(function() { return element3.previousSibling; });
 
-  expectEq(element1, element5.parentNode);
-  expectEq(element4, element5.nextSibling);
-  expectEq(element2, element5.previousSibling);
+  expectEq(element1, function() { return element5.parentNode; });
+  expectEq(element4, function() { return element5.nextSibling; });
+  expectEq(element2, function() { return element5.previousSibling; });
 });
 
 testCase('EditingNode.replaceChildByChild', function() {
@@ -230,16 +230,16 @@ testCase('EditingNode.replaceChildByChild', function() {
   element1.appendChild(element3);
   element1.replaceChild(element2, element3);
 
-  expectEq(element2, element1.firstChild);
-  expectEq(element2, element1.lastChild);
+  expectEq(element2, function() { return element1.firstChild; });
+  expectEq(element2, function() { return element1.lastChild; });
 
-  expectEq(element1, element2.parentNode);
-  expectNull(element2.nextSibling);
-  expectNull(element2.previousSibling);
+  expectEq(element1, function() { return element2.parentNode; });
+  expectNull(function() { return element2.nextSibling; });
+  expectNull(function() { return element2.previousSibling; });
 
-  expectNull(element3.parentNode);
-  expectNull(element3.nextSibling);
-  expectNull(element3.previousSibling);
+  expectNull(function() { return element3.parentNode; });
+  expectNull(function() { return element3.nextSibling; });
+  expectNull(function() { return element3.previousSibling; });
 });
 
 // splitTree
@@ -249,8 +249,10 @@ testCase('EditingNode.splitTreeShallow', function() {
   var refNode = selection.focusNode.childNodes[selection.focusOffset];
   var oldTree = refNode.parentNode;
   var newTree = oldTree.splitTree(refNode);
-  expectEq('<p><e1>one</e1></p>', testing.serialzieNode(oldTree));
-  expectEq('<p><e2>two</e2><e3>three</e3></p>', testing.serialzieNode(newTree));
+  expectEq('<p><e1>one</e1></p>',
+           function() { return testing.serialzieNode(oldTree); });
+  expectEq('<p><e2>two</e2><e3>three</e3></p>',
+          function() { return testing.serialzieNode(newTree); });
 });
 
 testCase('EditingNode.splitTreeDeep', function() {
@@ -260,7 +262,7 @@ testCase('EditingNode.splitTreeDeep', function() {
   var oldTree = refNode.parentNode.parentNode.parentNode;
   var newTree = oldTree.splitTree(refNode);
   expectEq('<b>bold_1<i>italic_1<s>strike_1</s></i></b>',
-           testing.serialzieNode(oldTree));
+           function() { return testing.serialzieNode(oldTree); });
   expectEq('<b><i><s>strike_2</s>italic_2</i>bold_2</b>',
-           testing.serialzieNode(newTree));
+           function() { return testing.serialzieNode(newTree); });
 });
