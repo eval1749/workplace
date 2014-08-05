@@ -175,7 +175,9 @@ testCase('EditingNode.removeChildLastChild', function() {
   expectNull(function() { return element4.previousSibling; });
 });
 
+//
 // replaceChild
+//
 testCase('EditingNode.replaceChildFirstChildByNew', function() {
   var context = testing.createContext();
   var element1 = testing.createElement(context, 'e1');
@@ -271,7 +273,9 @@ testCase('EditingNode.replaceChildByChild', function() {
   expectNull(function() { return element3.previousSibling; });
 });
 
+//
 // splitTree
+//
 testCase('EditingNode.splitTreeShallow', function() {
   var context = testing.createTree('<p><e1>one</e1>|<e2>two</e2><e3>three</e3></p>');
   var selection = context.selection;
