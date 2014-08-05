@@ -5,6 +5,9 @@
 'use strict';
 
 editing.define('EditingNode', (function() {
+  /* @const */ var INTERACTIVE = editing.CONTENT_CATEGORY.INTERACTIVE;
+  /* @const */ var PHRASING = editing.CONTENT_CATEGORY.PHRASING;
+
   /**
    * @param {!EditingNode} node
    * @param {!EditingNode} other
@@ -247,7 +250,6 @@ editing.define('EditingNode', (function() {
    * @return {boolean}
    */
   function isInteractive() {
-    /* @const */ var INTERACTIVE = editing.CONTENT_CATEGORY.INTERACTIVE;
     for (var runner = this; runner; runner = runner.parentNode) {
       var model = editing.contentModel[runner.domNode.nodeName];
       if (model && model.categories[INTERACTIVE])
@@ -264,7 +266,7 @@ editing.define('EditingNode', (function() {
     if (!this.isElement)
       return true;
     var model = editing.contentModel[this.domNode_.nodeName];
-    return model && Boolean(model.categories[editing.category.PHRASING]);
+    return model && Boolean(model.categories[PHRASING]);
   }
 
   /**

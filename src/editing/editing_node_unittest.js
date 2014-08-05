@@ -91,6 +91,21 @@ testCase('EditingNode.isInteractive', function() {
 });
 
 //
+// isPhrasing
+//
+testCase('EditingNode.isPhrasing', function() {
+  var context = testing.createContext();
+  var elementA = testing.createElement(context, 'a');
+  var elementB = testing.createElement(context, 'b');
+  var elementDiv = testing.createElement(context, 'div');
+  var elementH1 = testing.createElement(context, 'h1');
+  expectTrue(function () { return elementA.isPhrasing; });
+  expectTrue(function () { return elementB.isPhrasing; });
+  expectFalse(function () { return elementDiv.isPhrasing; });
+  expectFalse(function () { return elementH1.isPhrasing; });
+});
+
+//
 // removeChild
 //
 testCase('EditingNode.removeChildFirstChild', function() {
