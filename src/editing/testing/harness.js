@@ -89,6 +89,8 @@ Object.defineProperties(TestRunner.prototype, (function() {
   function succeeded(closure) {
     ++this.testCount_;
     ++this.succeededCount_;
+    if (!closure)
+      return null;
     var element = this.log(toPrettyString(closure));
     element.classList.add('succeeded');
     return element;
@@ -132,7 +134,7 @@ function expectEq(expected_result, testFunction) {
     return expected_result == actual_result;
   }
   if (equal()) {
-    testRunner.succeeded(testFunction);
+    testRunner.succeeded();
     return;
   }
   var logElement = testRunner.failed(testFunction);
@@ -316,6 +318,13 @@ testing.define('TestingSelection', (function() {
   return TestingSelection;
 })());
 
+testing.define('createContext', (function() {
+  function createContext() {
+    return new editing.EditingContext(document)
+  }
+  return createContext;
+})());
+
 testing.define('createElement', (function() {
   function createElement(context, tagName) {
     var domNode = document.createElement(tagName);
@@ -347,8 +356,9 @@ testing.define('getResultHtml', (function() {
 testing.define('serialzieNode', (function() {
   /// TODO(yosin) We should add more end tag omissible tag names.
   /** @const */ var END_TAG_OMISSIBLE = {
-    br: true,
-    hr: true
+    BR: true,
+    HR: true,
+    IMG: true
   };
 
   /**
