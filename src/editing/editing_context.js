@@ -103,7 +103,7 @@ editing.define('EditingContext', (function() {
    * @param {string} attrValue
    */
   function setAttribute(element, attrName, attrValue) {
-    this.instructions.push({name: 'setAttribute', element: element,
+    this.instructions_.push({name: 'setAttribute', element: element,
                             attrName: attrName, attrValue: attrValue});
   }
 

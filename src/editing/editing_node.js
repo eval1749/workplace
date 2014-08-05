@@ -341,7 +341,7 @@ editing.define('EditingNode', (function() {
    * @param {string} value
    */
   function setAttribute(attrName, attrValue) {
-    console.assert(this.isElement());
+    console.assert(this.isElement);
     this.attributes_[attrName] = attrValue;
     this.context_.setAttribute(this, attrName, attrValue);
   }

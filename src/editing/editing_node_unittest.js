@@ -274,6 +274,21 @@ testCase('EditingNode.replaceChildByChild', function() {
 });
 
 //
+// setAttribute
+//
+testCase('EditingNode.setAttribute', function() {
+  var context = testing.createContext();
+  var element1 = testing.createElement(context, 'e1');
+  element1.setAttribute('a1', 'one');
+  element1.setAttribute('a2', 'two');
+  expectEq('one', function() { return element1.attributes['a1']; });
+  expectEq('two', function() { return element1.attributes['a2']; });
+  element1.setAttribute('a1', 'abc');
+  expectEq('abc', function() { return element1.attributes['a1']; });
+  expectEq(2, function() { return Object.keys(element1.attributes).length; });
+});
+
+//
 // splitTree
 //
 testCase('EditingNode.splitTreeShallow', function() {
