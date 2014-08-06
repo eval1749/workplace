@@ -452,10 +452,8 @@ editing.define('EditingNode', (function() {
    */
   function toString() {
     var value = this.nodeValue || this.nodeName;
-    if (this.parentNode_) {
-      return '[EditingNode ' + value + ' @' + this.nodeIndex + ']';
-    }
-    return '[EditingNode ' + value + ']';
+    var position = this.parentNode_ ? '@' + this.nodeIndex : '';
+    return '[EditingNode ' + value + position + ' #' + this.hashCode + ']';
   }
 
   Object.defineProperties(EditingNode.prototype, {
