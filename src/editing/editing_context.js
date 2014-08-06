@@ -5,6 +5,12 @@
 'use strict';
 
 editing.define('EditingContext', (function() {
+  function isAnchorBeforeFocus(domSelection) {
+    var range = domSelection.getRangeAt(0);
+    return range.startOffset == domSelection.anchorOffset &&
+           range.startContainer === domSelection.anchorNode;
+  }
+
   /**
    * @param {!Document} document
    * @param {Object} domSelection Once |Selection| keeps passed node and offset,
@@ -17,6 +23,16 @@ editing.define('EditingContext', (function() {
     this.hashCode_ = 0;
     this.instructions_ = [];
     this.selection_ = new editing.EditingSelection(this, domSelection);
+
+    if (!domSelection || !domSelection.rangeCount)
+      return;
+
+    this.startingSelection_ = new editing.ReadOnlySelection(
+        domSelection.anchorNode, domSelection.anchorOffset,
+        domSelection.focusNode, domSelection.focusOffset,
+        isAnchorBeforeFocus(domSelection) ?
+            editing.SelectionDirection.ANCHOR_IS_START :
+            editing.SelectionDirection.FOCUS_IS_START);
   };
 
   /**
@@ -142,6 +158,8 @@ editing.define('EditingContext', (function() {
     document_: {writable: true},
     createElement: {value: createElement},
     createTextNode: {value: createTextNode},
+    // Selection after executing editing command. This |ReadOnlySelection| is
+    // put into undo stack for redo operation. See also |startingSelection|
     endingSelection: {get: function() { return this.endingSelection_; }},
     endingSelection_: {writable: true},
     hashCode_: {writable: true},
@@ -155,6 +173,9 @@ editing.define('EditingContext', (function() {
     setAttribute: {value: setAttribute},
     setEndingSelection: {value: setEndingSelection },
     splitText: {value: splitText},
+    // Selection before executing editing command. This |ReadOnlySelection| is
+    // put into undo stack for undo operation. See also |endingSelection|
+    startingSelection_: {writable: true}
   });
   return EditingContext;
 })());
