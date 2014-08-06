@@ -133,9 +133,11 @@ editing.define('EditingSelection', (function() {
   }
 
   /**
+   * @param {!Node} domNode
    * @return {!Node}
+   * |domNode| should be common ancestor of |anchorNode| and |focusNode|.
    */
-  function computeSelectionRoot(domNode) {
+  function computeEditingRoot(domNode) {
     // TODO(yosin) Once, Node.isContentEditable works for nodes without render
     // object, we dont' need to have |isContentEditablePollyfill|.
     // http://crbug.com/313082
@@ -151,14 +153,13 @@ editing.define('EditingSelection', (function() {
     }
 
     var lastEditable = null;
-    while (domNode) {
-      if (isContentEditablePollyfill(domNode))
-        lastEditable = domNode;
+    for (var domRunner = domNode; domRunner; domRunner = domRunner.parentNode) {
+      if (isContentEditablePollyfill(domRunner))
+        lastEditable = domRunner;
       else if (lastEditable)
         return lastEditable;
-      domNode = domNode.parentNode;
     }
-    console.log('computeSelectionRoot', 'No editable');
+    console.log('computeEditingRoot', 'No editable');
     return null;
   }
 
@@ -254,7 +255,7 @@ editing.define('EditingSelection', (function() {
       domSelection: domSelection,
       selection: this
     };
-    var domRoot = computeSelectionRoot(domCommonAncestor);
+    var domRoot = computeEditingRoot(domCommonAncestor);
     if (!domRoot) {
       // There is no editable in selection.
       return;
