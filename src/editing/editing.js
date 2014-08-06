@@ -16,3 +16,14 @@ Object.defineProperty(editing, 'define', {
     Object.defineProperty(editing, name, {value: value});
   }
 });
+
+// TODO(yosin) We should move |Math.sign| Polyfill to different place.
+if (!Math.sign) {
+  Math.sign = function(x) {
+    if (isNaN(x))
+      return NaN;
+    if (x === 0)
+      return x;
+    return x > 0 ? 1 : -1;
+  }
+}
