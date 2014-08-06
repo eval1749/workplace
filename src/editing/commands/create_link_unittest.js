@@ -59,10 +59,12 @@ testCase('createLinkCaretInteractiveAtMiddle', function() {
 });
 
 // Create link with LI
+// Node: P element can't have UL as content, because P's context model is
+// PHRASING,
 testCase('createLinkRangeList', function() {
-  var context = testing.createTree('<p contenteditable>^<ul><li>one</li><li>two</li></ul>|</p>');
+  var context = testing.createTree('<div contenteditable>^<ul><li>one</li><li>two</li></ul>|</div>');
   expectTrue(function() { return editing.createLink(context, 'URL'); });
-  expectEq('<p contenteditable><ul><li>^<a href="URL">one</a></li><li><a href="URL">two</a>|</li></ul></p>',
+  expectEq('<div contenteditable><ul><li>^<a href="URL">one</a></li><li><a href="URL">two</a>|</li></ul></div>',
            function() { return testing.getResultHtml(context); });
 });
 
