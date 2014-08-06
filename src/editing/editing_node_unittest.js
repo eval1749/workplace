@@ -19,6 +19,21 @@ testCase('EditingNode.appendChild', function() {
   expectNull(function() { return element2.nextSibling; });
 });
 
+//
+// hasChildNodes
+//
+testCase('EditingNode.insertBeforeNull', function() {
+  var context = testing.createContext();
+  var element1 = testing.createElement(context, 'e1');
+  var element2 = testing.createElement(context, 'e2');
+  element1.appendChild(element2);
+  expectTrue(function() { return element1.hasChildNodes(); });
+  expectFalse(function() { return element2.hasChildNodes(); });
+});
+
+//
+// insertBefore
+//
 testCase('EditingNode.insertBeforeNull', function() {
   var context = testing.createContext();
   var element1 = testing.createElement(context, 'e1');

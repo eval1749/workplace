@@ -92,6 +92,14 @@ editing.define('EditingNode', (function() {
 
   /**
    * @this {!EditingNode}
+   * @return {boolean}
+   */
+  function hasChildNodes() {
+    return this.firstChild !== null;
+  }
+
+  /**
+   * @this {!EditingNode}
    * @param {!EditingNode} newChild
    * @param {!EditingNode} refChild
    */
@@ -463,6 +471,7 @@ editing.define('EditingNode', (function() {
     domNode_: {writable: true},
     firstChild: {get: function() { return this.firstChild_; }},
     firstChild_: {writable: true},
+    hasChildNodes: {value: hasChildNodes },
     hashCode: {get: function() { return this.hashCode_; }},
     hashCode_: {writable: true},
     insertAfter: {value: insertAfter},
