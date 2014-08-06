@@ -357,7 +357,8 @@ testing.define('createTree', (function() {
 
 testing.define('getResultHtml', (function() {
   function getResultHtml(context) {
-    return testing.serialzieNode(context.selection.rootForTesting);
+    return testing.serialzieNode(context.selection.rootForTesting,
+                                 context.endingSelection);
   }
   return getResultHtml;
 })());
@@ -372,10 +373,24 @@ testing.define('serialzieNode', (function() {
 
   /**
    * @param {!EditingNode} node
+   * @param {editing.ReadOnlySelection=} opt_selection
    * @return {string}
    */
-  function serialzieNode(node) {
+  function serialzieNode(node, opt_selection) {
     console.assert(node instanceof editing.EditingNode);
+    /** @const */ var selection = arguments.length >= 2 ?
+        /** @type {!editing.ReadOnlySelection} */(opt_selection) : null;
+
+    function marker(node, offset) {
+      if (!selection)
+        return '';
+      if (selection.focusNode === node && selection.focusOffset == offset)
+        return '|';
+      if (selection.anchorNode === node && selection.anchorOffset == offset)
+        return '^';
+      return '';
+    }
+
     function visit(node) {
       if (!node.isElement)
         return node.nodeValue;
@@ -394,10 +409,14 @@ testing.define('serialzieNode', (function() {
       });
       sink += '>';
       var child = node.firstChild;
+      var offset = 0;
       while (child) {
+        sink += marker(node, offset);
         sink += visit(child);
         child = child.nextSibling;
+        ++offset;
       }
+      sink += marker(node, offset);
       if (!END_TAG_OMISSIBLE[tagName])
         sink += '</' + tagName + '>';
       return sink;

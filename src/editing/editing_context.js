@@ -12,6 +12,7 @@ editing.define('EditingContext', (function() {
    */
   function EditingContext(document, domSelection) {
     this.document_ = document;
+    this.endingSelection_ = null;
     this.instructions_ = [];
     this.selection_ = new editing.EditingSelection(this, domSelection);
   };
@@ -131,11 +132,8 @@ editing.define('EditingContext', (function() {
     document_: {writable: true},
     createElement: {value: createElement},
     createTextNode: {value: createTextNode},
-    endingAnchorNode_: {writable: true},
-    endingAnchorOffset_: {writable: true},
-    endingDirection_: {writable: true},
-    endingFocusNode_: {writable: true},
-    endingFocusOffset_: {writable: true},
+    endingSelection: {get: function() { return this.endingSelection_; }},
+    endingSelection_: {writable: true},
     insertBefore: {value: insertBefore},
     instructions_: {writable: true},
     removeChild: {value: removeChild},
