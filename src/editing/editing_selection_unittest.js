@@ -15,7 +15,7 @@ function dumpNodes(nodes) {
 }
 
 //
-// EditingSelection.nodes
+// EditingSelection.direction
 //
 testCase('EditingSelection.directionAnchorIsStart', function() {
   var context = testing.createTree('<p contenteditable>^abcd|</p>');
@@ -68,6 +68,14 @@ testCase('EditingSelection.NodesTree4', function() {
   var nodes = selection.nodes;
   expectEq('e3,e2After,E4,e4', function() { return dumpNodes(nodes); });
 });
+
+testCase('EditingSelection.NodesTreeUL', function() {
+  var context = testing.createTree('<div contenteditable>^<ul><li>one</li><li>two</li></ul>|</div>');
+  var selection = context.selection;
+  var nodes = selection.nodes;
+  expectEq('UL,LI,one,LI,two', function() { return dumpNodes(nodes); });
+});
+
 
 //
 // constructor splitText

@@ -16,6 +16,8 @@
 //
 editing.define('EditingSelection', (function() {
   function following(node) {
+    if (!node)
+      return null;
     if (node.firstChild)
       return node.firstChild;
      var nextSibling = node.nextSibling;
@@ -141,13 +143,15 @@ editing.define('EditingSelection', (function() {
 
     var lastEditable = null;
     while (domNode) {
+console.log('computeSelectionRoot', 'domNode', domNode);
       if (isContentEditablePollyfill(domNode))
         lastEditable = domNode;
       else if (lastEditable)
         return lastEditable;
       domNode = domNode.parentNode;
     }
-    return domDocument;
+    console.log('computeSelectionRoot', 'No editable');
+    return null;
   }
 
   /**
@@ -223,16 +227,18 @@ editing.define('EditingSelection', (function() {
   function EditingSelection(context, domSelection) {
     //console.assert(console instanceof editing.EditingContext);
 
+    this.anchorIsStart_ = false;
     this.anchorNode_ = null;
     this.anchorOffset_ = 0;
     this.context_ = context;
     this.focusNode_ = null;
     this.focusOffset_ = null;
-    this.anchorIsStart_ = false;
+    this.nodes_ = [];
 
     if (!domSelection || !domSelection.rangeCount)
       return;
 
+console.log('EditingSelection.ctor', domSelection);
     var domCommonAncestor = computeCommonAncestor(domSelection.anchorNode,
                                                   domSelection.focusNode);
     console.assert(domCommonAncestor instanceof Node);
@@ -242,6 +248,10 @@ editing.define('EditingSelection', (function() {
       selection: this
     };
     var domRoot = computeSelectionRoot(domCommonAncestor);
+    if (!domRoot) {
+      // There is no editable in selection.
+      return;
+    }
     this.rootForTesting_ = createEditingTree(treeContext, domRoot);
 
     var anchorNode = this.anchorNode_;
