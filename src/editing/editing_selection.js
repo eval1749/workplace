@@ -317,6 +317,15 @@ editing.define('EditingSelection', (function() {
 
   /**
    * @this {!editing.EditingSelection}
+   * @return {editing.SelectionDirection}
+   */
+  function direction() {
+    return this.anchorIsStart_ ? editing.SelectionDirection.ANCHOR_IS_START :
+                                 editing.SelectionDirection.FOCUS_IS_START;
+  }
+
+  /**
+   * @this {!editing.EditingSelection}
    * @return {boolean}
    */
   function isCaret() {
@@ -348,6 +357,7 @@ editing.define('EditingSelection', (function() {
     anchorOffset_: {writable: true},
     context: {get: function() { return this.context_;}},
     context_: {writable: true},
+    direction: {get: direction},
     focusNode: {get: function() { return this.focusNode_; }},
     focusNode_: {writable: true},
     focusOffset: {get: function() { return this.focusOffset_; }},

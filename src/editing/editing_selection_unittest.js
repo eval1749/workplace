@@ -17,6 +17,23 @@ function dumpNodes(nodes) {
 //
 // EditingSelection.nodes
 //
+testCase('EditingSelection.directionAnchorIsStart', function() {
+  var context = testing.createTree('<p contenteditable>^abcd|</p>');
+  var selection = context.selection;
+  expectEq(editing.SelectionDirection.ANCHOR_IS_START,
+           function() { return selection.direction; });
+});
+
+testCase('EditingSelection.directionFocusIsStart', function() {
+  var context = testing.createTree('<p contenteditable>|abcd^</p>');
+  var selection = context.selection;
+  expectEq(editing.SelectionDirection.FOCUS_IS_START,
+           function() { return selection.direction; });
+});
+
+//
+// EditingSelection.nodes
+//
 testCase('EditingSelection.NodesText', function() {
   var context = testing.createTree('<p contenteditable>^abcd|</p>');
   var selection = context.selection;
