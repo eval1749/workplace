@@ -265,7 +265,7 @@ editing.define('EditingNode', (function() {
    */
   function isInteractive() {
     var model = editing.contentModel[this.domNode_.nodeName];
-    return model && Boolean(model.categories[INTERACTIVE]);
+    return model !== undefined && Boolean(model.categories[INTERACTIVE]);
   }
 
   /**
@@ -276,7 +276,7 @@ editing.define('EditingNode', (function() {
     if (!this.isElement)
       return true;
     var model = editing.contentModel[this.domNode_.nodeName];
-    return model && Boolean(model.categories[PHRASING]);
+    return model !== undefined && Boolean(model.categories[PHRASING]);
   }
 
   /**
