@@ -249,7 +249,7 @@ DescendantsOrSelf.prototype.next = {
     }
     this.currentNode = this.currentNode.parentNode;
   }
-  this.currentNode =null;
+  this.currentNode = null;
   return result;
 };
 

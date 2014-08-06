@@ -264,21 +264,18 @@ testing.define('TestingSelection', (function() {
       node.parentNode.removeChild(node);
     }
     if (selection.focusNode && !selection.anchorNode) {
-      selection.startIsAnchor_ = false;
+      selection.anchorIsStart_ = false;
       selection.anchorNode_ = selection.focusNode;
       selection.anchorOffset_ = selection.focusOffset;
     }
   }
 
   function TestingSelection(htmlText) {
-    this.range_ = document.createRange();
-    this.root_ = document.createElement('div');
+    this.document_ = document.implementation.createHTMLDocument();
+    this.range_ = this.document_.createRange();
+    this.root_ = this.document_.body;
     this.root_.innerHTML = htmlText;
-    this.startIsAnchor_ = true;
-
-    // TODO(yosin) Once, debug is done, we should not add sample HTML into
-    // testing HTML.
-    document.body.appendChild(this.root_);
+    this.anchorIsStart_ = true;
 
     if (htmlText.indexOf('^') != htmlText.lastIndexOf('^'))
       throw new Error('More than one focus marker in "' + htmlText + '"');
@@ -287,9 +284,11 @@ testing.define('TestingSelection', (function() {
       throw new Error('More than one focus marker in "' + htmlText + '"');
 
     visit(this, this.root_);
+
     if (!this.anchorNode_)
       return;
-    if (this.startIsAnchor_) {
+
+    if (this.anchorIsStart_) {
       this.range_.setStart(this.anchorNode_, this.anchorOffset_);
       this.range_.setEnd(this.focusNode_, this.focusOffset_);
     } else {
@@ -313,6 +312,8 @@ testing.define('TestingSelection', (function() {
     anchorOffset: {get: function() { return this.anchorOffset_; }},
     anchorOffset_: {writable: true},
     collapsed: {value: collapsed},
+    document: {get: function() { return this.document_; }},
+    document_: {writable: true},
     focusNode: {get: function() { return this.focusNode_; }},
     focusNode_: {writable: true},
     focusOffset: {get: function() { return this.focusOffset_; }},
@@ -322,21 +323,22 @@ testing.define('TestingSelection', (function() {
     rangeCount: {get: function() { return this.anchorNode ? 1 : 0}},
     rootForTesting: {get: function() { return this.root_; }},
     root_: {writable: true},
-    startIsAnchor_: {writable: true},
+    anchorIsStart_: {writable: true},
   });
   return TestingSelection;
 })());
 
 testing.define('createContext', (function() {
   function createContext() {
-    return new editing.EditingContext(document)
+    return new editing.EditingContext(
+        document.implementation.createHTMLDocument());
   }
   return createContext;
 })());
 
 testing.define('createElement', (function() {
   function createElement(context, tagName) {
-    var domNode = document.createElement(tagName);
+    var domNode = context.document.createElement(tagName);
     return new editing.EditingNode(context, domNode);
   }
   return createElement;
@@ -345,11 +347,7 @@ testing.define('createElement', (function() {
 testing.define('createTree', (function() {
   function createTree(htmlText) {
     var selection = new testing.TestingSelection(htmlText);
-    console.log('createTree HTM', selection.rootForTesting.outerHTML);
-    console.log('creareTree SEL', selection.anchorNode, selection.anchorOffset,
-                selection.focusNode, selection.focusOffset,
-                selection.collapsed());
-    return new editing.EditingContext(document, selection);
+    return new editing.EditingContext(selection.document, selection);
   }
 
   return createTree;
@@ -392,8 +390,14 @@ testing.define('serialzieNode', (function() {
     }
 
     function visit(node) {
-      if (!node.isElement)
-        return node.nodeValue;
+      if (!node.isElement) {
+        // To support |Document| node, we iterate over child nodes.
+        var sink = '';
+        for (var child = node.firstChild; child; child = child.nextSibling) {
+          sink += visit(child);
+        }
+        return sink.length ? sink : node.nodeValue;
+      }
       var tagName = node.domNode.nodeName.toLowerCase();
       var sink = '<' + tagName;
       var attributes = node.attributes;

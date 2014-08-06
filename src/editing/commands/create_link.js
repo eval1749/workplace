@@ -4,6 +4,7 @@
 
 'use strict';
 
+// TODO(yosin) We should use |editing.defineCommand| instead of |define|.
 editing.define('createLink', (function() {
   /*
    * Insert an A element, link and content are specified URL, before selection

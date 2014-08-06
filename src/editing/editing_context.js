@@ -11,6 +11,7 @@ editing.define('EditingContext', (function() {
    *    we don't need to use |selection| parameter.
    */
   function EditingContext(document, domSelection) {
+    console.assert(arguments.length == 1 || document === domSelection.document);
     this.document_ = document;
     this.endingSelection_ = null;
     this.instructions_ = [];

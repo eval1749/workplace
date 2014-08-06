@@ -4,6 +4,43 @@
 
 'use strict';
 
+function dumpNodes(nodes) {
+  var sink = ''
+  var delimiter = '';
+  nodes.forEach(function(node) {
+    sink += delimiter + (node.nodeValue || node.nodeName);
+    delimiter = ',';
+  });
+  return sink;
+}
+
+//
+// EditingSelection.nodes
+//
+testCase('EditingSelection.NodesText', function() {
+  var context = testing.createTree('<p contenteditable>^abcd|</p>');
+  var selection = context.selection;
+  var nodes = selection.nodes;
+  expectEq('abcd', function() { return dumpNodes(nodes); });
+});
+
+testCase('EditingSelection.NodesTree', function() {
+  var context = testing.createTree('<p contenteditable><e1><e2>e2Before<e3>^e3</e3>e2After</e2>e1After|</e1></p>');
+  var selection = context.selection;
+  var nodes = selection.nodes;
+  expectEq('e3,e2After,e1After', function() { return dumpNodes(nodes); });
+});
+
+testCase('EditingSelection.NodesTree2', function() {
+  var context = testing.createTree('<p contenteditable><e1><e2>e2Before<e3>^e3</e3>e2After</e2><e4>e4|</e4></e1></p>');
+  var selection = context.selection;
+  var nodes = selection.nodes;
+  expectEq('e3,e2After,E4,e4', function() { return dumpNodes(nodes); });
+});
+
+//
+// constructor splitText
+//
 testCase('EditingSelection.splitTextCaret', function() {
   var context = testing.createTree('<p contenteditable>ab|cd</p>');
   var selection = context.selection;

@@ -247,6 +247,16 @@ editing.define('EditingNode', (function() {
   function isEditable() {
     if (!this.isElement)
       return this.parentNode_.isEditable;
+    if (this.domNode_.isContentEditable)
+      return true;
+    if (window.document !== this.domNode_.ownerDocument) {
+      for (var runner = this.domNode_; runner; runner = runner.parentNode) {
+        var value = runner.getAttribute('contentEditable');
+        if (typeof(value) == 'string')
+            return value.toLowerCase() != 'false';
+      }
+      return document.designMode == 'on';
+    }
     var style = window.getComputedStyle(this.domNode_);
     return style.webkitUserModify != 'read-only';
   }

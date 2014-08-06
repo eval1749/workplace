@@ -15,6 +15,64 @@
 // with editing instructions.
 //
 editing.define('EditingSelection', (function() {
+  function following(node) {
+    if (node.firstChild)
+      return node.firstChild;
+     var nextSibling = node.nextSibling;
+     if (nextSibling)
+       return nextSibling;
+     var parentNode = node.parentNode;
+     while (parentNode) {
+       if (parentNode.nextSibling)
+         return parentNode.nextSibling;
+       parentNode = parentNode.parentNode;
+     }
+     return null;
+  }
+
+  function FollowingNodes(startNode) {
+    this.currentNode_ = startNode;
+  }
+
+  FollowingNodes.prototype.next = function() {
+    var resultNode = this.currentNode_;
+    if (!resultNode)
+      return {done: true};
+    this.currentNode_ = following(this.currentNode_);
+    return {done: false, value: resultNode};
+  };
+
+  /**
+   * @param {!EditingSelection} selection
+   * @return {!Array.<!EditingNode>}
+   */
+  function collectNodesInSelection(selection) {
+    if (selection.isEmpty)
+      return;
+    var startNode = selection.anchorNode.childNodes[selection.anchorOffset];
+    if (!startNode)
+      startNode = following(selection.anchorNode);
+    var endNode = selection.focusNode.childNodes[selection.focusOffset];
+    if (!endNode)
+      endNode = following(selection.focusNode);
+    if (!selection.anchorIsStart_) {
+      var temp = startNode;
+      startNode = endNode;
+      endNode = temp;
+    }
+    console.assert(startNode);
+    console.assert(endNode);
+    var nodes = [];
+    var iterator = new FollowingNodes(startNode);
+    var current;
+    while (!(current = iterator.next()).done) {
+      nodes.push(current.value);
+      if (current.value === endNode)
+        break;
+    }
+    return nodes;
+  }
+
   /**
    * @param {!Node} node1
    * @param {!Node} node2
@@ -61,15 +119,29 @@ editing.define('EditingSelection', (function() {
    * @return {!Node}
    */
   function computeSelectionRoot(domNode) {
-    var lastEditable = null;
-    while (domNode && document.body != domNode) {
+    // TODO(yosin) Once, Node.isContentEditable works for nodes without render
+    // object, we dont' need to have |isContentEditablePollyfill|.
+    // http://crbug.com/313082
+    function isContentEditablePollyfill(domNode) {
       if (domNode.isContentEditable)
+        return true;
+      if (domNode.nodeType != Node.ELEMENT_NODE)
+        return false;
+      var contentEditable = domNode.getAttribute('contenteditable');
+      if (typeof(contentEditable) != 'string')
+        return false;
+      return contentEditable.toLowerCase() != 'false';
+    }
+
+    var lastEditable = null;
+    while (domNode) {
+      if (isContentEditablePollyfill(domNode))
         lastEditable = domNode;
       else if (lastEditable)
         return lastEditable;
       domNode = domNode.parentNode;
     }
-    return document;
+    return domDocument;
   }
 
   /**
@@ -78,6 +150,7 @@ editing.define('EditingSelection', (function() {
    * @return {!editing.EditingNode}
    */
   function createEditingTree(treeContext, domNode) {
+    console.assert(domNode instanceof Node);
     var node = new editing.EditingNode(treeContext.context, domNode);
     if (treeContext.domSelection.anchorNode == domNode)
       treeContext.selection.anchorNode_ = node;
@@ -235,15 +308,15 @@ editing.define('EditingSelection', (function() {
                                 : indexOfNode(focusNode);
       focusNode = focusNode.parentNode;
     }
-
     this.anchorNode_ = anchorNode;
     this.anchorOffset_ = anchorOffset;
     this.focusNode_ = focusNode;
     this.focusOffset_ = focusOffset;
+    this.nodes_ = collectNodesInSelection(this);
   }
 
   /**
-   * @this {!EditingSelection}
+   * @this {!editing.EditingSelection}
    * @return {boolean}
    */
   function isCaret() {
@@ -252,7 +325,7 @@ editing.define('EditingSelection', (function() {
   }
 
   /**
-   * @this {!EditingSelection}
+   * @this {!editing.EditingSelection}
    * @return {boolean}
    */
   function isEmpty() {
@@ -260,7 +333,7 @@ editing.define('EditingSelection', (function() {
   }
 
   /**
-   * @this {!EditingSelection}
+   * @this {!editing.EditingSelection}
    * @return {boolean}
    */
   function isRange() {
@@ -282,6 +355,8 @@ editing.define('EditingSelection', (function() {
     isCaret: {get: isCaret},
     isEmpty: {get: isEmpty},
     isRange: {get: isRange},
+    nodes: {get: function() { return this.nodes_; }},
+    nodes_: {writable: true},
     rootForTesting: {get: function() { return this.rootForTesting_; }},
     rootForTesting_: {writable: true},
   });
