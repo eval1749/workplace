@@ -49,6 +49,20 @@ testCase('EditingSelection.NodesTree', function() {
 });
 
 testCase('EditingSelection.NodesTree2', function() {
+  var context = testing.createTree('<p contenteditable>^abcd<b>efg</b>|</p>');
+  var selection = context.selection;
+  var nodes = selection.nodes;
+  expectEq('abcd,B,efg', function() { return dumpNodes(nodes); });
+});
+
+testCase('EditingSelection.NodesTree3', function() {
+  var context = testing.createTree('<p contenteditable>ab^cd<b>efg</b>|</p>');
+  var selection = context.selection;
+  var nodes = selection.nodes;
+  expectEq('cd,B,efg', function() { return dumpNodes(nodes); });
+});
+
+testCase('EditingSelection.NodesTree4', function() {
   var context = testing.createTree('<p contenteditable><e1><e2>e2Before<e3>^e3</e3>e2After</e2><e4>e4|</e4></e1></p>');
   var selection = context.selection;
   var nodes = selection.nodes;

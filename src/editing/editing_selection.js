@@ -45,23 +45,29 @@ editing.define('EditingSelection', (function() {
   /**
    * @param {!EditingSelection} selection
    * @return {!Array.<!EditingNode>}
+   *
+   * Note: When selection range has no node, e.g. <p><a>foo^</a>|</p>; enclosing
+   * end tag, return value is empty array.
    */
   function collectNodesInSelection(selection) {
     if (selection.isEmpty)
-      return;
+      return [];
     var startNode = selection.anchorNode.childNodes[selection.anchorOffset];
     if (!startNode)
-      startNode = following(selection.anchorNode);
+      startNode = following(selection.anchorNode.lastChild);
     var endNode = selection.focusNode.childNodes[selection.focusOffset];
     if (!endNode)
-      endNode = following(selection.focusNode);
+      endNode = following(selection.focusNode.lastChild);
     if (!selection.anchorIsStart_) {
       var temp = startNode;
       startNode = endNode;
       endNode = temp;
     }
-    console.assert(startNode);
-    console.assert(endNode);
+    if (!startNode) {
+      // |startNode| is nullable, e.g. <a><b>abcd|</b></a>
+      return [];
+    }
+    // |endNode| is nullable, e.g. <a><b>^abcd|</b></a>
     var nodes = [];
     var iterator = new FollowingNodes(startNode);
     var current;
@@ -279,6 +285,8 @@ editing.define('EditingSelection', (function() {
           if (this.anchorIsStart_) {
             anchorNode = newNode;
             anchorOffset = 0;
+            if (newNode.parentNode == focusNode)
+              ++focusOffset;
           }
         }
 
