@@ -202,8 +202,12 @@ editing.define('EditingSelection', (function() {
    * TODO(yosin) We should remove |splitText| and |insertAfter| instructions
    * if we don't change anchor and focus of selection.
    */
-  function splitText(node, offset) {
+  function splitTextAndInsert(node, offset) {
     console.assert(node.parentNode);
+    if (!offset || offset >= node.nodeValue.length) {
+      throw new Error('Offset ' + offset + ' must be grater than zero and ' +
+                      'less than ' + node.nodeValue.length + ' for ' + node);
+    }
     var newNode = node.splitText(offset);
     node.parentNode.insertAfter(newNode, node);
     console.assert(node.nextSibling === newNode);
@@ -255,7 +259,7 @@ editing.define('EditingSelection', (function() {
 
     if (domSelection.collapsed()) {
       if (isNeedSplit(anchorNode, anchorOffset)) {
-        anchorNode = splitText(anchorNode, anchorOffset);
+        anchorNode = splitTextAndInsert(anchorNode, anchorOffset);
         anchorOffset = 0;
         focusNode = anchorNode;
         focusOffset = 0;
@@ -270,22 +274,22 @@ editing.define('EditingSelection', (function() {
 
       if (anchorNode === focusNode && splitAnchorNode && splitFocusNode) {
         if (this.anchorIsStart_) {
-          anchorNode = splitText(anchorNode, anchorOffset);
+          anchorNode = splitTextAndInsert(anchorNode, anchorOffset);
           focusNode = anchorNode;
           focusOffset -= anchorOffset;
           anchorOffset = 0;
-          splitText(focusNode, focusOffset);
+          splitTextAndInsert(focusNode, focusOffset);
         } else {
-          focusNode = splitText(focusNode, focusOffset);
+          focusNode = splitTextAndInsert(focusNode, focusOffset);
           anchorNode = focusNode;
           anchorOffset -= focusOffset;
           focusOffset = 0;
-          splitText(anchorNode, anchorOffset);
+          splitTextAndInsert(anchorNode, anchorOffset);
         }
 
       } else {
         if (splitAnchorNode) {
-          var newNode = splitText(anchorNode, anchorOffset);
+          var newNode = splitTextAndInsert(anchorNode, anchorOffset);
           if (this.anchorIsStart_) {
             anchorNode = newNode;
             anchorOffset = 0;
@@ -295,7 +299,7 @@ editing.define('EditingSelection', (function() {
         }
 
         if (splitFocusNode) {
-          var newNode = focusNode.splitText(focusNode, focusOffset);
+          var newNode = splitTextAndInsert(focusNode, focusOffset);
           if (!this.anchorIsStart_) {
             focusNode = newNode;
             focusOffset = 0;
@@ -314,8 +318,10 @@ editing.define('EditingSelection', (function() {
     }
 
     if (focusNode.isText) {
-      console.assert(!focusOffset ||
-                     focusOffset == focusNode.nodeValue.length);
+      if (focusOffset && focusOffset != focusNode.nodeValue.length) {
+        throw new Error('focusOffset ' + focusOffset + ' must be zero or ' +
+                        focusNode.nodeValue.length);
+      }
       focusOffset = focusOffset ? indexOfNode(focusNode) + 1
                                 : indexOfNode(focusNode);
       focusNode = focusNode.parentNode;
