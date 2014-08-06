@@ -58,6 +58,31 @@ testCase('createLinkCaretInteractiveAtMiddle', function() {
            function() { return testing.getResultHtml(context); });
 });
 
+// http://jsfiddle.net/66566/
+// <p contenteditable><a href="foo">^foo|</a></p>
+// =>
+// <p contenteditable>^<a href="URL">foo</a>|</p>
+testCase('createLinkRangeAnchor', function() {
+  var context = testing.createTree('<p contenteditable><a href="foo">^foo|</a></p>');
+  expectTrue(function() { return editing.createLink(context, 'URL'); });
+  expectEq('<p contenteditable>^<a href="URL">foo</a>|</p>',
+           function() { return testing.getResultHtml(context); });
+});
+
+// http://jsfiddle.net/66566/1/
+// <p contenteditable<a href="foo">^fo|o</a></p>
+// =>
+// CR: <p contenteditable<a href="FOO">^fo<a href="URL">o</a></a></p>
+// FF: <p contenteditable<a href="URL">foo</a></p>
+// IE: <p contenteditable<a href="URL">foo</a></p>
+testCase('createLinkRangeAnchor2', function() {
+  var context = testing.createTree('<p contenteditable><a href="foo">^fo|o</a></p>');
+  expectTrue(function() { return editing.createLink(context, 'URL'); });
+  expectEq('<p contenteditable>^<a href="URL">foo</a>|</p>',
+           function() { return testing.getResultHtml(context); });
+});
+
+
 // Create link with LI
 // Node: P element can't have UL as content, because P's context model is
 // PHRASING,
@@ -82,18 +107,6 @@ testCase('createLinkRangeSimpleTree', function() {
   expectEq('<p contenteditable>^<a href="URL">abcd<b>efg</b></a>|</p>',
            function() { return testing.getResultHtml(context); });
 });
-
-// http://jsfiddle.net/66566/
-// <p contenteditable<a href="foo">^foo|</a></p>
-// =>
-// <p contenteditable<a href="URL">^foo|</a></p>
-
-// http://jsfiddle.net/66566/1/
-// <p contenteditable<a href="foo">^fo|o</a></p>
-// =>
-// CR: <p contenteditable<a href="FOO">^fo<a href="URL">o</a></a></p>
-// FF: <p contenteditable<a href="URL">foo</a></p>
-// IE: <p contenteditable<a href="URL">foo</a></p>
 
 
 // Create link with range in interactive

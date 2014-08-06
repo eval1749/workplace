@@ -28,8 +28,9 @@ editing.define('createLink', (function() {
     /** @const @type {?editing.EditableNode} */
     var caretNode = containerNode.childNodes[selection.focusOffset];
 
-    if (!containerNode.isEditable)
-      throw new Error('Selection should be in editable element.');
+    if (!containerNode.isContentEditable)
+      throw new Error('Caret should be in editable element.' +
+                      String(containerNode));
 
     var ancestors = [];
     var interactive = null;
@@ -50,7 +51,7 @@ editing.define('createLink', (function() {
     }
 
     var editable = interactive.parentNode;
-    if (!editable || !editable.isEditable) {
+    if (!editable || !editable.isContentEditable) {
       // We can't insert anchor element before/after focus node.
       return false;
     }
@@ -104,16 +105,18 @@ editing.define('createLink', (function() {
      */
     function isInteractive(node) {
       var value = isInteractiveCache[node.hashCode];
-      if (value != undefined)
+      if (value !== undefined)
         return value;
-      var value = node.isInteractiveCache ||
+      var value = node.isInteractive ||
           (node.parentNode && isInteractive(node.parentNode))
       isInteractiveCache[node.hasCode] = value;
       return value;
     }
 
+    // Remember first and last inserted anchor element for ending selection.
     var firstAnchorElement = null;
     var lastAnchorElement = null;
+
     function createAnchorElement() {
       var anchorElement = context.createElement('a');
       anchorElement.setAttribute('href', url);
@@ -123,12 +126,36 @@ editing.define('createLink', (function() {
       return anchorElement;
     }
 
+    if (!context.selection.nodes.length)
+      return false;
     var anchorElement = null;
     var pendingNodes = [];
+
+    // Handling of start node
+    var startNode = context.selection.nodes[0];
+    // TODO(yosin) We should split at |startNode| if |startNode| is in
+    // interactive element.
+    // For compatibility with Firefox and IE, we don't split A element
+    // which is parent of |startNode|.
+    // Example:
+    //  <a href="foo">^fo|o</a> => ^<a href="URL">foo</a>|
+    if (startNode.parentNode.nodeName == 'A') {
+      anchorElement = startNode.parentNode;
+      firstAnchorElement = anchorElement;
+      lastAnchorElement = anchorElement;
+    }
+
     context.selection.nodes.forEach(function(currentNode) {
-console.log('createLinkForRange current', currentNode.toString());
       if (isInteractive(currentNode)) {
+        if (anchorElement)
+          anchorElement.setAttribute('href', url);
         anchorElement = null;
+        if (currentNode.nodeName != 'A')
+          return;
+        if (!firstAnchorElement)
+          firstAnchorElement = currentNode;
+        lastAnchorElement = anchorElement;
+        currentNode.setAttribute('href', url);
         return;
       }
 
@@ -171,7 +198,6 @@ console.log('createLinkForRange current', currentNode.toString());
     if (pendingNodes.length) {
       var firstPendingNode = pendingNodes[0];
       var lastPendingNode = pendingNodes[pendingNodes.length - 1];
-console.log('createLinkForRange', 'first=' + firstPendingNode, 'last=' + lastPendingNode);
       if (lastPendingNode.nextSibling) {
           firstPendingNode.splitTreeBefore(lastPendingNode);
       } else if (anchorElement) {
