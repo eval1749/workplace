@@ -111,7 +111,10 @@ testCase('EditingNode.isEditable', function() {
   expectFalse(function () { return elementA.isEditable; });
 
   var elementB = testing.createElement(context, 'b');
-  elementB.domNode.setAttribute('contentEditable', 'true');
+  elementA.appendChild(elementB);
+  elementA.setAttribute('contentEditable', 'true');
+  expectTrue(function () { return elementA.isContentEditable; });
+  expectFalse(function () { return elementA.isEditable; });
   expectTrue(function () { return elementB.isEditable; });
 });
 

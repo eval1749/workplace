@@ -92,6 +92,18 @@ editing.define('EditingNode', (function() {
 
   /**
    * @this {!EditingNode}
+   * @param {string} attrName
+   * @return {?string}
+   */
+  function getAttribute(attrName) {
+    var attrValue = this.attributes_[attrName.toLowerCase()];
+    if (attrValue === undefined)
+      return null;
+    return attrValue;
+  }
+
+  /**
+   * @this {!EditingNode}
    * @return {boolean}
    */
   function hasChildNodes() {
@@ -253,21 +265,26 @@ editing.define('EditingNode', (function() {
    * @this {!EditingNode}
    * @return {boolean}
    */
-  function isEditable() {
-    if (!this.isElement)
-      return this.parentNode_.isEditable;
-    if (this.domNode_.isContentEditable)
-      return true;
-    if (window.document !== this.domNode_.ownerDocument) {
-      for (var runner = this.domNode_; runner; runner = runner.parentNode) {
-        var value = runner.getAttribute('contentEditable');
-        if (typeof(value) == 'string')
-            return value.toLowerCase() != 'false';
-      }
-      return document.designMode == 'on';
+  function isContentEditable() {
+    for (var runner = this; runner; runner = runner.parentNode) {
+      var contentEditable = runner.getAttribute('contenteditable');
+      if (typeof(contentEditable) == 'string')
+        return contentEditable.toLowerCase() != 'false';
+      if (editing.isContentEditable(runner.domNode_))
+        return true;
     }
-    var style = window.getComputedStyle(this.domNode_);
-    return style.webkitUserModify != 'read-only';
+    return false;
+  }
+
+  /**
+   * @this {!EditingNode}
+   * @return {boolean}
+   */
+  function isEditable() {
+    var container = this.parentNode;
+    if (!container)
+      return false;
+    return container.isContentEditable
   }
 
   /**
@@ -380,7 +397,7 @@ editing.define('EditingNode', (function() {
    */
   function setAttribute(attrName, attrValue) {
     console.assert(this.isElement);
-    this.attributes_[attrName] = attrValue;
+    this.attributes_[attrName.toLowerCase()] = String(attrValue);
     this.context_.setAttribute(this, attrName, attrValue);
   }
 
@@ -469,11 +486,13 @@ editing.define('EditingNode', (function() {
     domNode_: {writable: true},
     firstChild: {get: function() { return this.firstChild_; }},
     firstChild_: {writable: true},
+    getAttribute: {value: getAttribute},
     hasChildNodes: {value: hasChildNodes },
     hashCode: {get: function() { return this.hashCode_; }},
     hashCode_: {writable: true},
     insertAfter: {value: insertAfter},
     insertBefore: {value: insertBefore},
+    isContentEditable: {get: isContentEditable},
     isElement: {get: isElement},
     isEditable: {get: isEditable},
     isInteractive: {get: isInteractive},
