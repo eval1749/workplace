@@ -41,7 +41,10 @@ editing.define('createLink', (function() {
     if (!interactive) {
       // Insert anchor element before caret.
       containerNode.insertBefore(anchorElement, caretNode);
-      context.selection.enclose(anchorElement);
+      var offset = anchorElement.nodeIndex;
+      context.setEndingSelection(new editing.ReadOnlySelection(
+          containerNode, offset, containerNode, offset + 1,
+          editing.SelectionDirection.ANCHOR_IS_START));
       return true;
     }
 
@@ -57,9 +60,6 @@ editing.define('createLink', (function() {
     }
     ancestors.pop();
 
-console.log('createLinkBeforeCaret ancestors1', ancestors.map(function(x){return x.nodeName}));
-
-console.log('createLinkBeforeCaret ancestors2', ancestors.map(function(x){return x.nodeName}));
     var anchorTree = ancestors.reverse().reduce(
         function(previousValue, currentValue) {
           if (currentValue.isInteractive)
@@ -79,7 +79,11 @@ console.log('createLinkBeforeCaret ancestors2', ancestors.map(function(x){return
       editable.insertBefore(anchorTree, interactive);
     }
 
-    context.selection.enclose(anchorElement);
+    var offset = anchorElement.nodeIndex;
+    context.setEndingSelection(new editing.ReadOnlySelection(
+        anchorElement.parentNode, offset,
+        anchorElement.parentNode, offset + 1,
+        editing.SelectionDirection.ANCHOR_IS_START));
     return true;
   }
 
