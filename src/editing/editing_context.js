@@ -109,6 +109,14 @@ editing.define('EditingContext', (function() {
 
   /**
    * @this {!EditingContext}
+   * @param {!editing.ReadOnlySelection} selection
+   */
+  function setEndingSelection(selection) {
+    this.endingSelection_ = selection;
+  }
+
+  /**
+   * @this {!EditingContext}
    * @param {!EditingNode} textNode
    * @param {number} offset
    * @param {!EditingNode} newNode
@@ -131,6 +139,11 @@ editing.define('EditingContext', (function() {
     document_: {writable: true},
     createElement: {value: createElement},
     createTextNode: {value: createTextNode},
+    endingAnchorNode_: {writable: true},
+    endingAnchorOffset_: {writable: true},
+    endingDirection_: {writable: true},
+    endingFocusNode_: {writable: true},
+    endingFocusOffset_: {writable: true},
     insertBefore: {value: insertBefore},
     instructions_: {writable: true},
     registerNode: {value: registerNode},
@@ -139,6 +152,7 @@ editing.define('EditingContext', (function() {
     selection: {get: function() { return this.selection_; }},
     selection_: {writable: true},
     setAttribute: {value: setAttribute},
+    setEndingSelection: {value: setEndingSelection },
     splitText: {value: splitText},
   });
   return EditingContext;
