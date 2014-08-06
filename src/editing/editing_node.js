@@ -32,6 +32,7 @@ editing.define('EditingNode', (function() {
     this.attributes_ = {};
     this.context_ = context;
     this.domNode_ = domNode;
+    this.hashCode_ = context.nextHashCode();
     this.parentNode_ = null;
     this.firstChild_ = null;
     this.lastChild_ = null;
@@ -462,6 +463,8 @@ editing.define('EditingNode', (function() {
     domNode_: {writable: true},
     firstChild: {get: function() { return this.firstChild_; }},
     firstChild_: {writable: true},
+    hashCode: {get: function() { return this.hashCode_; }},
+    hashCode_: {writable: true},
     insertAfter: {value: insertAfter},
     insertBefore: {value: insertBefore},
     isElement: {get: isElement},

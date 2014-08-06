@@ -76,6 +76,18 @@ testCase('EditingNode.insertBeforeToSecond', function() {
 });
 
 //
+// hashCode
+//
+testCase('EditingNode.insertBeforeToSecond', function() {
+  var context = testing.createContext();
+  var element1 = testing.createElement(context, 'e1');
+  var element2 = testing.createElement(context, 'e2');
+  expectEq('number', function() { return typeof(element1.hashCode); });
+  expectEq('number', function() { return typeof(element2.hashCode); });
+  expectTrue(function() { return element1.hashCode != element2.hashCode; });
+});
+
+//
 // isEditable
 //
 testCase('EditingNode.isEditable', function() {

@@ -14,6 +14,7 @@ editing.define('EditingContext', (function() {
     console.assert(arguments.length == 1 || document === domSelection.document);
     this.document_ = document;
     this.endingSelection_ = null;
+    this.hashCode_ = 0;
     this.instructions_ = [];
     this.selection_ = new editing.EditingSelection(this, domSelection);
   };
@@ -67,6 +68,14 @@ editing.define('EditingContext', (function() {
   function insertBefore(parentNode, newChild, refChild) {
     this.instructions_.push({name: 'insertBefore', parentNode: parentNode,
                              newChild: newChild, refChild: refChild});
+  }
+
+  /**
+   * @this {!EditingContext}
+   * @return {number}
+   */
+  function nextHashCode() {
+    return ++this.hashCode_;
   }
 
   /**
@@ -135,8 +144,10 @@ editing.define('EditingContext', (function() {
     createTextNode: {value: createTextNode},
     endingSelection: {get: function() { return this.endingSelection_; }},
     endingSelection_: {writable: true},
+    hashCode_: {writable: true},
     insertBefore: {value: insertBefore},
     instructions_: {writable: true},
+    nextHashCode: {value: nextHashCode },
     removeChild: {value: removeChild},
     replaceChild: {value: replaceChild},
     selection: {get: function() { return this.selection_; }},
