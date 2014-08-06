@@ -242,19 +242,6 @@ editing.define('EditingSelection', (function() {
     this.focusOffset_ = focusOffset;
   }
 
-  /*
-   * @this {!EditingSelection}
-   * @param {!editing.EditingNode} node
-   */
-  function enclose(node) {
-    console.assert(node instanceof editing.EditingNode);
-    this.anchorNode_ = node.parentNode;
-    this.anchorOffset_ = node.nodeIndex;
-    this.focusNode_ = node.parentNode;
-    this.focusOffset_ = this.anchorOffset_ + 1;
-    this.startIsAnchor_ = true;
-  }
-
   /**
    * @this {!EditingSelection}
    * @return {boolean}
@@ -291,7 +278,6 @@ editing.define('EditingSelection', (function() {
     focusNode_: {writable: true},
     focusOffset: {get: function() { return this.focusOffset_; }},
     focusOffset_: {writable: true},
-    enclose: {value: enclose},
     isCaret: {get: isCaret},
     isEmpty: {get: isEmpty},
     isRange: {get: isRange},
