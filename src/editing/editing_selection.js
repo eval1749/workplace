@@ -149,7 +149,7 @@ editing.define('EditingSelection', (function() {
     this.context_ = context;
     this.focusNode_ = null;
     this.focusOffset_ = null;
-    this.startIsAnchor_ = false;
+    this.anchorIsStart_ = false;
 
     if (!domSelection || !domSelection.rangeCount)
       return;
@@ -180,13 +180,13 @@ editing.define('EditingSelection', (function() {
 
     } else {
       var range = domSelection.getRangeAt(0);
-      this.startIsAnchor_ = range.startContainer == anchorNode.domNode &&
+      this.anchorIsStart_ = range.startContainer == anchorNode.domNode &&
                             range.startOffset == anchorOffset;
       var splitAnchorNode = isNeedSplit(anchorNode, anchorOffset);
       var splitFocusNode = isNeedSplit(focusNode, focusOffset);
 
       if (anchorNode === focusNode && splitAnchorNode && splitFocusNode) {
-        if (this.startIsAnchor) {
+        if (this.anchorIsStart_) {
           anchorNode = splitText(anchorNode, anchorOffset);
           focusNode = anchorNode;
           focusOffset -= anchorOffset;
@@ -203,7 +203,7 @@ editing.define('EditingSelection', (function() {
       } else {
         if (splitAnchorNode) {
           var newNode = splitText(anchorNode, anchorOffset);
-          if (this.startIsAnchor) {
+          if (this.anchorIsStart_) {
             anchorNode = newNode;
             anchorOffset = 0;
           }
@@ -211,7 +211,7 @@ editing.define('EditingSelection', (function() {
 
         if (splitFocusNode) {
           var newNode = focusNode.splitText(focusNode, focusOffset);
-          if (!this.startIsAnchor) {
+          if (!this.anchorIsStart_) {
             focusNode = newNode;
             focusOffset = 0;
           }
@@ -268,6 +268,7 @@ editing.define('EditingSelection', (function() {
   }
 
   Object.defineProperties(EditingSelection.prototype, {
+    anchorIsStart_: {writable: true},
     anchorNode: {get: function() { return this.anchorNode_; }},
     anchorNode_: {writable: true},
     anchorOffset: {get: function() { return this.anchorOffset_; }},
@@ -283,8 +284,6 @@ editing.define('EditingSelection', (function() {
     isRange: {get: isRange},
     rootForTesting: {get: function() { return this.rootForTesting_; }},
     rootForTesting_: {writable: true},
-    startIsAnchor: {get: function() { return this.startIsAnchor_; }},
-    startIsAnchor_: {writable: true}
   });
 
   return EditingSelection;
