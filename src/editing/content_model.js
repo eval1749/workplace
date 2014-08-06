@@ -77,7 +77,12 @@ editing.define('contentModel', (function() {
     PHRASING);
 
   // Grouping content
-  defineContentModel('blockquote div p', [FLOW, PALPABLE], FLOW, PHRASING);
+  defineContentModel('p', [FLOW, PALPABLE], FLOW, PHRASING);
+  defineContentModel('blockquote div p', [FLOW, PALPABLE], FLOW, FLOW);
+
+  // Palpable if it has at least one LI element.
+  defineContentModel('ol ul', [FLOW, PALPABLE], FLOW, 'li');
+  defineContentModel('li', [], 'ol ul menu', FLOW);
 
   // Embedded content
   defineContentModel('img', [FLOW, PHRASING, EMBEDDED, PALPABLE], FLOW, []);
