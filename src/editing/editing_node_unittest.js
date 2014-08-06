@@ -22,7 +22,7 @@ testCase('EditingNode.appendChild', function() {
 //
 // hasChildNodes
 //
-testCase('EditingNode.insertBeforeNull', function() {
+testCase('EditingNode.hasChildNodes', function() {
   var context = testing.createContext();
   var element1 = testing.createElement(context, 'e1');
   var element2 = testing.createElement(context, 'e2');
@@ -93,7 +93,7 @@ testCase('EditingNode.insertBeforeToSecond', function() {
 //
 // hashCode
 //
-testCase('EditingNode.insertBeforeToSecond', function() {
+testCase('EditingNode.hasCode', function() {
   var context = testing.createContext();
   var element1 = testing.createElement(context, 'e1');
   var element2 = testing.createElement(context, 'e2');

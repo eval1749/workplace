@@ -11,6 +11,7 @@ function TestRunner() {
   this.name_ = '';
   this.succeededCount_ = 0;
   this.testCount_ = 0;
+  this.testNames_ = {};
 }
 
 Object.defineProperties(TestRunner.prototype, (function() {
@@ -30,6 +31,9 @@ Object.defineProperties(TestRunner.prototype, (function() {
    */
   function beginTest(name) {
     console.assert(this.name_ == '');
+    if (this.testNames_[name])
+      throw new Error('Test case ' + name + ' is already executed.');
+    this.testNames_[name] = true;
     this.name_ = name;
     this.localFailedCount_ = this.failedCount_;
     var item = document.createElement('li');
