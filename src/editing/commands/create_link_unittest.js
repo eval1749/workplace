@@ -58,6 +58,44 @@ testCase('createLinkCaretInteractiveAtMiddle', function() {
            function() { return testing.getResultHtml(context); });
 });
 
+// Create link with LI
+testCase('createLinkRangeList', function() {
+  var context = testing.createTree('<p contenteditable>^<ul><li>one</li><li>two</li></ul>|</p>');
+  expectTrue(function() { return editing.createLink(context, 'URL'); });
+  expectEq('<p contenteditable><ul><li>^<a href="URL">one</a></li><li><a href="URL">two</a>|</li></ul></p>',
+           function() { return testing.getResultHtml(context); });
+});
+
 // Create link with range.
+testCase('createLinkRangeSimpleText', function() {
+  var context = testing.createTree('<p contenteditable>^abcd|</p>');
+  expectTrue(function() { return editing.createLink(context, 'URL'); });
+  expectEq('<p contenteditable>^<a href="URL">abcd</a>|</p>',
+           function() { return testing.getResultHtml(context); });
+});
+
+testCase('createLinkRangeSimpleTree', function() {
+  var context = testing.createTree('<p contenteditable>^abcd<b>efg</b>|</p>');
+  expectTrue(function() { return editing.createLink(context, 'URL'); });
+  expectEq('<p contenteditable>^<a href="URL">abcd<b>efg</b></a>|</p>',
+           function() { return testing.getResultHtml(context); });
+});
+
+// http://jsfiddle.net/66566/
+// <p contenteditable<a href="foo">^foo|</a></p>
+// =>
+// <p contenteditable<a href="URL">^foo|</a></p>
+
+// http://jsfiddle.net/66566/1/
+// <p contenteditable<a href="foo">^fo|o</a></p>
+// =>
+// CR: <p contenteditable<a href="FOO">^fo<a href="URL">o</a></a></p>
+// FF: <p contenteditable<a href="URL">foo</a></p>
+// IE: <p contenteditable<a href="URL">foo</a></p>
+
+
+// Create link with range in interactive
 // <a><b>a^b|c</b> => <a><b>a</b></a><a><b>b</b></a><a><b>c</b></a>
 
+
+// TODO(yosin) What do we expect from "createLink('<b>foo^</b>|')"?

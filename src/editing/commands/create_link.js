@@ -96,29 +96,44 @@ editing.define('createLink', (function() {
   function createLinkForRange(context, url) {
     console.assert(url != '');
 
+    // TODO(yosin) Once we have ES6 |Map|, we should use it.
+    var isInteractiveCache = {};
+    /**
+     * @param {!EditingNode} node
+     * @return {boolean}
+     */
+    function isInteractive(node) {
+      var value = isInteractiveCache[node.hashCode];
+      if (value != undefined)
+        return value;
+      var value = node.isInteractiveCache ||
+          (node.parentNode && isInteractive(node.parentNode))
+      isInteractiveCache[node.hasCode] = value;
+      return value;
+    }
+
     var firstAnchorElement = null;
     var lastAnchorElement = null;
     function createAnchorElement() {
-        anchorElement = context.createElement('a');
-        anchorElement.setAttribute('href', url);
-        if (!firstAnchorElement)
-          firstAnchorElement = anchorElement;
-        lastAnchorElement = anchorElement;
+      var anchorElement = context.createElement('a');
+      anchorElement.setAttribute('href', url);
+      if (!firstAnchorElement)
+        firstAnchorElement = anchorElement;
+      lastAnchorElement = anchorElement;
+      return anchorElement;
     }
 
-    var nodeIterator = context.selection.createNodeIterator();
     var anchorElement = null;
     var pendingNodes = [];
-    var iteratorResult;
-    while (!(iteratorResult = nodeIterator.next()).done) {
-      var currentNode = iteratorResult.value;
-      if (currentNode.isInteractive()) {
+    context.selection.nodes.forEach(function(currentNode) {
+console.log('createLinkForRange current', currentNode.toString());
+      if (isInteractive(currentNode)) {
         anchorElement = null;
-        continue;
+        return;
       }
 
       if (currentNode.isEditable && currentNode.isPhrasing) {
-        if (currentNode.hasChildren()) {
+        if (currentNode.hasChildNodes()) {
           pendingNodes.push(currentNode);
         } else if (pendingNodes.length) {
           if (currentNode.nextSibling ||
@@ -137,20 +152,26 @@ editing.define('createLink', (function() {
           anchorElement.appendChild(currentNode);
         } else {
           anchorElement = createAnchorElement();
-          currentNode.parentNode.replaceChild(anchorElement, curretNode);
+          currentNode.parentNode.replaceChild(anchorElement, currentNode);
+          anchorElement.appendChild(currentNode);
         }
-        continue;
+        return;
       }
 
       anchorElement = null;
       if (!pendingNodes.length)
-        continue;
-      nodeIterator.splitTreeBefore(pendingNodes[0], curretNode);
-    }
+        return;
+
+      // TODO(yosin) Handle peindingNode[0].parentNode isn't editable.
+      var tree = pendingNodes[0];
+      var newTree = tree.splitTree(currentNode);
+      tree.parentNode.insertAfter(newTree, tree);
+    });
 
     if (pendingNodes.length) {
       var firstPendingNode = pendingNodes[0];
       var lastPendingNode = pendingNodes[pendingNodes.length - 1];
+console.log('createLinkForRange', 'first=' + firstPendingNode, 'last=' + lastPendingNode);
       if (lastPendingNode.nextSibling) {
           firstPendingNode.splitTreeBefore(lastPendingNode);
       } else if (anchorElement) {
@@ -162,11 +183,14 @@ editing.define('createLink', (function() {
       }
     }
 
-    if (firstAnchorElement && lastAnchorElement) {
-      context.setSelection(positionAtNode(firstAnchorElement),
-                           positionAfterNode(lastAnchorElement));
-    }
-    return false;
+    if (!firstAnchorElement)
+      return false;
+
+    context.setEndingSelection(new editing.ReadOnlySelection(
+        firstAnchorElement.parentNode, firstAnchorElement.nodeIndex,
+        lastAnchorElement.parentNode, lastAnchorElement.nodeIndex + 1,
+        context.selection.direction));
+    return true;
   }
 
   /**
