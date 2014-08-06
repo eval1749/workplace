@@ -69,14 +69,6 @@ editing.define('EditingContext', (function() {
 
   /**
    * @this {!EditingContext}
-   * @param {!EditingNode} node
-   */
-  function registerNode(node) {
-    this.editingNodes_.push(node);
-  }
-
-  /**
-   * @this {!EditingContext}
    * @param {!EditingNode} parentNode
    * @param {!EditingNode} oldChild
    */
@@ -146,7 +138,6 @@ editing.define('EditingContext', (function() {
     endingFocusOffset_: {writable: true},
     insertBefore: {value: insertBefore},
     instructions_: {writable: true},
-    registerNode: {value: registerNode},
     removeChild: {value: removeChild},
     replaceChild: {value: replaceChild},
     selection: {get: function() { return this.selection_; }},
