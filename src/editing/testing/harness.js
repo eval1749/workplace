@@ -131,6 +131,9 @@ function expectEq(expected_result, testFunction) {
     actual_result = testFunction();
   } catch (exception) {
     actual_result = exception;
+    // TODO(yosin) We throw |execption| for debugging. Once, debugging is done,
+    // we should remove this.
+    throw exception;
   }
   function equal() {
     if (typeof(expected_result) != typeof(actual_result))
