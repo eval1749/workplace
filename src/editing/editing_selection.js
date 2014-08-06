@@ -15,7 +15,7 @@
 // with editing instructions.
 //
 editing.define('EditingSelection', (function() {
-  function following(node) {
+  function followingNode(node) {
     if (!node)
       return null;
     if (node.firstChild)
@@ -40,9 +40,19 @@ editing.define('EditingSelection', (function() {
     var resultNode = this.currentNode_;
     if (!resultNode)
       return {done: true};
-    this.currentNode_ = following(this.currentNode_);
+    this.currentNode_ = followingNode(this.currentNode_);
     return {done: false, value: resultNode};
   };
+
+  // nextNode(<a><b>foo|</b><a>bar) = bar
+  function nextNode(node) {
+    while (node) {
+      if (node.nexeSibling)
+        return node.nextSibling;
+      node = node.parentNode;
+    }
+    return null;
+  }
 
   /**
    * @param {!EditingSelection} selection
@@ -56,20 +66,19 @@ editing.define('EditingSelection', (function() {
       return [];
     var startNode = selection.anchorNode.childNodes[selection.anchorOffset];
     if (!startNode)
-      startNode = following(selection.anchorNode.lastChild);
+      startNode = nextNode(selection.anchorNode.lastChild);
     var endNode = selection.focusNode.childNodes[selection.focusOffset];
     if (!endNode)
-      endNode = following(selection.focusNode.lastChild);
+      endNode = nextNode(selection.focusNode.lastChild);
     if (!selection.anchorIsStart_) {
       var temp = startNode;
       startNode = endNode;
       endNode = temp;
     }
-    if (!startNode) {
-      // |startNode| is nullable, e.g. <a><b>abcd|</b></a>
+    // Both, |startNode| and |endNode| are nullable, e.g. <a><b>abcd|</b></a>
+    if (!startNode)
       return [];
-    }
-    // |endNode| is nullable, e.g. <a><b>^abcd|</b></a>
+
     var nodes = [];
     var iterator = new FollowingNodes(startNode);
     var current;
@@ -143,7 +152,6 @@ editing.define('EditingSelection', (function() {
 
     var lastEditable = null;
     while (domNode) {
-console.log('computeSelectionRoot', 'domNode', domNode);
       if (isContentEditablePollyfill(domNode))
         lastEditable = domNode;
       else if (lastEditable)
@@ -238,7 +246,6 @@ console.log('computeSelectionRoot', 'domNode', domNode);
     if (!domSelection || !domSelection.rangeCount)
       return;
 
-console.log('EditingSelection.ctor', domSelection);
     var domCommonAncestor = computeCommonAncestor(domSelection.anchorNode,
                                                   domSelection.focusNode);
     console.assert(domCommonAncestor instanceof Node);
