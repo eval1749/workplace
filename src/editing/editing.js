@@ -41,17 +41,6 @@ var editing = {};
   });
 })();
 
-// TODO(yosin) We should move |Math.sign| Polyfill to different place.
-if (!Math.sign) {
-  Math.sign = function(x) {
-    if (isNaN(x))
-      return NaN;
-    if (x === 0)
-      return x;
-    return x > 0 ? 1 : -1;
-  }
-}
-
 // TODO(yosin) Once, Node.isContentEditable works for nodes without render
 // object, we dont' need to have |isContentEditablePollyfill|.
 // http://crbug.com/313082
