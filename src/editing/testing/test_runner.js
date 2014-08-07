@@ -86,7 +86,7 @@ Object.defineProperties(TestRunner.prototype, (function() {
    * @this {!TestRunner}
    * @param {string} html
    */
-  function logWithHtml(html) {
+  function logHtml(html) {
     var logListItem = document.createElement('li');
     this.logListElement_.appendChild(logListItem);
     logListItem.innerHTML = html;
@@ -120,7 +120,7 @@ Object.defineProperties(TestRunner.prototype, (function() {
     failedCount_: {writable: true},
     log: {value: log},
     logListElement_: {writable: true},
-    logWithHtml: {value: logWithHtml},
+    logHtml: {value: logHtml},
     name_: {writable: true},
     succeeded: {value: succeeded},
     testCount_: {writable: true},
