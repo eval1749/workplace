@@ -66,14 +66,35 @@ testing.define('execCommand', (function() {
 })());
 
 testing.define('getResultHtml', (function() {
+  function escapeHtml(text) {
+    return text.replace(/&/g, '&amp;').replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+  }
+  function pretty(text) {
+    var anchorIndex = text.indexOf('^');
+    var focusIndex = text.indexOf('|');
+    var escaped = escapeHtml(text);
+    if (focusIndex < 0)
+      return escaped;
+    if (anchorIndex < 0) {
+      return escaped.replace('|', '<span class="selectionAnchorFocus"></span>');
+    }
+    if (anchorIndex < focusIndex) {
+      return escaped.replace('^', '<span class="selectionAnchorFocus">')
+        .replace('|', '</span>');
+    }
+    return escaped.replace('|', '<span class="selectionFocusAnchor">')
+        .replace('^', '</span>');
+  }
+
   function getResultHtml(context) {
     var result = testing.serialzieNode(context.selection.rootForTesting,
                                        context.endingSelection);
     var sample = context.sampleContext_.getResult();
     if (result != sample) {
-      testRunner.log('Src: ' + context.sampleHtmlText_);
-      testRunner.log('Cur: ' + sample);
-      testRunner.log('New: ' + result);
+      testRunner.logHtml('Src: ' + pretty(context.sampleHtmlText_));
+      testRunner.logHtml('Cur: ' + pretty(sample));
+      testRunner.logHtml('New: ' + pretty(result));
     }
     return result;
   }
