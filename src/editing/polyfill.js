@@ -13,3 +13,9 @@ if (!Math.sign) {
     return x > 0 ? 1 : -1;
   }
 }
+
+if (!String.prototype.startsWith) {
+  String.prototype.startsWith = function(text) {
+    return !this.indexOf(text);
+  }
+}
