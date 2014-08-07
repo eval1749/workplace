@@ -105,8 +105,16 @@ testCaseFor('CreateLink', 'RangeSimpleTree', {
   value: 'URL'
 });
 
+// Crete link for end tag.
+// CR: Insert anchor because of selection normalization.
+// FF: No insertion, returns true
+// IE: No insertion, ending selection is empty
+testCaseFor('CreateLink', 'EndTag', {
+  before: '<p contenteditable><b>abc^</b>|</p>',
+  after:  '<p contenteditable><b>abc^</b>|</p>',
+  returnValue: false,
+  value: 'URL'
+});
+
 // Create link with range in interactive
 // <a><b>a^b|c</b> => <a><b>a</b></a><a><b>b</b></a><a><b>c</b></a>
-
-
-// TODO(yosin) What do we expect from "createLink('<b>foo^</b>|')"?

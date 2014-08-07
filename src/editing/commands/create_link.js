@@ -130,8 +130,11 @@ editing.defineCommand('createLink', (function() {
       return anchorElement;
     }
 
-    if (!context.selection.nodes.length)
+    if (!context.selection.nodes.length) {
+      context.setEndingSelection(context.startingSelection);
       return false;
+    }
+
     var anchorElement = null;
     var pendingNodes = [];
 
@@ -243,10 +246,10 @@ editing.defineCommand('createLink', (function() {
    * @return {boolean}
    */
   function createLink(context, userInterface, url) {
-    if (url == '')
+    if (url == '' || context.selection.isEmpty) {
+      context.setEndingSelection(context.startingSelection);
       return false;
-    if (context.selection.isEmpty)
-      return false;
+    }
     if (context.selection.isCaret) {
       // Note: Firefox and IE don't insert anchor element for caret.
       // IE returns true event if it doesnt' insert anchor element.
