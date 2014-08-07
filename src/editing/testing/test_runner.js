@@ -92,6 +92,10 @@ Object.defineProperties(TestRunner.prototype, (function() {
     logListItem.innerHTML = html;
   }
 
+  function skipped() {
+    this.log('Skpped');
+  }
+
   /**
    * @this {!TestRunner}
    * @return {!HTMLLIElement}
@@ -122,6 +126,7 @@ Object.defineProperties(TestRunner.prototype, (function() {
     logListElement_: {writable: true},
     logHtml: {value: logHtml},
     name_: {writable: true},
+    skipped: {value: skipped},
     succeeded: {value: succeeded},
     testCount_: {writable: true},
     succeededCount_: {writable: true},

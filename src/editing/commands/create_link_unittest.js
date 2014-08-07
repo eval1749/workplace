@@ -8,6 +8,12 @@
 // When |url| parameter is empty, |createLink| does nothing and returns
 // false.
 testCase('createLinkNoUrl', function() {
+  if (testing.isIE) {
+    // Since IE shows modal dialog box to get URL, we don't run this test case,
+    // to avoid manual closing modal dialog box.
+    testRunner.skipped();
+    return;
+  }
   var context = testing.createSample('<p contenteditable>abcd|</p>');
   expectFalse(function() {
     return testing.execCommand(context, 'CreateLink');

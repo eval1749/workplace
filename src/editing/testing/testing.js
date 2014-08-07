@@ -18,8 +18,16 @@ var testing = {};
     Object.defineProperty(testing, name, {value: value});
   }
 
+  /**
+   * @return {boolean}
+   */
+  function isIE() {
+    return window.navigator.userAgent.indexOf('Trident/') > 0;
+  }
+
   Object.defineProperties(testing, {
     define: {value: define},
+    isIE: {get: isIE},
   });
 })();
 
