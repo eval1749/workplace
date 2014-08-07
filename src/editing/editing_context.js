@@ -84,6 +84,10 @@ editing.define('EditingContext', (function() {
    * Emulation of |Document.execCommand|.
    */
   function execCommand(name, opt_userInterface, opt_value) {
+    if (typeof(name) != 'string') {
+      console.log('execCommand name', name);
+      throw new Error('execCommand takes string: ' + name);
+    }
     var userInterface = arguments.length >= 2 ? Boolean(opt_userInterface)
                                               : false;
     var value = arguments.length >= 3 ? String(opt_value) : '';
