@@ -274,8 +274,8 @@ testing.define('TestingSelection', (function() {
     }
   }
 
-  function TestingSelection(htmlText) {
-    this.document_ = document.implementation.createHTMLDocument();
+  function TestingSelection(document, htmlText) {
+    this.document_ = document;
     this.range_ = this.document_.createRange();
     this.root_ = this.document_.body;
     this.root_.innerHTML = htmlText;
@@ -350,8 +350,10 @@ testing.define('createElement', (function() {
 
 testing.define('createTree', (function() {
   function createTree(htmlText) {
-    var selection = new testing.TestingSelection(htmlText);
-    return new editing.EditingContext(selection.document, selection);
+    var testingDocument = document.implementation.createHTMLDocument();
+    var testingSelection = new testing.TestingSelection(testingDocument,
+                                                        htmlText);
+    return new editing.EditingContext(testingDocument, testingSelection);
   }
 
   return createTree;
