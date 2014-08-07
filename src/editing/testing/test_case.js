@@ -4,13 +4,13 @@
 
 'use strict';
 
-function expectEq(expectedResult, testFunction) {
+function expectEq(expectedResult, testFunction, message) {
   var actualResult;
   try {
     actualResult = testFunction();
   } catch (exception) {
     actualResult = exception;
-    // TODO(yosin) We throw |execption| for debugging. Once, debugging is done,
+    // TODO(yosin) We throw |exception| for debugging. Once, debugging is done,
     // we should remove this.
     throw exception;
   }
@@ -25,10 +25,10 @@ function expectEq(expectedResult, testFunction) {
     testRunner.succeeded();
     return;
   }
-  var logElement = testRunner.failed(testFunction);
+  var logElement = testRunner.failed(message || testFunction);
   var listElement = document.createElement('ul');
   logElement.appendChild(listElement);
-  ['Expected:' + expectedResult, 'Actual__:' + actualResult].forEach(
+  ['Expected: ' + expectedResult, 'Actual__: ' + actualResult].forEach(
     function(value) {
       var listItemElement = document.createElement('li');
       listItemElement.textContent = value;
@@ -91,9 +91,13 @@ function testCaseFor(commandName, testCaseId, data) {
     throw new Error('You must specify before sample');
   if (typeof(data.before) != 'string')
     throw new Error('You must specify before sample');
+
   testCase(commandName + '.' + testCaseId, function() {
     var context = testing.createSample(data.before);
-    expectTrue(function() {
+    var expectedReturnValue = data.returnValue === undefined ?
+        true : data.returnValue;
+console.log('expectedReturnValue', expectedReturnValue);
+    expectEq(expectedReturnValue, function() {
       return testing.execCommand(context, commandName,
                                  Boolean(data.userInferface),
                                  data.value || '');

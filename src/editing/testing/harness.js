@@ -55,12 +55,15 @@ testing.define('execCommand', (function() {
     for (var index = 1; index < arguments.length; ++index) {
       args.push(arguments[index]);
     }
-    var testResult = context.execCommand.apply(context, args);
+    var actualReturnValue = context.execCommand.apply(context, args);
     var sampleContext = context.sampleContext_;
-    var sampleResult = sampleContext.execCommand.apply(sampleContext, args);
-    if (testResult != sampleResult)
-      expectEq(sampleResult, function() { return testResult; });
-    return testResult;
+    var sampleReturnValue = sampleContext.execCommand.apply(sampleContext,
+                                                            args);
+    if (actualReturnValue != sampleReturnValue) {
+      testRunner.log('Current return value is ' + sampleReturnValue +
+        ', but new result is ' + actualReturnValue + '.');
+    }
+    return actualReturnValue;
   }
   return execCommand;
 })());
