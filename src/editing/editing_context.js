@@ -33,7 +33,7 @@ editing.define('EditingContext', (function() {
         isAnchorBeforeFocus(domSelection) ?
             editing.SelectionDirection.ANCHOR_IS_START :
             editing.SelectionDirection.FOCUS_IS_START);
-  };
+  }
 
   /**
    * @this {!EditingContext}
@@ -73,6 +73,16 @@ editing.define('EditingContext', (function() {
    */
   function cloneNode(node) {
     this.instructions_.push({name: 'cloneNode', node: node});
+  }
+
+  /**
+   * @this {!EditingContext}
+   * @return {!ReadOnlySelection}
+   */
+  function endingSelection() {
+    if (!this.endingSelection_)
+      throw new Error('You should set ending selection at end of command.');
+    return this.endingSelection_;
   }
 
   /**
@@ -182,7 +192,7 @@ editing.define('EditingContext', (function() {
     createTextNode: {value: createTextNode},
     // Selection after executing editing command. This |ReadOnlySelection| is
     // put into undo stack for redo operation. See also |startingSelection|
-    endingSelection: {get: function() { return this.endingSelection_; }},
+    endingSelection: {get: endingSelection},
     endingSelection_: {writable: true},
     execCommand: {value: execCommand},
     hashCode_: {writable: true},
