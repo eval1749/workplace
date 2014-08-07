@@ -4,22 +4,22 @@
 
 'use strict';
 
-function expectEq(expected_result, testFunction) {
-  var actual_result;
+function expectEq(expectedResult, testFunction) {
+  var actualResult;
   try {
-    actual_result = testFunction();
+    actualResult = testFunction();
   } catch (exception) {
-    actual_result = exception;
+    actualResult = exception;
     // TODO(yosin) We throw |execption| for debugging. Once, debugging is done,
     // we should remove this.
     throw exception;
   }
   function equal() {
-    if (typeof(expected_result) != typeof(actual_result))
+    if (typeof(expectedResult) != typeof(actualResult))
       return false;
-    if (typeof(expected_result) == 'object')
-      return expected_result === actual_result;
-    return expected_result == actual_result;
+    if (typeof(expectedResult) == 'object')
+      return expectedResult === actualResult;
+    return expectedResult == actualResult;
   }
   if (equal()) {
     testRunner.succeeded();
@@ -28,7 +28,7 @@ function expectEq(expected_result, testFunction) {
   var logElement = testRunner.failed(testFunction);
   var listElement = document.createElement('ul');
   logElement.appendChild(listElement);
-  ['Expected:' + expected_result, 'Actual__:' + actual_result].forEach(
+  ['Expected:' + expectedResult, 'Actual__:' + actualResult].forEach(
     function(value) {
       var listItemElement = document.createElement('li');
       listItemElement.textContent = value;
@@ -66,6 +66,27 @@ function testCase(name, testFunction) {
 }
 
 function testCaseFor(commandName, testCaseId, data) {
+  function escapeHtml(text) {
+    return text.replace(/&/g, '&amp;').replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+  }
+
+  function pretty(text) {
+    var anchorIndex = text.indexOf('^');
+    var focusIndex = text.indexOf('|');
+    var escaped = escapeHtml(text);
+    if (focusIndex < 0)
+      return escaped;
+    if (anchorIndex < 0)
+      return escaped.replace('|', '<span class="selectionAnchorFocus"></span>');
+    if (anchorIndex < focusIndex) {
+      return escaped.replace('^', '<span class="selectionAnchorFocus">')
+        .replace('|', '</span>');
+    }
+    return escaped.replace('|', '<span class="selectionFocusAnchor">')
+        .replace('^', '</span>');
+  }
+
   if (typeof(data.after) != 'string')
     throw new Error('You must specify before sample');
   if (typeof(data.before) != 'string')
@@ -77,6 +98,29 @@ function testCaseFor(commandName, testCaseId, data) {
                                  Boolean(data.userInferface),
                                  data.value || '');
     });
-    expectEq(data.after, function() { return testing.getResultHtml(context); });
+
+    var actualResult = testing.serialzieNode(context.selection.rootForTesting,
+                                              context.endingSelection);
+    var expectedResult = data.after;
+    if (expectedResult == actualResult) {
+      testRunner.succeeded();
+    } else {
+      var logElement = testRunner.failed(commandName);
+      var listElement = document.createElement('ul');
+      logElement.appendChild(listElement);
+      ['Expected:' + expectedResult, 'Actual__:' + actualResult].forEach(
+        function(text) {
+          var listItemElement = document.createElement('li');
+          listItemElement.innerHTML = pretty(text);
+          listElement.appendChild(listItemElement);
+      });
+    }
+
+    var sample = context.sampleContext_.getResult();
+    if (sample != actualResult) {
+      testRunner.logHtml('Src: ' + pretty(context.sampleHtmlText_));
+      testRunner.logHtml('Cur: ' + pretty(sample));
+      testRunner.logHtml('New: ' + pretty(actualResult));
+    }
   });
 }
