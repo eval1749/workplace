@@ -19,3 +19,9 @@ if (!String.prototype.startsWith) {
     return !this.indexOf(text);
   }
 }
+
+
+// IE11 incompatibilities:
+// - document.implementation.createHTMLDocument(opt_title), opt_title is
+//   required parameter.
+// - Selection.extend(node, offset) is missing.

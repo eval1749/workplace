@@ -29,8 +29,15 @@ testing.define('SampleContext', (function() {
       return;
     }
 
-    this.selection_.collapse(sample.anchorNode, sample.anchorOffset);
-    this.selection_.extend(sample.focusNode, sample.focusOffset);
+    if (this.selection_.extend) {
+      this.selection_.collapse(sample.anchorNode, sample.anchorOffset);
+      this.selection_.extend(sample.focusNode, sample.focusOffset);
+    } else {
+      var range = document.createRange();
+      range.setStart(sample.anchorNode, sample.anchorOffset);
+      range.setEnd(sample.focusNode, sample.focusOffset);
+      this.selection_.addRange(range);
+    }
 
     // Since Blink normalize anchor and focus position, we use normalized
     // value rather than user specified value.

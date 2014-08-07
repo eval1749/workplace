@@ -179,7 +179,6 @@ function expectUndefined(testFunction) {
 
 function testCase(name, testFunction) {
   testRunner.beginTest(name);
-
   try {
     testFunction();
   } catch (exception) {
