@@ -77,6 +77,24 @@ editing.define('EditingContext', (function() {
 
   /**
    * @this {!EditingContext}
+   * @param {string} name
+   * @param {boolean=} opt_userInterface
+   * @param {string=} opt_value
+   *
+   * Emulation of |Document.execCommand|.
+   */
+  function execCommand(name, opt_userInterface, opt_value) {
+    var userInterface = arguments.length >= 2 ? Boolean(opt_userInterface)
+                                              : false;
+    var value = arguments.length >= 3 ? String(opt_value) : '';
+    var commandFunction = editing.lookupCommand(name);
+    if (!commandFunction)
+      throw new Error('No such command ' + name);
+    return commandFunction(this, userInterface, value);
+  }
+
+  /**
+   * @this {!EditingContext}
    * @param {!EditingNode} parentNode
    * @param {!EditingNode} newChild
    * @param {!EditingNode} refChild
@@ -162,6 +180,7 @@ editing.define('EditingContext', (function() {
     // put into undo stack for redo operation. See also |startingSelection|
     endingSelection: {get: function() { return this.endingSelection_; }},
     endingSelection_: {writable: true},
+    execCommand: {value: execCommand},
     hashCode_: {writable: true},
     insertBefore: {value: insertBefore},
     instructions_: {writable: true},

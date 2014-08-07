@@ -4,18 +4,42 @@
 
 'use strict';
 
-var editing = {}
+var editing = {};
 
-Object.defineProperty(editing, 'define', {
-  value:
+(function() {
+  // TODO(yosin) Once ES6 Map is ready, we should use it for |commandTable|.
+  var commandTable = {};
+
   /**
    * @param {string} name
    * @param {*} value
    */
-  function(name, value) {
+  function define(name, value) {
     Object.defineProperty(editing, name, {value: value});
   }
-});
+
+  /**
+   * @param {string} name
+   * @param {!function} commandFunction
+   */
+  function defineCommand(name, commandFunction) {
+    commandTable[name.toLowerCase()] = commandFunction;
+  }
+
+  /**
+   * @param {string} name
+   * @return {?function}
+   */
+  function lookupCommand(name) {
+    return commandTable[name.toLowerCase()] || null;
+  }
+
+  Object.defineProperties(editing, {
+    define: {value: define},
+    defineCommand: {value: defineCommand},
+    lookupCommand: {value: lookupCommand}
+  });
+})();
 
 // TODO(yosin) We should move |Math.sign| Polyfill to different place.
 if (!Math.sign) {
