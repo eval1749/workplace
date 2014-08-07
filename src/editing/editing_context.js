@@ -5,12 +5,6 @@
 'use strict';
 
 editing.define('EditingContext', (function() {
-  function isAnchorBeforeFocus(domSelection) {
-    var range = domSelection.getRangeAt(0);
-    return range.startOffset == domSelection.anchorOffset &&
-           range.startContainer === domSelection.anchorNode;
-  }
-
   /**
    * @param {!Document} document
    * @param {Object} domSelection Once |Selection| keeps passed node and offset,
@@ -27,10 +21,13 @@ editing.define('EditingContext', (function() {
     if (!domSelection || !domSelection.rangeCount)
       return;
 
+    // We don't make ending selection as starting selection here. Because,
+    // |ReadOnlySelection| doesn't track DOM modification during command
+    // execution.
     this.startingSelection_ = new editing.ReadOnlySelection(
-        domSelection.anchorNode, domSelection.anchorOffset,
-        domSelection.focusNode, domSelection.focusOffset,
-        isAnchorBeforeFocus(domSelection) ?
+        this.selection_.anchorNode, this.selection_.anchorOffset,
+        this.selection_.focusNode, this.selection_.focusOffset,
+        this.selection_.anchorIsStart ?
             editing.SelectionDirection.ANCHOR_IS_START :
             editing.SelectionDirection.FOCUS_IS_START);
   }
@@ -163,6 +160,8 @@ editing.define('EditingContext', (function() {
    * @param {!editing.ReadOnlySelection} selection
    */
   function setEndingSelection(selection) {
+    if (this.endingSelection_)
+      throw new Error('ending selection is already set.');
     this.endingSelection_ = selection;
   }
 
@@ -208,6 +207,7 @@ editing.define('EditingContext', (function() {
     splitText: {value: splitText},
     // Selection before executing editing command. This |ReadOnlySelection| is
     // put into undo stack for undo operation. See also |endingSelection|
+    startingSelection: {get: function() { return this.startingSelection_; }},
     startingSelection_: {writable: true}
   });
   return EditingContext;

@@ -368,6 +368,7 @@ editing.define('EditingSelection', (function() {
   }
 
   Object.defineProperties(EditingSelection.prototype, {
+    anchorIsStart: {get: function() { return this.anchorIsStart_; }},
     anchorIsStart_: {writable: true},
     anchorNode: {get: function() { return this.anchorNode_; }},
     anchorNode_: {writable: true},

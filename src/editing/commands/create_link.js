@@ -116,10 +116,14 @@ editing.defineCommand('createLink', (function() {
     // Remember first and last inserted anchor element for ending selection.
     var firstAnchorElement = null;
     var lastAnchorElement = null;
+    var isInsertAnchorElement = false;
 
-    function createAnchorElement() {
+    function insertNewAnchorElement(anchorPhraseNode) {
       var anchorElement = context.createElement('a');
       anchorElement.setAttribute('href', url);
+      anchorPhraseNode.parentNode.replaceChild(anchorElement, anchorPhraseNode);
+      anchorElement.appendChild(anchorPhraseNode);
+      isInsertAnchorElement = true;
       if (!firstAnchorElement)
         firstAnchorElement = anchorElement;
       lastAnchorElement = anchorElement;
@@ -170,17 +174,13 @@ editing.defineCommand('createLink', (function() {
             anchorElement.appendChild(pendingNodes[0]);
             pendingNodes = [];
           } else {
-            anchorElement = createAnchorElement();
-            pendingNodes[0].parentNode.replaceChild(anchorElement,
-                                                    pendingNodes[0]);
+            anchorElement = insertNewAnchorElement(pendingNodes[0]);
             pendingNodes = [];
           }
         } else if (anchorElement) {
           anchorElement.appendChild(currentNode);
         } else {
-          anchorElement = createAnchorElement();
-          currentNode.parentNode.replaceChild(anchorElement, currentNode);
-          anchorElement.appendChild(currentNode);
+          anchorElement = insertNewAnchorElement(currentNode);
         }
         return;
       }
@@ -203,14 +203,31 @@ editing.defineCommand('createLink', (function() {
       } else if (anchorElement) {
         anchorElement.appendChild(firstPendingNode);
       } else {
-        anchorElement = createAnchorElement();
-        firstPendingNode.parentNode.replaceChild(anchorElement,
-                                                 firstPendingNode);
+        anchorElement = insertNewAnchorElement(firstPendingNode);
       }
     }
 
     if (!firstAnchorElement)
       return false;
+
+    if (firstAnchorElement === lastAnchorElement) {
+      if (!isInsertAnchorElement) {
+        // Set ending selection as focus of starting selection.
+        var startingSelection = context.startingSelection;
+        context.setEndingSelection(new editing.ReadOnlySelection(
+            startingSelection.focusNode, startingSelection.focusOffset,
+            startingSelection.focusNode, startingSelection.focusOffset,
+            editing.ReadOnlySelection.ANCHOR_IS_START));
+        return true;
+      }
+
+      // Set ending selection as ^<a>text|</a>
+      context.setEndingSelection(new editing.ReadOnlySelection(
+          firstAnchorElement.parentNode, firstAnchorElement.nodeIndex,
+          firstAnchorElement, firstAnchorElement.childNodes.length,
+          context.selection.direction));
+      return true;
+    }
 
     context.setEndingSelection(new editing.ReadOnlySelection(
         firstAnchorElement.parentNode, firstAnchorElement.nodeIndex,
@@ -231,6 +248,8 @@ editing.defineCommand('createLink', (function() {
     if (context.selection.isEmpty)
       return false;
     if (context.selection.isCaret) {
+      // Note: Firefox and IE don't insert anchor element for caret.
+      // IE returns true event if it doesnt' insert anchor element.
       return createLinkBeforeCaret(context, url);
     }
     return createLinkForRange(context, url);

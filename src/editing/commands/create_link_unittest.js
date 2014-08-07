@@ -85,7 +85,7 @@ testCase('createLinkRangeAnchor', function() {
   expectTrue(function() {
     return testing.execCommand(context, 'CreateLink', false, 'URL');
   });
-  expectEq('<p contenteditable>^<a href="URL">foo</a>|</p>',
+  expectEq('<p contenteditable><a href="URL">foo|</a></p>',
            function() { return testing.getResultHtml(context); });
 });
 
@@ -100,7 +100,7 @@ testCase('createLinkRangeAnchor2', function() {
   expectTrue(function() {
     return testing.execCommand(context, 'CreateLink', false, 'URL');
   });
-  expectEq('<p contenteditable>^<a href="URL">foo</a>|</p>',
+  expectEq('<p contenteditable><a href="URL">fo|o</a></p>',
            function() { return testing.getResultHtml(context); });
 });
 
@@ -119,14 +119,14 @@ testCase('createLinkRangeList', function() {
 testCase('createLinkRangeSimpleText', function() {
   var context = testing.createSample('<p contenteditable>^abcd|</p>');
   expectTrue(function() { return testing.execCommand(context, 'CreateLink', false, 'URL'); });
-  expectEq('<p contenteditable>^<a href="URL">abcd</a>|</p>',
+  expectEq('<p contenteditable>^<a href="URL">abcd|</a></p>',
            function() { return testing.getResultHtml(context); });
 });
 
 testCase('createLinkRangeSimpleTree', function() {
   var context = testing.createSample('<p contenteditable>^abcd<b>efg</b>|</p>');
   expectTrue(function() { return testing.execCommand(context, 'CreateLink', false, 'URL'); });
-  expectEq('<p contenteditable>^<a href="URL">abcd<b>efg</b></a>|</p>',
+  expectEq('<p contenteditable>^<a href="URL">abcd<b>efg</b>|</a></p>',
            function() { return testing.getResultHtml(context); });
 });
 
