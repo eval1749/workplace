@@ -183,6 +183,14 @@ editing.define('EditingContext', (function() {
   function setEndingSelection(selection) {
     if (this.endingSelection_)
       throw new Error('ending selection is already set.');
+    if (selection.anchorNode || !selection.anchorNode.inDocument) {
+      throw new Error('Can not set anchor node not in document ' +
+                      selection.anchorNode);
+    }
+    if (selection.focusNode || !selection.focusNode.inDocument) {
+      throw new Error('Can not set focus node not in document ' +
+                      selection.focusNode);
+    }
     this.endingSelection_ = selection;
   }
 

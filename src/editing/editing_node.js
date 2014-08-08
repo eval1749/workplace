@@ -157,6 +157,16 @@ editing.define('EditingNode', (function() {
     return this.firstChild !== null;
   }
 
+
+  /**
+   * @this {!EditingNode}
+   * @return {boolean}
+   */
+  function inDocument() {
+    // TODO(yosin) We should check this node is really in document.
+    return Boolean(this.parentNode);
+  }
+
   /**
    * @this {!EditingNode}
    * @param {!EditingNode} newChild
@@ -566,6 +576,7 @@ editing.define('EditingNode', (function() {
     hasChildNodes: {value: hasChildNodes },
     hashCode: {get: function() { return this.hashCode_; }},
     hashCode_: {writable: true},
+    inDocument: {value: inDocument },
     insertAfter: {value: insertAfter},
     insertBefore: {value: insertBefore},
     isContentEditable: {get: isContentEditable},
