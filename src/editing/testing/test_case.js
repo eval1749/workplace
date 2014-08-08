@@ -54,6 +54,9 @@ function expectUndefined(testFunction) {
 
 function testCase(name, testFunction) {
   testRunner.beginTest(name);
+testFunction();
+testRunner.endTest(name);
+return;
   try {
     testFunction();
   } catch (exception) {
@@ -96,7 +99,6 @@ function testCaseFor(commandName, testCaseId, data) {
     var context = testing.createSample(data.before);
     var expectedReturnValue = data.returnValue === undefined ?
         true : data.returnValue;
-console.log('expectedReturnValue', expectedReturnValue);
     expectEq(expectedReturnValue, function() {
       return testing.execCommand(context, commandName,
                                  Boolean(data.userInferface),
