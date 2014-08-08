@@ -72,9 +72,10 @@ testing.define('serialzieNode', (function() {
   /**
    * @param {!EditingNode} node
    * @param {editing.ReadOnlySelection=} opt_selection
+   * @param {boolean=} opt_visibleTextNode
    * @return {string}
    */
-  function serialzieNode(node, opt_selection) {
+  function serialzieNode(node, opt_selection, opt_visibleTextNode) {
     console.assert(node instanceof editing.EditingNode);
     /** @const */ var selection = arguments.length >= 2 ?
         /** @type {!editing.ReadOnlySelection} */(opt_selection) : null;
@@ -116,7 +117,12 @@ testing.define('serialzieNode', (function() {
       while (child) {
         sink += marker(node, offset);
         sink += visit(child);
-        child = child.nextSibling;
+        var nextSibling = child.nextSibling;
+        if (opt_visibleTextNode && child.isText && nextSibling &&
+            nextSibling.isText) {
+            sink += '_';
+        }
+        child = nextSibling;
         ++offset;
       }
       sink += marker(node, offset);

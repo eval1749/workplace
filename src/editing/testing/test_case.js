@@ -106,7 +106,7 @@ function testCaseFor(commandName, testCaseId, data) {
     });
 
     var actualResult = testing.serialzieNode(context.selection.rootForTesting,
-                                              context.endingSelection);
+                                             context.endingSelection);
     var expectedResult = data.after;
     if (expectedResult == actualResult) {
       testRunner.succeeded();
@@ -122,11 +122,13 @@ function testCaseFor(commandName, testCaseId, data) {
       });
     }
 
+    var actualResult2 = testing.serialzieNode(context.selection.rootForTesting,
+                                              context.endingSelection, true);
     var sample = context.sampleContext_.getResult();
-    if (sample != actualResult) {
+    if (sample != actualResult2) {
       testRunner.logHtml('Src: ' + pretty(context.sampleHtmlText_));
       testRunner.logHtml('Cur: ' + pretty(sample));
-      testRunner.logHtml('New: ' + pretty(actualResult));
+      testRunner.logHtml('New: ' + pretty(actualResult2));
     }
   });
 }
