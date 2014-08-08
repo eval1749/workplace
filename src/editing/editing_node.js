@@ -85,6 +85,49 @@ editing.define('EditingNode', (function() {
 
   /**
    * @this {!EditingNode}
+   * @param {!EditingNode} other
+   * @return {?EditingNode}
+   */
+  function commonAncestor(node2) {
+    var node1 = this;
+    console.assert(node1.ownerDocument === node2.ownerDocument);
+    if (node1 === node2)
+      return node1;
+    var depth1 = 0;
+    for (var node = node1; node; node = node.parentNode) {
+      if (node == node2)
+        return node;
+      ++depth1;
+    }
+    var depth2 = 0;
+    for (var node = node2; node; node = node.parentNode) {
+      if (node == node1)
+        return node;
+      ++depth2;
+    }
+    var runner1 = node1;
+    var runner2 = node2;
+    if (depth1 > depth2) {
+      for (var depth  = depth1; depth > depth2; --depth) {
+        runner1 = runner1.parentNode;
+      }
+    } else if (depth2 > depth1) {
+      for (var depth  = depth2; depth > depth1; --depth) {
+        runner2 = runner2.parentNode;
+      }
+    }
+    while (runner1) {
+      if (runner1 == runner2)
+        return runner1;
+       runner1 = runner1.parentNode;
+       runner2 = runner2.parentNode;
+    }
+    console.assert(!runner2);
+    return null;
+  }
+
+  /**
+   * @this {!EditingNode}
    * @param {string} attrName
    * @return {?string}
    */
@@ -511,6 +554,7 @@ editing.define('EditingNode', (function() {
     constructor: {value: EditingNode},
     childNodes: {get: childNodes},
     cloneNode: {value: cloneNode},
+    commonAncestor: {value: commonAncestor},
     context: {get: function() { return this.context_; }},
     context_: {writable: true},
     domNode: {get: function() { return this.domNode_; }},
