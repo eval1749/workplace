@@ -14,7 +14,6 @@ testing.define('SampleContext', (function() {
     this.iframe_ = iframe;
     document.body.appendChild(iframe);
     this.document_ = iframe.contentDocument;
-    this.document.body.textContent = 'Foo';
     // Note: Firefox requires focus to retrieve selection from IFRAME.
     iframe.focus();
     this.selection_ = iframe.contentWindow.getSelection();
