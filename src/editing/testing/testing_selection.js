@@ -116,6 +116,9 @@ testing.define('TestingSelection', (function() {
     if (htmlSource.indexOf('|') != htmlSource.lastIndexOf('|'))
       throw new Error('More than one focus marker in "' + htmlSource + '"');
 
+    if (htmlSource.indexOf('|') < 0)
+      throw new Error('You should have at most one | in "' + htmlSource + '"');
+
     var htmlText = htmlSource.replace('|', '<!--|-->').replace('^', '<!--^-->');
     this.document_ = document;
     this.range_ = this.document_.createRange();
