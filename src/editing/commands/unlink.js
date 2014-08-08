@@ -20,55 +20,63 @@ editing.defineCommand('Unlink', (function() {
 
   /**
    * @param {!EditingContext} context
+   * @return {boolean}
+   */
+  function unlinkForCaret(context) {
+    var selection = context.selection;
+    var anchorElement = selection.focusNode;
+    while (anchorElement && anchorElement.nodeName != 'A') {
+      anchorElement = anchorElement.parentNode;
+    }
+    if (!anchorElement || !anchorElement.isEditable) {
+      context.setEndingSelection(context.startingSelection);
+      return true;
+    }
+    var nodeAtCaret = selection.focusNode.childNodes[selection.focusOffset];
+    moveChildNodesBeforeParentNode(anchorElement, null);
+    var containerNode = nodeAtCaret ? nodeAtCaret.parentNode :
+                                      selection.focusNode.parentNode;
+    var offset = nodeAtCaret ? nodeAtCaret.nodeIndex : selection.focusOffset;
+    anchorElement.parentNode.removeChild(anchorElement);
+    context.setEndingSelection(new editing.ReadOnlySelection(
+        containerNode, offset, containerNode, offset,
+        editing.SelectionDirection.ANCHOR_IS_START));
+    return true;
+  }
+
+  /**
+   * @param {!EditingContext} context
    * @param {boolean} userInterface Not used.
    * @param {string} value Noe used.
    * @return {boolean}
    */
   function unlinkCommand(context, userInterface, value) {
     var selection = context.selection;
-
-    if (!selection.isRange) {
+    if (selection.isEmpty) {
       context.setEndingSelection(context.startingSelection);
       return true;
     }
 
-    var anchorElement = selection.anchorNode.commonAncestor(
-        selection.focusNode);
-    if (anchorElement.nodeName == 'A') {
-      moveChildNodesBeforeParentNode(anchorElement, null);
-      anchorElement.parentNode.removeChild(anchorElement);
-      if (selection.anchorNode === selection.focusNode) {
-        var offset = Math.max(selection.anchorOffset, selection.focusOffset);
-        context.setEndingSelection(new editing.ReadOnlySelection(
-            selection.anchorNode, offset, selection.anchorNode, offset,
-            editing.SelectionDirection.ANCHOR_IS_START));
-      } else {
-        context.setEndingSelection(context.startingSelection);
-      }
-      return true;
-    }
+    if (selection.isCaret)
+      return unlinkForCaret(context);
 
-console.log('unlinkCommand ====');
-    var endNode = null;
-    var endOffset = 0;
-    var startNode = null;
-    var startOffset = 0;
+    // We'll remove nested anchor elements event if nested anchor elements
+    // aren't valid HTML5.
     var anchorElements = [];
     var anchorElement = null;
-    // TODO(yosin) We should not split text nodes at boundary points.
+    var anchorNode = selection.anchorNode;
+    var anchorOffset = selection.anchorOffset;
+    var focusNode = selection.focusNode;
+    var focusOffset = selection.focusOffset;
+
+    // TODO(yosin) We should not split text nodes at boundary points if
+    // they aren't inside A element.
     context.selection_.nodes.forEach(function(node) {
-console.log('unlinkCommand node=' + node);
       while (anchorElement) {
         if (node.isDescendantOf(anchorElement)) {
           if (anchorElement != node.parentNode)
             return;
           anchorElement.parentNode.insertBefore(node, anchorElement);
-          endNode = anchorElement.parentNode;
-          endOffset = node.nodeIndex + 1;
-          if (!startNode) {
-            startNode = endNode;
-            startOffset = endOffset - 1;
-          }
           return;
         }
         anchorElement.parentNode.removeChild(anchorElement);
@@ -83,45 +91,28 @@ console.log('unlinkCommand node=' + node);
       while (anchorElement && anchorElement.nodeName != 'A') {
         anchorElement = anchorElement.parentNode;
       }
-      if (!anchorElement || !anchorElement.isEditable ||
-          !anchorElement.hasAttribute('href')) {
+      if (!anchorElement || !anchorElement.isEditable) {
         anchorElement = null;
         return;
       }
 
-      var parentNode = anchorElement.parentNode;
+      // Relocate anchor/focus points
+      if (anchorNode === anchorElement) {
+        anchorNode = anchorNode.parentNode;
+        anchorOffset += anchorElement.nodeIndex;
+      }
 
-      // Firefox removes A element even if it has non-HREF attributes.
-      if (editing.DO_NOT_REMOVE_A_HAVING_OTHER_THAN_HREF) {
-        if (anchorElement.attributeNames.length > 1) {
-          endNode = node;
-          endOffset = node.childNodes.length;
-          if (!startNode) {
-            startNode = endNode;
-            startOffset = endOffset;
-          }
-          node.removeAttribute('href');
-          anchorElement = null;
-          return;
-        }
+      if (focusNode === anchorElement) {
+        focusNode = focusNode.parentNode;
+        focusOffset += anchorElement.nodeIndex;
       }
 
       anchorElements.push(anchorElement);
-      if (anchorElement != node) {
-        var nextSibling = node.nextSibling;
-        moveChildNodesBeforeParentNode(anchorElement, nextSibling);
-        endNode = parentNode;
-        endOffset = node.nodeIndex + 1;
-        if (!startNode) {
-          startNode = endNode;
-          //startOffset = nextSibling ? endOffset -1 : endOffset;
-          startOffset = endOffset - 1;
-        }
-      }
-    });
+      if (anchorElement == node)
+        return;
 
-console.log('unlinkCommand start=' + startNode + ' ' + startOffset + ', end=' +
-    endNode + ' ' + endOffset);
+      moveChildNodesBeforeParentNode(anchorElement, node.nextSibling);
+    });
 
     while (anchorElements.length) {
       var anchorElement = anchorElements.pop();
@@ -129,13 +120,9 @@ console.log('unlinkCommand start=' + startNode + ' ' + startOffset + ', end=' +
       anchorElement.parentNode.removeChild(anchorElement);
     }
 
-    if (!startNode) {
-      context.setEndingSelection(context.startingSelection);
-    } else {
-      context.setEndingSelection(new editing.ReadOnlySelection(
-         startNode, startOffset, endNode, endOffset,
-         editing.SelectionDirection.ANCHOR_IS_START));
-    }
+    context.setEndingSelection(new editing.ReadOnlySelection(
+       anchorNode, anchorOffset, focusNode, focusOffset,
+       selection.direction));
     return true;
   }
 
