@@ -20,6 +20,19 @@ testCase('EditingNode.appendChild', function() {
 });
 
 //
+// hasAttribute
+//
+testCase('EditingNode.hasAttribute', function() {
+  var context = testing.createContext();
+  var element1 = testing.createElement(context, 'e1');
+  element1.setAttribute('a1', 'one');
+  element1.setAttribute('a2', 'one');
+  expectTrue(function() { return element1.hasAttribute('a1'); });
+  expectTrue(function() { return element1.hasAttribute('A1'); });
+  expectFalse(function() { return element1.hasAttribute('notexist'); });
+});
+
+//
 // hasChildNodes
 //
 testCase('EditingNode.hasChildNodes', function() {

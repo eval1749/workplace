@@ -38,7 +38,7 @@ editing.define('EditingContext', (function() {
    * @param {!EditingNode} newChild
    */
   function appendChild(parentNode, newChild) {
-    this.instructions_.push({name: 'appendChild', parentNode: parentNode,
+    this.instructions_.push({opcode: 'appendChild', parentNode: parentNode,
                              newChild: newChild});
   }
 
@@ -69,7 +69,7 @@ editing.define('EditingContext', (function() {
    * @param {!EditingNode} node
    */
   function cloneNode(node) {
-    this.instructions_.push({name: 'cloneNode', node: node});
+    this.instructions_.push({opcode: 'cloneNode', node: node});
   }
 
   /**
@@ -111,7 +111,7 @@ editing.define('EditingContext', (function() {
    * @param {!EditingNode} refChild
    */
   function insertBefore(parentNode, newChild, refChild) {
-    this.instructions_.push({name: 'insertBefore', parentNode: parentNode,
+    this.instructions_.push({opcode: 'insertBefore', parentNode: parentNode,
                              newChild: newChild, refChild: refChild});
   }
 
@@ -125,11 +125,19 @@ editing.define('EditingContext', (function() {
 
   /**
    * @this {!EditingContext}
+   * @param {string} name
+   */
+  function removeAttribute(node, name) {
+    this.instructions_.push({opcode: 'removeAttribute', name: name, node: node});
+  }
+
+  /**
+   * @this {!EditingContext}
    * @param {!EditingNode} parentNode
    * @param {!EditingNode} oldChild
    */
   function removeChild(parentNode, oldChild) {
-    this.instructions_.push({name: 'removeChild', parentNode: parentNode,
+    this.instructions_.push({opcode: 'removeChild', parentNode: parentNode,
                              oldChild: oldChild});
   }
 
@@ -140,7 +148,7 @@ editing.define('EditingContext', (function() {
    * @param {!EditingNode} oldChild
    */
   function replaceChild(parentNode, newChild, oldChild) {
-    this.instructions_.push({name: 'replaceChild', parentNode: parentNode,
+    this.instructions_.push({opcode: 'replaceChild', parentNode: parentNode,
                              newChild: newChild, oldChild: oldChild});
   }
 
@@ -151,7 +159,7 @@ editing.define('EditingContext', (function() {
    * @param {string} attrValue
    */
   function setAttribute(element, attrName, attrValue) {
-    this.instructions_.push({name: 'setAttribute', element: element,
+    this.instructions_.push({opcode: 'setAttribute', element: element,
                             attrName: attrName, attrValue: attrValue});
   }
 
@@ -177,7 +185,7 @@ editing.define('EditingContext', (function() {
     console.assert(textNode.isText);
     console.assert(newNode instanceof editing.EditingNode);
     console.assert(newNode.isText);
-    this.instructions_.push({name: 'splitText', node: textNode,
+    this.instructions_.push({opcode: 'splitText', node: textNode,
                              offset: offset, newNode: newNode});
   }
 
@@ -198,6 +206,7 @@ editing.define('EditingContext', (function() {
     insertBefore: {value: insertBefore},
     instructions_: {writable: true},
     nextHashCode: {value: nextHashCode },
+    removeAttribute: {value: removeAttribute},
     removeChild: {value: removeChild},
     replaceChild: {value: replaceChild},
     selection: {get: function() { return this.selection_; }},

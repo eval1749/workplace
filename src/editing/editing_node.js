@@ -9,21 +9,6 @@ editing.define('EditingNode', (function() {
   /* @const */ var PHRASING = editing.CONTENT_CATEGORY.PHRASING;
 
   /**
-   * @param {!EditingNode} node
-   * @param {!EditingNode} other
-   * Returns true if |other| is an ancestor of |node|, otherwise false.
-   */
-  function isDescendantOf(node, other) {
-    console.assert(node instanceof editing.EditingNode);
-    console.assert(other instanceof editing.EditingNode);
-    for (var runner = node.parentNode; runner; runner = runner.parentNode) {
-      if (runner == other)
-        return true;
-    }
-    return false;
-  }
-
-  /**
    * @param {!EditingContext} context
    * @param {!Node} node
    */
@@ -104,6 +89,17 @@ editing.define('EditingNode', (function() {
 
   /**
    * @this {!EditingNode}
+   * @param {string} attrName
+   * @return {boolean}
+   */
+  function hasAttribute(attrName) {
+    console.assert('EditingNode.Node expect string as attribute name ' +
+                    'rather than ' + attrName);
+    return this.attributes_[attrName.toLowerCase()] !== undefined;
+  }
+
+  /**
+   * @this {!EditingNode}
    * @return {boolean}
    */
   function hasChildNodes() {
@@ -165,7 +161,7 @@ editing.define('EditingNode', (function() {
         throw 'parentNode must be an Element: ' + parentNode.domNode_;
     }
     if (newChild.parentNode_)
-      internalRemoveChild(newChild.parentNode_, newChild);
+      internalRemoveChild(newChild);
     if (!parentNode.firstChild_)
       parentNode.firstChild_ = newChild;
     var lastChild = parentNode.lastChild_;
@@ -190,8 +186,8 @@ editing.define('EditingNode', (function() {
     }
     if (refChild.parentNode_ !== parentNode)
       throw new Error('Bad parent');
-    if (newChild.preantNode_)
-      internalRemoveChild(newChild.parentNode_, newChild);
+    if (newChild.parentNode_)
+      internalRemoveChild(newChild);
     console.assert(!newChild.parentNode);
     console.assert(!newChild.nextSibling);
     console.assert(!newChild.previousSibling);
@@ -210,7 +206,8 @@ editing.define('EditingNode', (function() {
    * @param {!EditingNode} parentNode
    * @param {!EditingNode} oldChild
    */
-  function internalRemoveChild(parentNode, oldChild) {
+  function internalRemoveChild(oldChild) {
+    var parentNode = oldChild.parentNode_;
     console.assert(parentNode.isElement);
     console.assert(parentNode === oldChild.parentNode_);
     var nextSibling = oldChild.nextSibling_;
@@ -236,8 +233,8 @@ editing.define('EditingNode', (function() {
   function internalReplaceChild(parentNode, newChild, oldChild) {
     if (oldChild.parentNode_ !== parentNode)
       throw new Error('Bad parent');
-    if (newChild.parentNode)
-      internalRemoveChild(parentNode, newChild);
+    if (newChild.parentNode_)
+      internalRemoveChild(newChild);
 
     var nextSibling = oldChild.nextSibling;
     var previousSibling = oldChild.previousSibling;
@@ -271,6 +268,20 @@ editing.define('EditingNode', (function() {
       if (typeof(contentEditable) == 'string')
         return contentEditable.toLowerCase() != 'false';
       if (editing.isContentEditable(runner.domNode_))
+        return true;
+    }
+    return false;
+  }
+
+  /**
+   * @this {!EditingNode} node
+   * @param {!EditingNode} other
+   * Returns true if |other| is an ancestor of |node|, otherwise false.
+   */
+  function isDescendantOf(other) {
+    console.assert(other instanceof editing.EditingNode);
+    for (var runner = this.parentNode; runner; runner = runner.parentNode) {
+      if (runner == other)
         return true;
     }
     return false;
@@ -361,6 +372,18 @@ editing.define('EditingNode', (function() {
     return nodeValue.substring(this.textStartOffset_, this.textEndOffset_);
   }
 
+
+  /**
+   * @this {!EditingNode}
+   * @param {string} name
+   */
+  function removeAttribute(name) {
+    console.assert(typeof(name) == 'string',
+        'Attribute name must be string rather than ' + name);
+    delete this.attributes_[name];
+    this.context_.removeAttribute(this, name);
+  }
+
   /**
    * @this {!EditingNode}
    * @param {!EditingNode} oldChild
@@ -370,7 +393,7 @@ editing.define('EditingNode', (function() {
     if (oldChild.parentNode_ !== this)
       throw new Error('Bad parent');
     this.context_.removeChild(this, oldChild);
-    internalRemoveChild(this, oldChild);
+    internalRemoveChild(oldChild);
   }
 
   /**
@@ -450,7 +473,7 @@ editing.define('EditingNode', (function() {
     }
 
     var treeNode = this;
-    console.assert(isDescendantOf(refNode, treeNode));
+    console.assert(refNode.isDescendantOf(treeNode));
 
     var lastNode = refNode;
     for (var runner = refNode.parentNode; runner !== treeNode;
@@ -487,12 +510,14 @@ editing.define('EditingNode', (function() {
     firstChild: {get: function() { return this.firstChild_; }},
     firstChild_: {writable: true},
     getAttribute: {value: getAttribute},
+    hasAttribute: {value: hasAttribute },
     hasChildNodes: {value: hasChildNodes },
     hashCode: {get: function() { return this.hashCode_; }},
     hashCode_: {writable: true},
     insertAfter: {value: insertAfter},
     insertBefore: {value: insertBefore},
     isContentEditable: {get: isContentEditable},
+    isDescendantOf: {value: isDescendantOf},
     isElement: {get: isElement},
     isEditable: {get: isEditable},
     isInteractive: {get: isInteractive},
@@ -509,6 +534,7 @@ editing.define('EditingNode', (function() {
     parentNode_: {writable: true},
     previousSibling: {get: function() { return this.previousSibling_; }},
     previousSibling_: {writable: true},
+    removeAttribute: {value: removeAttribute},
     removeChild: {value: removeChild},
     replaceChild: {value: replaceChild},
     setAttribute: {value: setAttribute},
