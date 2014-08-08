@@ -239,7 +239,9 @@ editing.define('EditingSelection', (function() {
 
     var domCommonAncestor = computeCommonAncestor(domSelection.anchorNode,
                                                   domSelection.focusNode);
-    console.assert(domCommonAncestor instanceof Node);
+    console.assert(domCommonAncestor instanceof Node,
+                   'No common ancestor for', domSelection.anchorNode, 'and',
+                   domSelection.focusNode);
     var treeContext = {
       context: context,
       domSelection: domSelection,
