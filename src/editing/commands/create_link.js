@@ -4,8 +4,7 @@
 
 'use strict';
 
-// TODO(yosin) We should use |editing.defineCommand| instead of |define|.
-editing.defineCommand('createLink', (function() {
+editing.defineCommand('CreateLink', (function() {
   /*
    * Insert an A element, link and content are specified URL, before selection
    * focus position.
@@ -245,7 +244,7 @@ editing.defineCommand('createLink', (function() {
    * @param {string} url
    * @return {boolean}
    */
-  function createLink(context, userInterface, url) {
+  function createLinkCommand(context, userInterface, url) {
     if (url == '' || context.selection.isEmpty) {
       context.setEndingSelection(context.startingSelection);
       return false;
@@ -258,5 +257,5 @@ editing.defineCommand('createLink', (function() {
     return createLinkForRange(context, url);
   }
 
-  return createLink;
+  return createLinkCommand;
 })());

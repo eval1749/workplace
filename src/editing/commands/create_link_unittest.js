@@ -4,7 +4,6 @@
 
 'use strict';
 
-
 // When |url| parameter is empty, |createLink| does nothing and returns
 // false.
 testCase('CreateLink.NoUrl', function() {
