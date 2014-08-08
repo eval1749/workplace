@@ -17,57 +17,90 @@ testing.define('TestingSelection', (function() {
     NOTREACHED();
   }
 
-  function visit(selection, node) {
+  // If boundary point is between text nodes, we merge them.
+  function fixupAnchorAndFocus(selection, containerNode, offsetInContainer) {
+    function updateAnchorIfNeeded(newNode, newOffset) {
+      if (selection.anchorNode_ !== node)
+        return;
+      if (selection.anchorOfset_ != offsetInContainer)
+        return;
+      selection.anchorNode_ = node;
+      selection.anchorOfset_ = offsetInContainer;
+    }
+
+    function updateFocusIfNeeded(newNode, newOffset) {
+      if (selection.focusNode_ !== node)
+        return;
+      if (selection.focusOfset_ != offsetInContainer)
+        return;
+      selection.focusNode_ = node;
+      selection.focusOfset_ = offsetInContainer;
+    }
+
+    var node = containerNode.childNodes[offsetInContainer];
+    if (!node) {
+      // Boundary point is end of node.
+      return;
+    }
+    if (node.nodeType != Node.TEXT_NODE)
+      return;
+    var previousSibling = node.previousSibling;
+    if (!previousSibling || previousSibling.nodeType != Node.TEXT_NODE)
+      return;
+    var beforeText = previousSibling.textContent;
+    node.textContent = beforeText + node.textContent;
+    node.parentNode.removeChild(previousSibling);
+    updateAnchorIfNeeded(node, beforeText.length);
+    updateFocusIfNeeded(node, beforeText.length);
+  }
+
+  function parseAnchorAndFocus(selection, node) {
     var child = node.firstChild;
     if (child) {
       while (child){
         var nextSibling = child.nextSibling;
-        visit(selection, child);
-        if (selection.anchorNode && selection.focusNode)
-          return;
+        parseAnchorAndFocus(selection, child);
         child = nextSibling;
       }
       return;
     }
 
-    if (node.nodeType != Node.TEXT_NODE)
+    if (node.nodeType != Node.COMMENT_NODE)
       return;
 
-    var sampleText = node.nodeValue;
-    var text = sampleText.replace('^', '').replace('|', '');
-
-    var anchorOffset = sampleText.replace('|', '').indexOf('^');
-    var focusOffset = sampleText.replace('^', '').indexOf('|');
-
-    if (anchorOffset < 0 && focusOffset < 0)
+    var marker = node.nodeValue;
+    if (marker != '|' && marker != '^')
       return;
 
-    if (text.length) {
-      if (anchorOffset >= 0) {
-        selection.anchorNode_ = node;
-        selection.anchorOffset_ = anchorOffset;
-      }
-      if (focusOffset >= 0) {
-        selection.focusNode_ = node;
-        selection.focusOffset_ = focusOffset;
-      }
-      node.nodeValue = text;
-    } else {
-      if (anchorOffset >= 0) {
-        selection.anchorNode_ = node.parentNode;
-        selection.anchorOffset_ = indexOfNode(node);
-      }
+    // Remove marker node
+    var nextSibling = node.nextSibling;
+    var previousSibling = node.previousSibling;
+    var offsetInContainer = indexOfNode(node);
+    var containerNode = node.parentNode;
+    containerNode.removeChild(node);
 
-      if (focusOffset >= 0) {
-        selection.focusNode_ = node.parentNode;
-        selection.focusOffset_ = indexOfNode(node);
-      }
-      node.parentNode.removeChild(node);
+    if (previousSibling && previousSibling.nodeType == Node.TEXT_NODE) {
+      containerNode = previousSibling;
+      offsetInContainer = previousSibling.nodeValue.length;
     }
-    if (selection.focusNode && !selection.anchorNode) {
+
+    if (nextSibling && nextSibling.nodeType == Node.TEXT_NODE) {
+      containerNode = nextSibling;
+      offsetInContainer = 0;
+    }
+
+    if (marker == '^') {
+      selection.anchorNode_ = containerNode;
+      selection.anchorOffset_ = offsetInContainer;
+    } else {
+      selection.focusNode_ = containerNode;
+      selection.focusOffset_ = offsetInContainer;
+    }
+
+    if (!selection.anchorNode_ && selection.focusNode_) {
       selection.anchorIsStart_ = false;
-      selection.anchorNode_ = selection.focusNode;
-      selection.anchorOffset_ = selection.focusOffset;
+      selection.anchorNode_ = selection.focusNode_;
+      selection.anchorOffset_ = selection.focusOffset_;
     }
   }
 
@@ -76,24 +109,27 @@ testing.define('TestingSelection', (function() {
    * @param {!Document} document
    * @param {string} htmlText
    */
-  function TestingSelection(document, htmlText) {
+  function TestingSelection(document, htmlSource) {
+    if (htmlSource.indexOf('^') != htmlSource.lastIndexOf('^'))
+      throw new Error('More than one focus marker in "' + htmlSource + '"');
+
+    if (htmlSource.indexOf('|') != htmlSource.lastIndexOf('|'))
+      throw new Error('More than one focus marker in "' + htmlSource + '"');
+
+    var htmlText = htmlSource.replace('|', '<!--|-->').replace('^', '<!--^-->');
     this.document_ = document;
     this.range_ = this.document_.createRange();
     this.root_ = this.document_.body;
     this.root_.innerHTML = htmlText;
     this.anchorIsStart_ = true;
+    parseAnchorAndFocus(this, this.root_);
+    fixupAnchorAndFocus(this, this.anchorNode_, this.anchorOffset_);
+    fixupAnchorAndFocus(this, this.focusNode_, this.focusOffset_);
 
-    if (htmlText.indexOf('^') != htmlText.lastIndexOf('^'))
-      throw new Error('More than one focus marker in "' + htmlText + '"');
-
-    if (htmlText.indexOf('|') != htmlText.lastIndexOf('|'))
-      throw new Error('More than one focus marker in "' + htmlText + '"');
-
-    visit(this, this.root_);
-
-    if (!this.anchorNode_)
+    if (!this.focusNode_)
       return;
-
+    console.assert(this.anchorNode_,
+                  'AnchorNode should no be null for', htmlSource);
     if (this.anchorIsStart_) {
       this.range_.setStart(this.anchorNode_, this.anchorOffset_);
       this.range_.setEnd(this.focusNode_, this.focusOffset_);
