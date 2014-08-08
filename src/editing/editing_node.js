@@ -46,6 +46,14 @@ editing.define('EditingNode', (function() {
 
   /**
    * @this {!EditingNode}
+   * @return {!Array.<string>}
+   */
+  function attributeNames() {
+    return Object.keys(this.attributes_);
+  }
+
+  /**
+   * @this {!EditingNode}
    * @return {!Array.<!EditingNode?}
    */
   function childNodes() {
@@ -498,7 +506,7 @@ editing.define('EditingNode', (function() {
 
   Object.defineProperties(EditingNode.prototype, {
     appendChild: {value: appendChild},
-    attributes: {get: function() { return this.attributes_; }},
+    attributeNames: {get: attributeNames},
     attributes_: {writable: true},
     constructor: {value: EditingNode},
     childNodes: {get: childNodes},

@@ -337,11 +337,11 @@ testCase('EditingNode.setAttribute', function() {
   var element1 = testing.createElement(context, 'e1');
   element1.setAttribute('a1', 'one');
   element1.setAttribute('a2', 'two');
-  expectEq('one', function() { return element1.attributes['a1']; });
-  expectEq('two', function() { return element1.attributes['a2']; });
+  expectEq('one', function() { return element1.getAttribute('a1'); });
+  expectEq('two', function() { return element1.getAttribute('a2'); });
   element1.setAttribute('a1', 'abc');
-  expectEq('abc', function() { return element1.attributes['a1']; });
-  expectEq(2, function() { return Object.keys(element1.attributes).length; });
+  expectEq('abc', function() { return element1.getAttribute('a1'); });
+  expectEq(2, function() { return element1.attributeNames.length; });
 });
 
 //
