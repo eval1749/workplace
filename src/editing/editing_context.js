@@ -5,6 +5,12 @@
 'use strict';
 
 editing.define('EditingContext', (function() {
+  function ASSERT_DOM_TREE_IS_MUTABLE(context) {
+    if (!context.endingSelection_)
+      return;
+    throw new Error("You can't mutate DOM tree once you set ending selection.");
+  }
+
   /**
    * @param {!Document} document
    * @param {Object} domSelection Once |Selection| keeps passed node and offset,
@@ -38,6 +44,7 @@ editing.define('EditingContext', (function() {
    * @param {!EditingNode} newChild
    */
   function appendChild(parentNode, newChild) {
+    ASSERT_DOM_TREE_IS_MUTABLE(this);
     this.instructions_.push({opcode: 'appendChild', parentNode: parentNode,
                              newChild: newChild});
   }
@@ -91,6 +98,7 @@ editing.define('EditingContext', (function() {
    * Emulation of |Document.execCommand|.
    */
   function execCommand(name, opt_userInterface, opt_value) {
+    ASSERT_DOM_TREE_IS_MUTABLE(this);
     if (typeof(name) != 'string') {
       console.log('execCommand name', name);
       throw new Error('execCommand takes string: ' + name);
@@ -111,6 +119,7 @@ editing.define('EditingContext', (function() {
    * @param {!EditingNode} refChild
    */
   function insertBefore(parentNode, newChild, refChild) {
+    ASSERT_DOM_TREE_IS_MUTABLE(this);
     this.instructions_.push({opcode: 'insertBefore', parentNode: parentNode,
                              newChild: newChild, refChild: refChild});
   }
@@ -128,6 +137,7 @@ editing.define('EditingContext', (function() {
    * @param {string} name
    */
   function removeAttribute(node, name) {
+    ASSERT_DOM_TREE_IS_MUTABLE(this);
     this.instructions_.push({opcode: 'removeAttribute', name: name, node: node});
   }
 
@@ -137,6 +147,7 @@ editing.define('EditingContext', (function() {
    * @param {!EditingNode} oldChild
    */
   function removeChild(parentNode, oldChild) {
+    ASSERT_DOM_TREE_IS_MUTABLE(this);
     this.instructions_.push({opcode: 'removeChild', parentNode: parentNode,
                              oldChild: oldChild});
   }
@@ -148,6 +159,7 @@ editing.define('EditingContext', (function() {
    * @param {!EditingNode} oldChild
    */
   function replaceChild(parentNode, newChild, oldChild) {
+    ASSERT_DOM_TREE_IS_MUTABLE(this);
     this.instructions_.push({opcode: 'replaceChild', parentNode: parentNode,
                              newChild: newChild, oldChild: oldChild});
   }
@@ -159,6 +171,7 @@ editing.define('EditingContext', (function() {
    * @param {string} attrValue
    */
   function setAttribute(element, attrName, attrValue) {
+    ASSERT_DOM_TREE_IS_MUTABLE(this);
     this.instructions_.push({opcode: 'setAttribute', element: element,
                             attrName: attrName, attrValue: attrValue});
   }
@@ -181,6 +194,7 @@ editing.define('EditingContext', (function() {
    * @return {!EditingNode}
    */
   function splitText(textNode, offset, newNode) {
+    ASSERT_DOM_TREE_IS_MUTABLE(this);
     console.assert(textNode instanceof editing.EditingNode);
     console.assert(textNode.isText);
     console.assert(newNode instanceof editing.EditingNode);
