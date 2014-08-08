@@ -137,7 +137,12 @@ testing.define('SampleContext', (function() {
       while (child) {
         sink += marker(node, offset);
         sink += visit(child);
-        child = child.nextSibling;
+        var nextSibling = child.nextSibling;
+        if (child.nodeType == Node.TEXT_NODE && nextSibling &&
+            nextSibling.nodeType == Node.TEXT_NODE) {
+          sink += '_';
+        }
+        child = nextSibling;
         ++offset;
       }
       sink += marker(node, offset);
