@@ -72,6 +72,15 @@ Object.defineProperties(TestRunner.prototype, (function() {
 
   /**
    * @this {!TestRunner}
+   */
+  function finishTesting() {
+    var resultElement = document.getElementById('result');
+    resultElement.textContent = 'Run ' + this.testCount_ + ' tests, ' +
+        this.failedCount_ + ' tests are failed.';
+  }
+
+  /**
+   * @this {!TestRunner}
    * @param {string} message
    * @return {!HTMLLIElement}
    */
@@ -122,6 +131,7 @@ Object.defineProperties(TestRunner.prototype, (function() {
     endTest: {value: endTest},
     failed: {value: failed},
     failedCount_: {writable: true},
+    finishTesting: {value: finishTesting},
     log: {value: log},
     logListElement_: {writable: true},
     logHtml: {value: logHtml},
