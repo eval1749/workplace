@@ -399,6 +399,14 @@ editing.define('EditingNode', (function() {
    * @this {!EditingNode}
    * @return {number}
    */
+  function maxOffset() {
+    return this.isText ? this.nodeValue.length : this.childNodes.length;
+  }
+
+  /**
+   * @this {!EditingNode}
+   * @return {number}
+   */
   function nodeIndex(){
     var index = 0;
     var parentNode = this.parentNode;
@@ -588,6 +596,7 @@ editing.define('EditingNode', (function() {
     isText: {get: isText},
     lastChild: {get: function() { return this.lastChild_; }},
     lastChild_: {writable: true},
+    maxOffset: {value: maxOffset},
     nextSibling: {get: function() { return this.nextSibling_; }},
     nextSibling_: {writable: true},
     nodeIndex: {get: nodeIndex }, // for debugging

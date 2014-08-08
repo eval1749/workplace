@@ -183,13 +183,29 @@ editing.define('EditingContext', (function() {
   function setEndingSelection(selection) {
     if (this.endingSelection_)
       throw new Error('ending selection is already set.');
-    if (selection.anchorNode || !selection.anchorNode.inDocument) {
+    var anchorNode = selection.anchorNode;
+    var anchorOffset = selection.anchorOffset;
+    var focusNode = selection.focusNode;
+    var focusOffset = selection.focusOffset;
+    if (!anchorNode)
+      throw new Error('Can not set null anchor node to ending ');
+    if (!focusNode)
+      throw new Error('Can not set null focus node to ending ');
+    if (!anchorNode.inDocument) {
       throw new Error('Can not set anchor node not in document ' +
-                      selection.anchorNode);
+                      anchorNode);
     }
-    if (selection.focusNode || !selection.focusNode.inDocument) {
+    if (anchorOffset < 0 || anchorOffset > anchorNode.maxOffset) {
+      throw new Error('Invalid anchor offset ' + anchorOffset +
+                      ' on ' + anchorNode + ' max=' + anchorNode.maxOffset);
+    }
+    if (!focusNode.inDocument) {
       throw new Error('Can not set focus node not in document ' +
-                      selection.focusNode);
+                      focusNode);
+    }
+    if (focusOffset < 0 || focusOffset > focusNode.maxOffset) {
+      throw new Error('Invalid focus offset ' + focusOffset +
+                      ' on ' + focusNode + ' max=' + focusNode.maxOffset);
     }
     this.endingSelection_ = selection;
   }
