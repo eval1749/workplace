@@ -41,6 +41,13 @@ testCase('EditingSelection.NodesText', function() {
   expectEq('abcd', function() { return dumpNodes(nodes); });
 });
 
+testCase('EditingSelection.NodesTextPartial', function() {
+  var context = testing.createTree('<p contenteditable>ab^c|d</p>');
+  var selection = context.selection;
+  var nodes = selection.nodes;
+  expectEq('c', function() { return dumpNodes(nodes); });
+});
+
 testCase('EditingSelection.NodesTree', function() {
   var context = testing.createTree('<p contenteditable><e1><e2>e2Before<e3>^e3</e3>e2After</e2>e1After|</e1></p>');
   var selection = context.selection;

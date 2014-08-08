@@ -64,17 +64,14 @@ editing.define('EditingSelection', (function() {
   function collectNodesInSelection(selection) {
     if (selection.isEmpty)
       return [];
-    var startNode = selection.anchorNode.childNodes[selection.anchorOffset];
+
+    var startNode = selection.startContainer.childNodes[selection.startOffset];
     if (!startNode)
-      startNode = nextNode(selection.anchorNode.lastChild);
-    var endNode = selection.focusNode.childNodes[selection.focusOffset];
+      startNode = nextNode(selection.startContainer.lastChild);
+    var endNode = selection.endContainer.childNodes[selection.endOffset];
     if (!endNode)
-      endNode = nextNode(selection.focusNode.lastChild);
-    if (!selection.anchorIsStart_) {
-      var temp = startNode;
-      startNode = endNode;
-      endNode = temp;
-    }
+      endNode = null;
+
     // Both, |startNode| and |endNode| are nullable, e.g. <a><b>abcd|</b></a>
     if (!startNode)
       return [];
@@ -83,9 +80,9 @@ editing.define('EditingSelection', (function() {
     var iterator = new FollowingNodes(startNode);
     var current;
     while (!(current = iterator.next()).done) {
-      nodes.push(current.value);
       if (current.value === endNode)
         break;
+      nodes.push(current.value);
     }
     return nodes;
   }
@@ -93,7 +90,7 @@ editing.define('EditingSelection', (function() {
   /**
    * @param {!Node} node1
    * @param {!Node} node2
-   * @return {!Node}
+   * @return {?Node}
    */
   function computeCommonAncestor(node1, node2) {
     console.assert(node1.ownerDocument === node2.ownerDocument);
@@ -346,6 +343,24 @@ editing.define('EditingSelection', (function() {
 
   /**
    * @this {!editing.EditingSelection}
+   * @return {!EditingNode}
+   */
+  function endContainer() {
+    console.assert(this.anchorNode_);
+    return this.anchorIsStart ? this.focusNode_ : this.anchorNode_;
+  }
+
+  /**
+   * @this {!editing.EditingSelection}
+   * @return {number}
+   */
+  function endOffset() {
+    console.assert(this.anchorNode_);
+    return this.anchorIsStart ? this.focusOffset_ : this.anchorOffset_;
+  }
+
+  /**
+   * @this {!editing.EditingSelection}
    * @return {boolean}
    */
   function isCaret() {
@@ -369,6 +384,25 @@ editing.define('EditingSelection', (function() {
     return !this.isEmpty && !this.isCaret;
   }
 
+
+  /**
+   * @this {!editing.EditingSelection}
+   * @return {!EditingNode}
+   */
+  function startContainer() {
+    console.assert(this.anchorNode_);
+    return this.anchorIsStart ? this.anchorNode_ : this.focusNode_;
+  }
+
+  /**
+   * @this {!editing.EditingSelection}
+   * @return {number}
+   */
+  function startOffset() {
+    console.assert(this.anchorNode_);
+    return this.anchorIsStart ? this.anchorOffset_ : this.focusOffset_;
+  }
+
   Object.defineProperties(EditingSelection.prototype, {
     anchorIsStart: {get: function() { return this.anchorIsStart_; }},
     anchorIsStart_: {writable: true},
@@ -379,6 +413,8 @@ editing.define('EditingSelection', (function() {
     context: {get: function() { return this.context_;}},
     context_: {writable: true},
     direction: {get: direction},
+    endContainer: {get: endContainer},
+    endOffset: {get: endOffset},
     focusNode: {get: function() { return this.focusNode_; }},
     focusNode_: {writable: true},
     focusOffset: {get: function() { return this.focusOffset_; }},
@@ -390,6 +426,8 @@ editing.define('EditingSelection', (function() {
     nodes_: {writable: true},
     rootForTesting: {get: function() { return this.rootForTesting_; }},
     rootForTesting_: {writable: true},
+    startContainer: {get: startContainer},
+    startOffset: {get: startOffset},
   });
 
   return EditingSelection;
