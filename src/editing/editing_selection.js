@@ -15,41 +15,33 @@
 // with editing instructions.
 //
 editing.define('EditingSelection', (function() {
-  function followingNode(node) {
-    if (!node)
-      return null;
-    if (node.firstChild)
-      return node.firstChild;
-     var nextSibling = node.nextSibling;
-     if (nextSibling)
-       return nextSibling;
-     var parentNode = node.parentNode;
-     while (parentNode) {
-       if (parentNode.nextSibling)
-         return parentNode.nextSibling;
-       parentNode = parentNode.parentNode;
-     }
-     return null;
-  }
-
-  function FollowingNodes(startNode) {
+  // NextNodes iterator
+  function NextNodes(startNode) {
     this.currentNode_ = startNode;
   }
 
-  FollowingNodes.prototype.next = function() {
+  NextNodes.prototype.next = function() {
     var resultNode = this.currentNode_;
     if (!resultNode)
       return {done: true};
-    this.currentNode_ = followingNode(this.currentNode_);
+    this.currentNode_ = nextNode(this.currentNode_);
     return {done: false, value: resultNode};
   };
 
   // nextNode(<a><b>foo|</b><a>bar) = bar
-  function nextNode(node) {
-    while (node) {
-      if (node.nexeSibling)
-        return node.nextSibling;
-      node = node.parentNode;
+  function nextNode(current) {
+    if (current.firstChild)
+      return current.firstChild;
+    if (current.nextSibling)
+      return current.nextSibling;
+    return nextAncestorOrSibling(current);
+  }
+
+  function nextAncestorOrSibling(current) {
+    console.assert(!current.nextSibling);
+    for (var parent = current.parentNode; parent; parent = parent.parentNode) {
+      if (parent.nextSibling)
+        return parent.nextSibling;
     }
     return null;
   }
@@ -77,7 +69,7 @@ editing.define('EditingSelection', (function() {
       return [];
 
     var nodes = [];
-    var iterator = new FollowingNodes(startNode);
+    var iterator = new NextNodes(startNode);
     var current;
     while (!(current = iterator.next()).done) {
       if (current.value === endNode)
