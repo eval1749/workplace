@@ -23,7 +23,10 @@ var editing = {};
    * @param {!function} commandFunction
    */
   function defineCommand(name, commandFunction) {
-    commandTable[name.toLowerCase()] = commandFunction;
+    var canonicalName = name.toLowerCase();
+    commandTable[canonicalName] = commandFunction;
+    if (canonicalName == 'backcolor')
+      defineCommand('hilitecolor', commandFunction);
   }
 
   /**
