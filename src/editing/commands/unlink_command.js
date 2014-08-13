@@ -71,7 +71,7 @@ editing.defineCommand('Unlink', (function() {
 
     // TODO(yosin) We should not split text nodes at boundary points if
     // they aren't inside A element.
-    context.selection_.nodes.forEach(function(node) {
+    selection.nodes.forEach(function(node) {
       while (anchorElement) {
         if (node.isDescendantOf(anchorElement)) {
           if (anchorElement != node.parentNode)
