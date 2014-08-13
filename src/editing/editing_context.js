@@ -19,6 +19,7 @@ editing.define('EditingContext', (function() {
   function EditingContext(document, domSelection) {
     console.assert(arguments.length == 1 || document === domSelection.document);
     this.document_ = document;
+    this.editor_ = new editing.Editor(this);
     this.endingSelection_ = null;
     this.hashCode_ = 0;
     this.instructions_ = [];
@@ -211,6 +212,17 @@ editing.define('EditingContext', (function() {
   }
 
   /**
+   * @this {!Editor}
+   * @param {!EditingNode} node
+   * @param {string} propertyName
+   * @param {string} newValue
+   */
+  function setStyle(node, propertyName, newValue) {
+    this.instructions_.push({opcode: 'setStyle', node: node,
+                             propertyName: propertyName, newValue: newValue});
+  }
+
+  /**
    * @this {!EditingContext}
    * @param {!EditingNode} textNode
    * @param {number} offset
@@ -235,6 +247,8 @@ editing.define('EditingContext', (function() {
     document_: {writable: true},
     createElement: {value: createElement},
     createTextNode: {value: createTextNode},
+    editor: {get: function() { return this.editor_; }},
+    editor_: {writable: true},
     // Selection after executing editing command. This |ReadOnlySelection| is
     // put into undo stack for redo operation. See also |startingSelection|
     endingSelection: {get: endingSelection},
@@ -251,6 +265,7 @@ editing.define('EditingContext', (function() {
     selection_: {writable: true},
     setAttribute: {value: setAttribute},
     setEndingSelection: {value: setEndingSelection },
+    setStyle: {value: setStyle},
     splitText: {value: splitText},
     // Selection before executing editing command. This |ReadOnlySelection| is
     // put into undo stack for undo operation. See also |endingSelection|

@@ -23,6 +23,7 @@ editing.define('EditingNode', (function() {
     this.lastChild_ = null;
     this.nextSibling_ = null;
     this.previousSibling_ = null;
+    this.styleMap_ = {};
     this.textEndOffset_ = this.isText ? domNode.length : 0;
     this.textStartOffset_ = 0;
 
@@ -612,6 +613,8 @@ editing.define('EditingNode', (function() {
     setAttribute: {value: setAttribute},
     splitText: {value: splitText},
     splitTree: {value: splitTree},
+    styleMap: {get: function() { return this.styleMap_; }},
+    styleMap_: {writable: true},
     textEndOffset: {get: function() { return this.textEndOffset_; }},
     textEndOffset_: {writable: true},
     textStartOffset: {get: function() { return this.textStartOffset_; }},
