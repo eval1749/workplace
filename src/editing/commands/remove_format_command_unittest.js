@@ -21,10 +21,10 @@ testCaseFor('RemoveFormat', 'Contents.All', {
 
 testCaseFor('RemoveFormat', 'Contents.Partial', {
   before: '<p contenteditable><i><b>ab^cd|</b></i></p>',
-  after:'<p contenteditable><b>ab</b>^cd|</p>'
+  after:'<p contenteditable><i><b>ab</b></i>^cd|</p>'
 });
 
 testCaseFor('RemoveFormat', 'Contents.Partial2', {
-  before: '<b contenteditable><i>ab^cd|</b></p>',
-  after:'<p contenteditable><b>ab</b>^cd|</p>'
+  before: '<b contenteditable><i>ab^cd|</b></b>',
+  after:'<b contenteditable><i>ab</i>^cd|</b>'
 });

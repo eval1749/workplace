@@ -40,7 +40,9 @@ editing.defineCommand('removeFormat', (function() {
     var firstNode = nodes.length >= 1 ? nodes[0] : null;
     var lastNode = nodes.length >= 1 ? nodes[nodes.length - 1] : null;
 
-console.log('\n\nremoveFormatCommand first=' + firstNode + ' last=' + lastNode);
+console.log('\n\nremoveFormatCommand first=' + firstNode + ' last=' + lastNode +
+            ' anchor=' + anchorNode + ' ' + anchorOffset +
+            ' focus=' + focusNode + ' ' + focusOffset);
 
     if (firstNode && firstNode.isText) {
       // Collect removal ancestors.
@@ -50,12 +52,30 @@ console.log('\n\nremoveFormatCommand first=' + firstNode + ' last=' + lastNode);
         ancestors.push(runner);
       }
       if (firstNode.previousSibling && ancestors.length) {
+        // relocate anchor and focus
+        var shouldUpdateAnchor = false;
+        if (anchorNode === firstNode.parentNode) {
+          shouldUpdateAnchor = true;
+          anchorOffset -= firstNode.nodeIndex;
+        }
+        var shouldUpdateFocus = false;
+        if (focusNode === firstNode.parentNode) {
+          shouldUpdateFocus = true;
+          focusOffset -= firstNode.nodeIndex;
+        }
         var root = ancestors[ancestors.length - 1];
         var newRoot = root.splitTree(firstNode);
-        for (var runner = firstNode.parentNode; runner != newRoot;
+        if (shouldUpdateAnchor)
+          anchorNode = firstNode.parentNode;
+        if (shouldUpdateFocus)
+          focusNode = firstNode.parentNode;
+        for (var runner = firstNode.parentNode; runner;
              runner = runner.parentNode) {
           nodes.unshift(runner);
         }
+console.log('removeFormatCommand',
+            'anchor=' + anchorNode + ' ' + anchorOffset,
+            'focus=' + focusNode + ' ' + focusOffset);
 console.log('removeFormatCommand first newRoot=' + newRoot);
         root.parentNode.insertAfter(newRoot, root);
       } else {
@@ -103,6 +123,7 @@ console.log('removeFormatCommand', 'removeTag ' + node, node.parentNode.isConten
         return;
       }
 
+console.log('removeFormatCommand', 'removeStyle' + node);
       editor.setStyle(node, 'backgroundColor', '');
       editor.setStyle(node, 'color', '');
       editor.setStyle(node, 'fontFamily', '');
