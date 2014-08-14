@@ -12,7 +12,7 @@ function expectEq(expectedResult, testFunction, message) {
     actualResult = exception;
     // TODO(yosin) We throw |exception| for debugging. Once, debugging is done,
     // we should remove this.
-    throw exception;
+    //throw exception;
   }
   function equal() {
     if (typeof(expectedResult) != typeof(actualResult))
@@ -90,6 +90,10 @@ function testCaseFor(commandName, testCaseId, data) {
         .replace('^', '</span>');
   }
 
+  function stripMarker(text) {
+    return text.replace('^', '').replace('|', '');
+  }
+
   if (typeof(data.after) != 'string')
     throw new Error('You must specify before sample');
   if (typeof(data.before) != 'string')
@@ -114,6 +118,11 @@ function testCaseFor(commandName, testCaseId, data) {
       var logElement = testRunner.failed(commandName);
       var listElement = document.createElement('ul');
       logElement.appendChild(listElement);
+      if (stripMarker(expectedResult) == stripMarker(actualResult)) {
+        testRunner.logHtml('<b class="green">' +
+            'Expected and actual results are same,' +
+            ' but selections are different.</b>');
+      }
       ['Expected:' + expectedResult, 'Actual__:' + actualResult].forEach(
         function(text) {
           var listItemElement = document.createElement('li');
@@ -125,10 +134,23 @@ function testCaseFor(commandName, testCaseId, data) {
     var actualResult2 = testing.serialzieNode(context.selection.rootForTesting,
                                               context.endingSelection, true);
     var sample = context.sampleContext_.getResult();
-    if (sample != actualResult2) {
-      testRunner.logHtml('Src: ' + pretty(context.sampleHtmlText_));
-      testRunner.logHtml('Cur: ' + pretty(sample));
-      testRunner.logHtml('New: ' + pretty(actualResult2));
+    if (sample == actualResult2)
+      return;
+    if (sample != expectedResult) {
+        if (stripMarker(sample) == stripMarker(expectedResult)) {
+          testRunner.logHtml('<b class="red">' +
+            'Cur and expected results are same.' +
+            ' but selection is different.</b>');
+        } else {
+          testRunner.logHtml('<b class="green">' +
+              'Cur and expected results are different.</b>');
+        }
     }
+    if (stripMarker(sample) == stripMarker(actualResult2))
+        testRunner.logHtml('<b class="green">Cur and New results are same,' +
+                           ' but selection is different.</b>');
+    testRunner.logHtml('Src: ' + pretty(context.sampleHtmlText_));
+    testRunner.logHtml('Cur: ' + pretty(sample));
+    testRunner.logHtml('New: ' + pretty(actualResult2));
   });
 }
