@@ -54,7 +54,12 @@ testing.define('SampleContext', (function() {
    * Emulation of |Document.execCommand|.
    */
   function execCommand(name, opt_userInterface, opt_value) {
-    var result = this.document_.execCommand.apply(this.document_, arguments);
+    var result;
+    try {
+        result = this.document_.execCommand.apply(this.document_, arguments);
+    } catch (exception) {
+      result = exception;
+    }
     if (this.selection_) {
       this.endingSelection_ = editing.ReadOnlySelection.createFromDom(
           this.selection_);
