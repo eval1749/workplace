@@ -597,7 +597,7 @@ editing.define('EditingNode', (function() {
     isText: {get: isText},
     lastChild: {get: function() { return this.lastChild_; }},
     lastChild_: {writable: true},
-    maxOffset: {value: maxOffset},
+    maxOffset: {get: maxOffset},
     nextSibling: {get: function() { return this.nextSibling_; }},
     nextSibling_: {writable: true},
     nodeIndex: {get: nodeIndex }, // for debugging
