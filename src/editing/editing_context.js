@@ -85,8 +85,8 @@ editing.define('EditingContext', (function() {
    * @return {!ReadOnlySelection}
    */
   function endingSelection() {
-    if (!this.endingSelection_)
-      throw new Error('You should set ending selection at end of command.');
+    console.assert(this.endingSelection_,
+                   'You should set ending selection at end of command.');
     return this.endingSelection_;
   }
 
