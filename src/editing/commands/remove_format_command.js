@@ -10,7 +10,7 @@ editing.defineCommand('removeFormat', (function() {
   var TAG_NAMES_TO_REMOVE = editing.newSet([
         'ABBR', 'ACRONYM', 'B', 'BDI', 'BDO', 'BIG', 'BLINK', 'CITE', 'CODE',
         'DFN', 'EM', 'FONT', 'I', 'INS', 'KBD', 'MARK', 'NOBR', 'Q', 'S',
-        'SAMP', 'SMALL', 'SPAN', 'STRIKE', 'STRONG', 'SUB', 'SUP', 'TT', 'U',
+        'SAMP', 'SMALL', 'STRIKE', 'STRONG', 'SUB', 'SUP', 'TT', 'U',
         'VAR']);
 
   function shouldRemove(node) {
@@ -102,6 +102,9 @@ console.log('removeFormatCommand splitLast new=' + newRoot);
 
     nodes.forEach(function(node) {
       if (!node.isElement || !node.isEditable) {
+        // TODO(yosin) Insert SPAN with "style" attribute to remove styles
+        // if needed, e.g. <span class="bold">foo</span> =>
+        // <span class="bold" style="font-weight:normal">foo</span>
         console.log('removeFormatCommand', 'skip ' + node);
         return;
       }

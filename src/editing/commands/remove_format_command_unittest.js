@@ -28,3 +28,9 @@ testCaseFor('RemoveFormat', 'Contents.Partial2', {
   before: '<b contenteditable><i>ab^cd|</b></b>',
   after:'<b contenteditable><i>ab</i>^cd|</b>'
 });
+
+testCaseFor('RemoveFormat', 'Class', {
+  before: '<p contenteditable><style>.bold{font-weight:bold}</style>^<span class="bold">abcd</span>|</p>',
+  after:'<p contenteditable><style>.bold{font-weight:bold}</style>^<span class="bold">abcd</span>|</p>',
+  notes: 'class="bold" does not affect removeFormat'
+});
