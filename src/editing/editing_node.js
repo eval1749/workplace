@@ -518,46 +518,6 @@ editing.define('EditingNode', (function() {
 
   /**
    * @this {!EditingNode}
-   * @param {!EditingNode} refNode
-   * @return {!EditingNode}
-   */
-  function splitTree(refNode) {
-    /**
-     * @param {!EditingNode} parent
-     * @param {!EditingNode} child
-     * @return {!EditingNode}
-     *
-     * Split |parent| at |child|, and returns new node which contains |child|
-     * to its sibling nodes.
-     */
-    function splitNode(parent, child) {
-      var newParent = parent.cloneNode(false);
-      var sibling = child;
-      while (sibling) {
-        console.assert(sibling.parentNode === parent);
-        var nextSibling = sibling.nextSibling;
-        newParent.appendChild(sibling);
-        sibling = nextSibling;
-      }
-      return newParent;
-    }
-
-    var treeNode = this;
-    console.assert(refNode.isDescendantOf(treeNode));
-
-    var lastNode = refNode;
-    for (var runner = refNode.parentNode; runner !== treeNode;
-         runner = runner.parentNode) {
-      var newNode = splitNode(runner, lastNode);
-      runner.parentNode.insertAfter(newNode, runner);
-      lastNode = newNode;
-    }
-    var newNode = splitNode(treeNode, lastNode);
-    return newNode;
-  }
-
-  /**
-   * @this {!EditingNode}
    * @return {string}
    */
   function toString() {
@@ -612,7 +572,6 @@ editing.define('EditingNode', (function() {
     replaceChild: {value: replaceChild},
     setAttribute: {value: setAttribute},
     splitText: {value: splitText},
-    splitTree: {value: splitTree},
     styleMap: {get: function() { return this.styleMap_; }},
     styleMap_: {writable: true},
     textEndOffset: {get: function() { return this.textEndOffset_; }},

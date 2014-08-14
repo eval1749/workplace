@@ -12,7 +12,8 @@ editing.defineCommand('CreateLink', (function() {
    * @param {string} url
    */
   function createLinkBeforeCaret(context, url) {
-    console.assert(url != '');
+    console.assert(url != '', 'url must be non-empty string');
+    var editor = context.editor;
 
     var anchorElement = context.createElement('a');
     anchorElement.setAttribute('href', url);
@@ -73,7 +74,7 @@ editing.defineCommand('CreateLink', (function() {
     if (!caretNode) {
       editable.insertAfter(anchorTree, interactive);
     } else if (selection.focusOffset) {
-      var followingTree = interactive.splitTree(caretNode);
+      var followingTree = editor.splitTree(interactive, caretNode);
       editable.insertAfter(anchorTree, interactive);
       editable.insertAfter(followingTree, anchorTree);
     } else {
@@ -193,7 +194,7 @@ editing.defineCommand('CreateLink', (function() {
 
       // TODO(yosin) Handle peindingNode[0].parentNode isn't editable.
       var tree = pendingNodes[0];
-      var newTree = tree.splitTree(currentNode);
+      var newTree = editor.splitTree(tree, currentNode);
       tree.parentNode.insertAfter(newTree, tree);
     });
 
@@ -201,7 +202,7 @@ editing.defineCommand('CreateLink', (function() {
       var firstPendingNode = pendingNodes[0];
       var lastPendingNode = pendingNodes[pendingNodes.length - 1];
       if (lastPendingNode.nextSibling) {
-          firstPendingNode.splitTreeBefore(lastPendingNode);
+          editor.splitTreeBefore(firstPendingNode, lastPendingNode);
       } else if (anchorElement) {
         anchorElement.appendChild(firstPendingNode);
       } else {

@@ -64,7 +64,7 @@ console.log('\n\nremoveFormatCommand first=' + firstNode + ' last=' + lastNode +
           focusOffset -= firstNode.nodeIndex;
         }
         var root = ancestors[ancestors.length - 1];
-        var newRoot = root.splitTree(firstNode);
+        var newRoot = editor.splitTree(root, firstNode);
         if (shouldUpdateAnchor)
           anchorNode = firstNode.parentNode;
         if (shouldUpdateFocus)
@@ -94,7 +94,7 @@ console.log('removeFormatCommand first newRoot=' + newRoot);
       }
 console.log('removeFormatCommand last root=' + root);
       if (root) {
-        var newRoot = root.splitTree(lastNode.nextSibling);
+        var newRoot = editor.splitTree(root, lastNode.nextSibling);
 console.log('removeFormatCommand splitLast new=' + newRoot);
         root.parentNode.insertAfter(newRoot, root);
       }
