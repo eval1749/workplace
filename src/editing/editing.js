@@ -37,10 +37,26 @@ var editing = {};
     return commandTable[name.toLowerCase()] || null;
   }
 
+  /**
+   * @param {!Array.<string>} members
+   * @return {!Set.<string>}
+   * IE11 doesn't support |new Set(Array)|.
+   */
+  function newSet(members) {
+    var set = new Set(members);
+    if (!set.size) {
+      members.forEach(function(member) {
+        set.add(member);
+      });
+    }
+    return set;
+  }
+
   Object.defineProperties(editing, {
     define: {value: define},
     defineCommand: {value: defineCommand},
-    lookupCommand: {value: lookupCommand}
+    lookupCommand: {value: lookupCommand},
+    newSet: {value: newSet}
   });
 })();
 

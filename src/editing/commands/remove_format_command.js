@@ -7,7 +7,7 @@
 // Sample: http://jsfiddle.net/9nf4fue9/1/
 editing.defineCommand('removeFormat', (function() {
   /** @const */
-  var TAG_NAMES_TO_REMOVE = new Set([
+  var TAG_NAMES_TO_REMOVE = editing.newSet([
         'ABBR', 'ACRONYM', 'B', 'BDI', 'BDO', 'BIG', 'BLINK', 'CITE', 'CODE',
         'DFN', 'EM', 'FONT', 'I', 'INS', 'KBD', 'MARK', 'NOBR', 'Q', 'S',
         'SAMP', 'SMALL', 'SPAN', 'STRIKE', 'STRONG', 'SUB', 'SUP', 'TT', 'U',
