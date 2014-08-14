@@ -10,6 +10,8 @@
 body { font-size: 10pt; }
 li { white-space: nowrap; }
 .failed:before { color: red; content: 'FAILED '; }
+.green { color: #259b24; }
+.red { color: #bf360c; }
 .succeeded:before { color: green; content: 'SUCCEEDED '; }
 .selectionOverlay {
   background-color: #76a7fa;
@@ -59,6 +61,7 @@ DEPRECATED
 <script src="editing_selection_unittest.js"></script>
 <script src="editor_unittest.js"></script>
 <script src="commands/create_link_command_unittest.js"></script>
+<script src="commands/create_link_command_w3c_unittest.js"></script>
 <script src="commands/remove_format_command_unittest.js"></script>
 <script src="commands/unlink_command_unittest.js"></script>
 <script>
