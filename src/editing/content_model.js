@@ -69,8 +69,7 @@ editing.define('contentModel', (function() {
   // Text-level elements
   defineContentModel('a', [FLOW, PHRASING, PALPABLE, INTERACTIVE], PHRASING,
                      TRANSPARENT);
-  defineContentModel('br wbr', [FLOW, PHRASING, PALPABLE, INTERACTIVE],
-                     PHRASING, []);
+  defineContentModel('br wbr', [FLOW, PHRASING, PALPABLE], PHRASING, []);
   defineContentModel(
     'em strong small s cite q dfn abbr ruby data time code var samp kbd sub' +
     'sup i b u mark bdi bdo span', [FLOW, PHRASING, PALPABLE], PHRASING,
