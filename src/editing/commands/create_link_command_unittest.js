@@ -65,7 +65,7 @@ testCaseFor('CreateLink', 'CaretInteractiveAtMiddle', {
 // <p contenteditable>^<a href="URL">foo</a>|</p>
 testCaseFor('CreateLink', 'RangeAnchor', {
   before: '<p contenteditable><a href="foo">^foo|</a></p>',
-  after:  '<p contenteditable><a href="URL">foo|</a></p>',
+  after:  '<p contenteditable><a href="URL">^foo|</a></p>',
   value: 'URL'
 });
 
@@ -77,7 +77,7 @@ testCaseFor('CreateLink', 'RangeAnchor', {
 // IE: <p contenteditable<a href="URL">foo</a></p>
 testCaseFor('CreateLink', 'RangeAnchor2', {
   before: '<p contenteditable><a href="foo">^fo|o</a></p>',
-  after:  '<p contenteditable><a href="URL">fo|o</a></p>',
+  after:  '<p contenteditable><a href="URL">^fo|o</a></p>',
   value: 'URL'
 });
 
@@ -87,20 +87,20 @@ testCaseFor('CreateLink', 'RangeAnchor2', {
 // PHRASING,
 testCaseFor('CreateLink', 'RangeList', {
   before: '<div contenteditable>^<ul><li>one</li><li>two</li></ul>|</div>',
-  after:  '<div contenteditable><ul><li>^<a href="URL">one</a></li><li><a href="URL">two</a>|</li></ul></div>',
+  after:  '<div contenteditable>^<ul><li><a href="URL">one</a></li><li><a href="URL">two</a></li></ul>|</div>',
   value: 'URL'
 });
 
 // Create link with range.
 testCaseFor('CreateLink', 'RangeSimpleText', {
   before: '<p contenteditable>^abcd|</p>',
-  after:  '<p contenteditable>^<a href="URL">abcd|</a></p>',
+  after:  '<p contenteditable><a href="URL">^abcd|</a></p>',
   value: 'URL'
 });
 
 testCaseFor('CreateLink', 'RangeSimpleTree', {
   before: '<p contenteditable>^abcd<b>efg</b>|</p>',
-  after:  '<p contenteditable>^<a href="URL">abcd<b>efg</b>|</a></p>',
+  after:  '<p contenteditable><a href="URL">^abcd<b>efg</b>|</a></p>',
   value: 'URL'
 });
 

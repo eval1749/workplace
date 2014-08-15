@@ -76,6 +76,13 @@ testCase('EditingSelection.NodesTree4', function() {
   expectEq('e3,e2After,E4,e4', function() { return dumpNodes(nodes); });
 });
 
+testCase('EditingSelection.Nodes.Tree.Empty', function() {
+  var context = testing.createTree('<div contenteditable><span>foo^</span><span>|bar</span></div>');
+  var selection = context.selection;
+  var nodes = selection.nodes;
+  expectEq('', function() { return dumpNodes(nodes); });
+});
+
 testCase('EditingSelection.NodesTreeUL', function() {
   var context = testing.createTree('<div contenteditable>^<ul><li>one</li><li>two</li></ul>|</div>');
   var selection = context.selection;

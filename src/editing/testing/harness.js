@@ -128,7 +128,7 @@ testing.define('serialzieNode', (function() {
         ++offset;
       }
       sink += marker(node, offset);
-      if (!testing.END_TAG_OMISSIBLE[tagName])
+      if (!testing.END_TAG_OMISSIBLE.has(tagName))
         sink += '</' + tagName + '>';
       return sink;
     };

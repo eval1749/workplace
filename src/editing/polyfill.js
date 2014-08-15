@@ -38,6 +38,10 @@ if (!('Set' in this)) {
       }
     }
 
+    function setAdd(newMember) {
+      this.members_[newMember] = true;
+    }
+
     function setHas(member) {
       return Boolean(this.members_[member]);
     }
@@ -46,6 +50,7 @@ if (!('Set' in this)) {
       return Object.keys(this.members_).length;
     }
     Object.defineProperties(Set.prototype, {
+      add: {value: setAdd},
       has: {value: setHas},
       size: {get: setSize}
     });

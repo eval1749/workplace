@@ -53,6 +53,7 @@ editing.defineCommand('CreateLink', (function() {
     var editable = interactive.parentNode;
     if (!editable || !editable.isContentEditable) {
       // We can't insert anchor element before/after focus node.
+      context.setEndingSelection(context.startingSelection);
       return false;
     }
 
@@ -113,33 +114,54 @@ editing.defineCommand('CreateLink', (function() {
       return value;
     }
 
-    // Remember first and last inserted anchor element for ending selection.
-    var firstAnchorElement = null;
-    var lastAnchorElement = null;
-    var isInsertAnchorElement = false;
-
     function insertNewAnchorElement(anchorPhraseNode) {
+console.log('insertNewAnchorElement phrase=' + anchorPhraseNode);
+      if (editing.library.isWhitespaceNode(anchorPhraseNode))
+        return null;
       var anchorElement = context.createElement('a');
       anchorElement.setAttribute('href', url);
       anchorPhraseNode.parentNode.replaceChild(anchorElement, anchorPhraseNode);
       anchorElement.appendChild(anchorPhraseNode);
-      isInsertAnchorElement = true;
-      if (!firstAnchorElement)
-        firstAnchorElement = anchorElement;
-      lastAnchorElement = anchorElement;
       return anchorElement;
     }
 
-    if (!context.selection.nodes.length) {
+    var selection = context.selection;
+    if (!selection.nodes.length) {
+console.log('createLinkForRange no nodes.');
       context.setEndingSelection(context.startingSelection);
       return false;
+    }
+
+console.log('createLinkForRange anchor=' + selection.anchorNode + ' ' + selection.anchorOffset +' focus=' + selection.focusNode + ' ' + selection.focusOffset);
+    var anchorBoundaryPoint = {};
+    if (!selection.anchorNode.hasChildNodes()) {
+      anchorBoundaryPoint.type = 'beforeAllChildren';
+      anchorBoundaryPoint.node = selection.anchorNode;
+    } else if (selection.anchorNode.maxOffset == selection.anchorOffset) {
+      anchorBoundaryPoint.type = 'afterAllChildren';
+      anchorBoundaryPoint.node = selection.anchorNode.lastChild;
+    } else {
+      anchorBoundaryPoint.type = 'itself';
+      anchorBoundaryPoint.node = selection.anchorNode.childNodes[selection.anchorOffset];
+    }
+
+    var focusBoundaryPoint = {};
+    if (!selection.focusNode.hasChildNodes()) {
+      focusBoundaryPoint.type = 'beforeAllChildren';
+      focusBoundaryPoint.node = selection.focusNode;
+    } else if (selection.focusNode.maxOffset == selection.focusOffset) {
+      focusBoundaryPoint.type = 'afterAllChildren';
+      focusBoundaryPoint.node = selection.focusNode.lastChild;
+    } else {
+      focusBoundaryPoint.type = 'itself';
+      focusBoundaryPoint.node = selection.focusNode.childNodes[selection.focusOffset];
     }
 
     var anchorElement = null;
     var pendingNodes = [];
 
     // Handling of start node
-    var startNode = context.selection.nodes[0];
+    var startNode = selection.nodes[0];
     // TODO(yosin) We should split at |startNode| if |startNode| is in
     // interactive element.
     // For compatibility with Firefox and IE, we don't split A element
@@ -148,20 +170,16 @@ editing.defineCommand('CreateLink', (function() {
     //  <a href="foo">^fo|o</a> => ^<a href="URL">foo</a>|
     if (startNode.parentNode.nodeName == 'A') {
       anchorElement = startNode.parentNode;
-      firstAnchorElement = anchorElement;
-      lastAnchorElement = anchorElement;
     }
 
-    context.selection.nodes.forEach(function(currentNode) {
+    getEffectiveNodes(context).forEach(function(currentNode) {
+console.log('createLinkForRange node=' + currentNode, 'isPhrasing', currentNode.isPhrasing, 'anchorElement=' + anchorElement, 'pendingNodes', pendingNodes.length, 'interactive', isInteractive(currentNode));
       if (isInteractive(currentNode)) {
         if (anchorElement)
           anchorElement.setAttribute('href', url);
         anchorElement = null;
         if (currentNode.nodeName != 'A')
           return;
-        if (!firstAnchorElement)
-          firstAnchorElement = currentNode;
-        lastAnchorElement = anchorElement;
         currentNode.setAttribute('href', url);
         return;
       }
@@ -181,7 +199,18 @@ editing.defineCommand('CreateLink', (function() {
             pendingNodes = [];
           }
         } else if (anchorElement) {
-          anchorElement.appendChild(currentNode);
+          // TODO(yosin) Should we skip all whitespace nodes at end of
+          // tag?
+          if (anchorElement.parentNode == currentNode.parentNode) {
+            if (!editing.library.isWhitespaceNode(currentNode) ||
+                currentNode.nextSibling) {
+              anchorElement.appendChild(currentNode);
+            } else {
+              console.log('createLinkForRange skip ' + currentNode);
+            }
+          } else {
+            anchorElement = insertNewAnchorElement(currentNode);
+          }
         } else {
           anchorElement = insertNewAnchorElement(currentNode);
         }
@@ -210,34 +239,79 @@ editing.defineCommand('CreateLink', (function() {
       }
     }
 
-    if (!firstAnchorElement)
-      return false;
-
-    if (firstAnchorElement === lastAnchorElement) {
-      if (!isInsertAnchorElement) {
-        // Set ending selection as focus of starting selection.
-        var startingSelection = context.startingSelection;
-        context.setEndingSelection(new editing.ReadOnlySelection(
-            startingSelection.focusNode, startingSelection.focusOffset,
-            startingSelection.focusNode, startingSelection.focusOffset,
-            editing.ReadOnlySelection.ANCHOR_IS_START));
-        return true;
-      }
-
-      // Set ending selection as ^<a>text|</a>
-      context.setEndingSelection(new editing.ReadOnlySelection(
-          firstAnchorElement.parentNode, firstAnchorElement.nodeIndex,
-          firstAnchorElement, firstAnchorElement.childNodes.length,
-          context.selection.direction));
-      return true;
+    var anchorNode, anchorOffset;
+    switch (anchorBoundaryPoint.type) {
+      case 'afterAllChildren':
+        anchorNode = anchorBoundaryPoint.node.parentNode;
+        anchorOffset = anchorNode.maxOffset;
+        break;
+      case 'beforeAllChildren':
+        anchorNode = anchorBoundaryPoint.node;
+        anchorOffset = 0;
+        break;
+      case 'itself':
+        anchorNode = anchorBoundaryPoint.node.parentNode;
+        anchorOffset = anchorBoundaryPoint.node.nodeIndex;
+        break;
+      default:
+        throw new Error('Bad BoundaryPoint.type ' + anchorBoundaryPoint.type);
     }
 
+console.log('createLinkForRange anchorBoundaryPoint=' + anchorBoundaryPoint.type + ' ' + anchorBoundaryPoint.node,
+    'anchorNode=' + anchorNode + ' ' + anchorOffset);
+
+    var focusNode, focusOffset;
+    switch (focusBoundaryPoint.type) {
+      case 'afterAllChildren':
+        focusNode = focusBoundaryPoint.node.parentNode;
+        focusOffset = focusNode.maxOffset;
+        break;
+      case 'beforeAllChildren':
+        focusNode = focusBoundaryPoint.node;
+        focusOffset = 0;
+        break;
+      case 'itself':
+        focusNode = focusBoundaryPoint.node.parentNode;
+        focusOffset = focusBoundaryPoint.node.nodeIndex;
+        break;
+      default:
+        throw new Error('Bad BoundaryPoint.type ' + focusBoundaryPoint.type);
+    }
+
+console.log('createLinkForRange focusBoundaryPoint=' + focusBoundaryPoint.type + ' ' + focusBoundaryPoint.node,
+    'focusNode=' + focusNode + ' ' + focusOffset);
+
     context.setEndingSelection(new editing.ReadOnlySelection(
-        firstAnchorElement.parentNode, firstAnchorElement.nodeIndex,
-        lastAnchorElement.parentNode, lastAnchorElement.nodeIndex + 1,
-        context.selection.direction));
+        anchorNode, anchorOffset, focusNode, focusOffset, selection.direction));
     return true;
   }
+
+  /**
+   * @param {!EditingContext} context
+   * @return {!Array.<EditingNode>}
+   */
+  function getEffectiveNodes(context) {
+    var nodes = context.selection.nodes;
+console.log('getEffectiveNodes ', nodes.length, 'firstNode=' + nodes[0]);
+    if (!nodes.length)
+      return nodes;
+    var firstNode = nodes[0];
+    var lastNode = nodes[nodes.length - 1];
+    var commonAncestor = firstNode.commonAncestor(lastNode);
+    for (var ancestor = firstNode.parentNode; ancestor;
+         ancestor = ancestor.parentNode) {
+      if (!ancestor.isEditable)
+        break;
+      if (ancestor.firstChld !== ancestor.lastNode &&
+          !lastNode.isDescendantOf(ancestor)) {
+        break;
+      }
+console.log('getEffectiveNodes ancestor=' + ancestor);
+      nodes.unshift(ancestor);
+    }
+    return nodes;
+  }
+
 
   /**
    * @param {!EditingContext} context

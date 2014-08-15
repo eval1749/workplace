@@ -12,7 +12,7 @@ function expectEq(expectedResult, testFunction, message) {
     actualResult = exception;
     // TODO(yosin) We throw |exception| for debugging. Once, debugging is done,
     // we should remove this.
-    //throw exception;
+    throw exception;
   }
   function equal() {
     if (typeof(expectedResult) != typeof(actualResult))
@@ -99,7 +99,8 @@ function testCaseFor(commandName, testCaseId, data) {
   if (typeof(data.before) != 'string')
     throw new Error('You must specify before sample');
 
-  testCase(commandName + '.' + testCaseId, function() {
+  var testCaseName = commandName + '.' + testCaseId;
+  testCase(testCaseName, function() {
     var context = testing.createSample(data.before);
     var expectedReturnValue = data.returnValue === undefined ?
         true : data.returnValue;
@@ -115,20 +116,19 @@ function testCaseFor(commandName, testCaseId, data) {
     if (expectedResult == actualResult) {
       testRunner.succeeded();
     } else {
-      var logElement = testRunner.failed(commandName);
+      var logElement = testRunner.failed(testCaseName);
       var listElement = document.createElement('ul');
       logElement.appendChild(listElement);
-      if (stripMarker(expectedResult) == stripMarker(actualResult)) {
-        testRunner.logHtml('<b class="green">' +
-            'Expected and actual results are same,' +
-            ' but selections are different.</b>');
-      }
       ['Expected:' + expectedResult, 'Actual__:' + actualResult].forEach(
         function(text) {
           var listItemElement = document.createElement('li');
           listItemElement.innerHTML = pretty(text);
           listElement.appendChild(listItemElement);
       });
+      if (stripMarker(expectedResult) == stripMarker(actualResult))
+        testRunner.succeeded(testCaseName);
+      else
+        testRunner.failed('Both result HTML and selection are different.');
     }
 
     var actualResult2 = testing.serialzieNode(context.selection.rootForTesting,
