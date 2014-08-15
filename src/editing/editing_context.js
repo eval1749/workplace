@@ -12,14 +12,14 @@ editing.define('EditingContext', (function() {
   }
 
   /**
-   * @param {!Document} document
-   * @param {Object} domSelection Once |Selection| keeps passed node and offset,
-   *    we don't need to use |selection| parameter.
+   * @param {!Editor} editor
+   * @param {?Object} domSelection Once |Selection| keeps passed node and
+   *    offset, *    we don't need to use |selection| parameter.
    */
-  function EditingContext(document, domSelection) {
-    console.assert(arguments.length == 1 || document === domSelection.document);
+  function EditingContext(editor, domSelection) {
+    var document = editor.document;
     this.document_ = document;
-    this.editor_ = new editing.Editor(this);
+    this.editor_ = editor;
     this.endingSelection_ = null;
     this.hashCode_ = 0;
     this.instructions_ = [];

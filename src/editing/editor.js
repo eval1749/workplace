@@ -5,8 +5,13 @@
 'use strict';
 
 editing.define('Editor', (function() {
-  function Editor(context) {
-    this.context_ = context;
+  /**
+   * @constructor
+   * @param {!Document} document
+   */
+  function Editor(document) {
+    this.context_ = null;
+    this.document_ = document;
   }
 
   /**
@@ -26,6 +31,17 @@ editing.define('Editor', (function() {
 
   /**
    * @this {!Editor}
+   * @param {?Object} domSelection Once |Selection| keeps passed node and
+   *    offset, we don't need to use |selection| parameter.
+   * @return {!EditingContext}
+   */
+  function newContext(domSelection) {
+    console.assert(!arguments.length || this.document === domSelection.document);
+    return new editing.EditingContext(this, domSelection);
+  }
+
+  /**
+   * @this {!Editor}
    * @param {!EditingNode} node
    * @param {string} propertyName
    * @param {string} newValue
@@ -34,7 +50,6 @@ editing.define('Editor', (function() {
     this.context_.setStyle(node, propertyName, newValue);
     node.styleMap[propertyName] = newValue;
   }
-
 
   /**
    * @this {!Editor}
@@ -77,9 +92,10 @@ editing.define('Editor', (function() {
   }
 
   Object.defineProperties(Editor.prototype, {
-    context: {get: function() { return this.context_; }},
-    context_: {writable: true},
+    document: {get: function() { return this.document_; }},
+    document_: {writable: true},
     insertChildrenBefore: {value: insertChildrenBefore},
+    newContext: {value: newContext},
     setStyle: {value: setStyle},
     splitTree: {value: splitTree}
   });

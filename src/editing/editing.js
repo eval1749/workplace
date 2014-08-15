@@ -30,6 +30,16 @@ var editing = {};
   }
 
   /**
+   * @param {!Document} document
+   * @return {!Editor}
+   */
+  function getOrCreateEditor(document) {
+    if (!document.editor_)
+      document.editor_ = new editing.Editor(document);
+    return document.editor_;
+  }
+
+  /**
    * @param {string} name
    * @return {?function}
    */
@@ -55,6 +65,7 @@ var editing = {};
   Object.defineProperties(editing, {
     define: {value: define},
     defineCommand: {value: defineCommand},
+    getOrCreateEditor: {value: getOrCreateEditor},
     lookupCommand: {value: lookupCommand},
     newSet: {value: newSet}
   });
