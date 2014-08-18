@@ -9,6 +9,8 @@
 // - document.implementation.createHTMLDocument(opt_title), opt_title is
 //   required parameter.
 // - Selection.extend(node, offset) is missing.
+// - |window.getComputedStyle| throws an exception for Node.TEXT_NODE, Chrome
+//   returns null.
 
 if (!Math.sign) {
   Math.sign = function(x) {
