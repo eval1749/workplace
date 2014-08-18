@@ -6,14 +6,6 @@
 
 function expectEq(expectedResult, testFunction, message) {
   var actualResult;
-  try {
-    actualResult = testFunction();
-  } catch (exception) {
-    actualResult = exception;
-    // TODO(yosin) We throw |exception| for debugging. Once, debugging is done,
-    // we should remove this.
-    throw exception;
-  }
   function equal() {
     if (typeof(expectedResult) != typeof(actualResult))
       return false;
@@ -21,6 +13,21 @@ function expectEq(expectedResult, testFunction, message) {
       return expectedResult === actualResult;
     return expectedResult == actualResult;
   }
+
+  var useTryCatch = true;
+  if (useTryCatch) {
+    try {
+      actualResult = testFunction();
+    } catch (exception) {
+      actualResult = exception;
+      // TODO(yosin) We throw |exception| for debugging. Once, debugging is done,
+      // we should remove this.
+      throw exception;
+    }
+  } else {
+    actualResult = testFunction();
+  }
+
   if (equal()) {
     testRunner.succeeded();
     return;
