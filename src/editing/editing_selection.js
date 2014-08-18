@@ -46,6 +46,12 @@ editing.define('EditingSelection', (function() {
     return null;
   }
 
+  function nextNodeSkippingChildren(current) {
+    if (current.nextSibling)
+      return current.nextSibling;
+    return nextAncestorOrSibling(current);
+  }
+
   /**
    * @param {!EditingSelection} selection
    * @return {!Array.<!EditingNode>}
@@ -60,9 +66,12 @@ editing.define('EditingSelection', (function() {
     var startNode = selection.startContainer.childNodes[selection.startOffset];
     if (!startNode)
       startNode = nextNode(selection.startContainer.lastChild);
-    var endNode = selection.endContainer.childNodes[selection.endOffset];
+    var endContainer = selection.endContainer;
+    var endNode = endContainer.childNodes[selection.endOffset];
     if (!endNode)
-      endNode = null;
+      endNode = nextNodeSkippingChildren(endContainer.lastChild);
+
+console.log('collectNodesInSelection', 'start=' + startNode, 'end=' + endNode);
 
     // Both, |startNode| and |endNode| are nullable, e.g. <a><b>abcd|</b></a>
     if (!startNode)
@@ -73,6 +82,8 @@ editing.define('EditingSelection', (function() {
     var current;
     while (!(current = iterator.next()).done) {
       if (current.value === endNode)
+        break;
+      if (current.value == endContainer && !selection.endOffset)
         break;
       nodes.push(current.value);
     }
