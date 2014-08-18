@@ -108,12 +108,36 @@ testCaseFor('CreateLink', 'RangeSimpleTree', {
 // CR: Insert anchor because of selection normalization.
 // FF: No insertion, returns true
 // IE: No insertion, ending selection is empty
+// See also w3c.9 "^</span><span>|"
 testCaseFor('CreateLink', 'EndTag', {
   before: '<p contenteditable><b>abc^</b>|</p>',
-  after:  '<p contenteditable><b>abc^</b>|</p>',
-  returnValue: false,
+  after:  '<p contenteditable><b>abc</b>^<a href="URL">URL</a>|</p>',
   value: 'URL'
 });
+
+// Variation of w3c.3
+testCaseFor('createLink', 'Span.Style', {
+  after: '<div contenteditable><a href="http://www.google.com/"><span style="font-weight: bold">^foo</span> <span>bar|</span></a></div>',
+  before: '<div contenteditable><span style="font-weight: bold">^foo</span> <span>bar|</span></div>',
+  sampleId: 3,
+  value: 'http://www.google.com/'
+});
+
+// Variation of w3c.4
+testCaseFor('createLink', 'Span.Nested.1', {
+  after: '<div contenteditable><p><a href="http://www.google.com/">^foo</a></p><p> <a href="http://www.google.com/"><span><b>bar</b>quux</span></a> </p><p><a href="http://www.google.com/">baz|</a></p></div>',
+  before: '<div contenteditable><p>^foo</p><p> <span><b>bar</b>quux</span> </p><p>baz|</p></div>',
+  sampleId: 4,
+  value: 'http://www.google.com/'
+});
+
+testCaseFor('createLink', 'Span.Nested.2', {
+  after: '<div contenteditable><p><a href="http://www.google.com/">^foo</a></p><p> <a href="http://www.google.com/"><span><span>bar</span>quux</span></a> </p><p><a href="http://www.google.com/">baz|</a></p></div>',
+  before: '<div contenteditable><p>^foo</p><p> <span><span>bar</span>quux</span> </p><p>baz|</p></div>',
+  sampleId: 4,
+  value: 'http://www.google.com/'
+});
+
 
 // Create link with range in interactive
 // <a><b>a^b|c</b> => <a><b>a</b></a><a><b>b</b></a><a><b>c</b></a>

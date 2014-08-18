@@ -97,6 +97,18 @@ editing.defineCommand('CreateLink', (function() {
    */
   function createLinkForRange(context, url) {
     console.assert(url != '');
+    var editor = context.editor;
+
+    function removeTrailingWhitespaces(anchorElement) {
+      // Remove trailing invisible nodes.
+      var lastChild;
+      while (lastChild = anchorElement.lastChild) {
+        if (editing.library.isVisibleNode(lastChild))
+          break;
+        console.log('wrapByAnchor remove trailing whitespaces');
+        anchorElement.parentNode.insertAfter(lastChild, anchorElement);
+      }
+    }
 
     // TODO(yosin) Once we have ES6 |Map|, we should use it.
     var isInteractiveCache = {};
@@ -125,11 +137,29 @@ console.log('insertNewAnchorElement phrase=' + anchorPhraseNode);
       return anchorElement;
     }
 
+    var anchorElement = null;
+    function wrapByAnchor(node) {
+      console.log('wrapByAnchor anchor=' + anchorElement, 'node=' + node,
+                  anchorElement && (anchorElement.parentNode == node.parentNode));
+      if (!anchorElement) {
+        if (editing.library.isVisibleNode(node))
+          anchorElement = insertNewAnchorElement(node);
+        return;
+      }
+      if (anchorElement.parentNode != node.parentNode) {
+        removeTrailingWhitespaces(anchorElement);
+        anchorElement = null;
+        wrapByAnchor(node);
+        return;
+      }
+      anchorElement.appendChild(node);
+    }
+
     var selection = context.selection;
-    if (!selection.nodes.length) {
-console.log('createLinkForRange no nodes.');
-      context.setEndingSelection(context.startingSelection);
-      return false;
+    var effectiveNodes = getEffectiveNodes(context);
+    if (!effectiveNodes.length) {
+      console.log('createLinkForRange no nodes.');
+      return createLinkBeforeCaret(context, url);
     }
 
 console.log('createLinkForRange anchor=' + selection.anchorNode + ' ' + selection.anchorOffset +' focus=' + selection.focusNode + ' ' + selection.focusOffset);
@@ -157,23 +187,32 @@ console.log('createLinkForRange anchor=' + selection.anchorNode + ' ' + selectio
       focusBoundaryPoint.node = selection.focusNode.childNodes[selection.focusOffset];
     }
 
-    var anchorElement = null;
-    var pendingNodes = [];
-
     // Handling of start node
-    var startNode = selection.nodes[0];
+    var startNode = effectiveNodes[0];
     // TODO(yosin) We should split at |startNode| if |startNode| is in
     // interactive element.
     // For compatibility with Firefox and IE, we don't split A element
     // which is parent of |startNode|.
     // Example:
     //  <a href="foo">^fo|o</a> => ^<a href="URL">foo</a>|
-    if (startNode.parentNode.nodeName == 'A') {
+    if (startNode.parentNode.nodeName == 'A')
       anchorElement = startNode.parentNode;
-    }
 
-    getEffectiveNodes(context).forEach(function(currentNode) {
-console.log('createLinkForRange node=' + currentNode, 'isPhrasing', currentNode.isPhrasing, 'anchorElement=' + anchorElement, 'pendingNodes', pendingNodes.length, 'interactive', isInteractive(currentNode));
+    var pendingContainer = null;
+    var visibleNode = null;
+    effectiveNodes.forEach(function(currentNode) {
+console.log('createLinkForRange node=' + currentNode,
+            'isPhrasing', currentNode.isPhrasing,
+            'anchorElement=' + anchorElement,
+            'interactive', isInteractive(currentNode),
+            'pendingContainer=' + pendingContainer);
+      if (!currentNode.isEditable || !currentNode.isPhrasing) {
+        if (anchorElement)
+          removeTrailingWhitespaces(anchorElement);
+        anchorElement = null;
+        return;
+      }
+
       if (isInteractive(currentNode)) {
         if (anchorElement)
           anchorElement.setAttribute('href', url);
@@ -184,59 +223,46 @@ console.log('createLinkForRange node=' + currentNode, 'isPhrasing', currentNode.
         return;
       }
 
-      if (currentNode.isEditable && currentNode.isPhrasing) {
-        if (currentNode.hasChildNodes()) {
-          pendingNodes.push(currentNode);
-        } else if (pendingNodes.length) {
-          if (currentNode.nextSibling ||
-              currentNode.parentNode === pendingNodes[0]) {
-            pendingNodes.push(currentNode);
-          } if (anchorElement) {
-            anchorElement.appendChild(pendingNodes[0]);
-            pendingNodes = [];
-          } else {
-            anchorElement = insertNewAnchorElement(pendingNodes[0]);
-            pendingNodes = [];
-          }
-        } else if (anchorElement) {
-          // TODO(yosin) Should we skip all whitespace nodes at end of
-          // tag?
-          if (anchorElement.parentNode == currentNode.parentNode) {
-            if (!editing.library.isWhitespaceNode(currentNode) ||
-                currentNode.nextSibling) {
-              anchorElement.appendChild(currentNode);
-            } else {
-              console.log('createLinkForRange skip ' + currentNode);
-            }
-          } else {
-            anchorElement = insertNewAnchorElement(currentNode);
-          }
-        } else {
-          anchorElement = insertNewAnchorElement(currentNode);
+      if (currentNode.hasChildNodes()) {
+        if (!pendingContainer) {
+          pendingContainer = currentNode;
+          visibleNode = null;
+          return;
         }
+
+        if (currentNode.isDescendantOf(pendingContainer))
+          return;
+
+        if (visibleNode)
+          wrapByAnchor(pendingContainer);
+        pendingContainer = currentNode;
+        visibleNode = null;
         return;
       }
 
-      anchorElement = null;
-      if (!pendingNodes.length)
-        return;
+      if (pendingContainer) {
+        if (currentNode.isDescendantOf(pendingContainer)) {
+          if (!visibleNode && editing.library.isVisibleNode(currentNode))
+            visibleNode = currentNode;
+          return;
+        }
+        if (visibleNode)
+          wrapByAnchor(pendingContainer);
+        pendingContainer = null;
+        visibleNode = null;
+      }
 
-      // TODO(yosin) Handle peindingNode[0].parentNode isn't editable.
-      var tree = pendingNodes[0];
-      var newTree = editor.splitTree(tree, currentNode);
-      tree.parentNode.insertAfter(newTree, tree);
+      wrapByAnchor(currentNode);
     });
 
-    if (pendingNodes.length) {
-      var firstPendingNode = pendingNodes[0];
-      var lastPendingNode = pendingNodes[pendingNodes.length - 1];
-      if (lastPendingNode.nextSibling) {
-          editor.splitTreeBefore(firstPendingNode, lastPendingNode);
-      } else if (anchorElement) {
-        anchorElement.appendChild(firstPendingNode);
-      } else {
-        anchorElement = insertNewAnchorElement(firstPendingNode);
+    if (pendingContainer && visibleNode) {
+      var lastNode = effectiveNodes[effectiveNodes.length - 1];
+      if (lastNode.nextSibling) {
+        var newTree = editor.splitTree(pendingContainer, lastNode.nextSibling);
+        pendingContainer.parentNode.insertAfter(newTree, pendingContainer);
       }
+      wrapByAnchor(pendingContainer);
+      removeTrailingWhitespaces(anchorElement);
     }
 
     var anchorNode, anchorOffset;
