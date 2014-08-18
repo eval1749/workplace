@@ -35,6 +35,13 @@ editing.define('library', (function() {
     return text == '';
   }
 
+  function lastWithIn(current) {
+    var descendant = current.lastChild;
+    for (var child = descendant; child; child = child.lastChild) {
+      descendant = child;
+    }
+    return descendant;
+  }
 
   // nextNode(<a><b>foo|</b><a>bar) = bar
   function nextNode(current) {
@@ -63,6 +70,7 @@ editing.define('library', (function() {
   return Object.defineProperties({}, {
     isVisibleNode: {value: isVisibleNode},
     isWhitespaceNode: {value: isWhitespaceNode},
+    lastWithIn: {value: lastWithIn},
     nextNode: {value: nextNode},
     nextNodeSkippingChildren: {value: nextNodeSkippingChildren},
   });
