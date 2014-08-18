@@ -113,10 +113,13 @@ function testCaseFor(commandName, testCaseId, data) {
     var actualResult = testing.serialzieNode(context.selection.rootForTesting,
                                              context.endingSelection);
     var expectedResult = data.after;
-    if (expectedResult == actualResult) {
-      testRunner.succeeded();
-    } else {
-      var logElement = testRunner.failed(testCaseName);
+    if (stripMarker(expectedResult) == stripMarker(actualResult))
+      testRunner.succeeded(testCaseName);
+    else
+      testRunner.failed(testCaseName);
+
+    if (expectedResult != actualResult) {
+      var logElement = testRunner.warn(testCaseName);
       var listElement = document.createElement('ul');
       logElement.appendChild(listElement);
       ['Expected:' + expectedResult, 'Actual__:' + actualResult].forEach(
@@ -125,10 +128,6 @@ function testCaseFor(commandName, testCaseId, data) {
           listItemElement.innerHTML = pretty(text);
           listElement.appendChild(listItemElement);
       });
-      if (stripMarker(expectedResult) == stripMarker(actualResult))
-        testRunner.succeeded(testCaseName);
-      else
-        testRunner.failed('Both result HTML and selection are different.');
     }
 
     var actualResult2 = testing.serialzieNode(context.selection.rootForTesting,

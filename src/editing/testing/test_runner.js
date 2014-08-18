@@ -125,6 +125,18 @@ Object.defineProperties(TestRunner.prototype, (function() {
     return text;
   }
 
+
+  /**
+   * @this {!TestRunner}
+   * @return {!HTMLElement}
+   */
+  function warn(closure) {
+    ++this.testCount_;
+    var element = this.log(toPrettyString(closure));
+    element.classList.add('warn');
+    return element;
+  }
+
   return {
     beginTest: {value: beginTest},
     constructor: TestRunner,
@@ -140,6 +152,7 @@ Object.defineProperties(TestRunner.prototype, (function() {
     succeeded: {value: succeeded},
     testCount_: {writable: true},
     succeededCount_: {writable: true},
+    warn: {value: warn}
   }
 })());
 var testRunner = new TestRunner();
