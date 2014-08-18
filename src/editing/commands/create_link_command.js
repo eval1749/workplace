@@ -170,6 +170,9 @@ console.log('createLinkForRange anchor=' + selection.anchorNode + ' ' + selectio
     } else if (selection.anchorNode.maxOffset == selection.anchorOffset) {
       anchorBoundaryPoint.type = 'afterAllChildren';
       anchorBoundaryPoint.node = selection.anchorNode.lastChild;
+    } else if (selection.anchorOffset && selection.direction == editing.SelectionDirection.FOCUS_IS_START) {
+      anchorBoundaryPoint.type = 'after';
+      anchorBoundaryPoint.node = selection.anchorNode.childNodes[selection.anchorOffset - 1];
     } else {
       anchorBoundaryPoint.type = 'itself';
       anchorBoundaryPoint.node = selection.anchorNode.childNodes[selection.anchorOffset];
@@ -182,10 +185,17 @@ console.log('createLinkForRange anchor=' + selection.anchorNode + ' ' + selectio
     } else if (selection.focusNode.maxOffset == selection.focusOffset) {
       focusBoundaryPoint.type = 'afterAllChildren';
       focusBoundaryPoint.node = selection.focusNode.lastChild;
+    } else if (selection.focusOffset && selection.direction == editing.SelectionDirection.ANCHOR_IS_START) {
+      focusBoundaryPoint.type = 'after';
+      focusBoundaryPoint.node = selection.focusNode.childNodes[selection.focusOffset - 1];
     } else {
       focusBoundaryPoint.type = 'itself';
       focusBoundaryPoint.node = selection.focusNode.childNodes[selection.focusOffset];
     }
+
+console.log('createLinkForRange',
+            'anchor=' + anchorBoundaryPoint.type + ' ' + anchorBoundaryPoint.node,
+            'focus=' + focusBoundaryPoint.type + ' ' + focusBoundaryPoint.node);
 
     // Handling of start node
     var startNode = effectiveNodes[0];
@@ -257,16 +267,35 @@ console.log('createLinkForRange node=' + currentNode,
 
     if (pendingContainer && visibleNode) {
       var lastNode = effectiveNodes[effectiveNodes.length - 1];
-      if (lastNode.nextSibling) {
-        var newTree = editor.splitTree(pendingContainer, lastNode.nextSibling);
-        pendingContainer.parentNode.insertAfter(newTree, pendingContainer);
+      if (anchorElement &&
+          editing.library.lastWithIn(pendingContainer) == lastNode) {
+        // |pendingContainer| is in selection range.
+        // e.g. <b>foo^bar<i>baz|</i> => <b>foo<a>^bar<i>baz|</i></a>
+        wrapByAnchor(pendingContainer);
+      } else {
+        if (lastNode.parentNode != visibleNode.parentNode && lastNode.nextSibling) {
+          var newTree = editor.splitTree(pendingContainer, lastNode.nextSibling);
+          pendingContainer.parentNode.insertAfter(newTree, pendingContainer);
+        }
+        var runner = visibleNode.nextSibling;
+        anchorElement = insertNewAnchorElement(visibleNode);
+        if (visibleNode != lastNode) {
+          while (runner && runner != lastNode) {
+            var next = runner.nextSibling;
+            anchorElement.appendChild(runner);
+            runner = next;
+          }
+          removeTrailingWhitespaces(anchorElement);
+        }
       }
-      wrapByAnchor(pendingContainer);
-      removeTrailingWhitespaces(anchorElement);
     }
 
     var anchorNode, anchorOffset;
     switch (anchorBoundaryPoint.type) {
+      case 'after':
+        anchorNode = anchorBoundaryPoint.node.parentNode;
+        anchorOffset = anchorBoundaryPoint.node.nodeIndex + 1;
+        break;
       case 'afterAllChildren':
         anchorNode = anchorBoundaryPoint.node.parentNode;
         anchorOffset = anchorNode.maxOffset;
@@ -288,6 +317,10 @@ console.log('createLinkForRange anchorBoundaryPoint=' + anchorBoundaryPoint.type
 
     var focusNode, focusOffset;
     switch (focusBoundaryPoint.type) {
+      case 'after':
+        focusNode = focusBoundaryPoint.node.parentNode;
+        focusOffset = focusBoundaryPoint.node.nodeIndex + 1;
+        break;
       case 'afterAllChildren':
         focusNode = focusBoundaryPoint.node.parentNode;
         focusOffset = focusNode.maxOffset;
@@ -314,33 +347,6 @@ console.log('createLinkForRange focusBoundaryPoint=' + focusBoundaryPoint.type +
 
   /**
    * @param {!EditingContext} context
-   * @return {!Array.<EditingNode>}
-   */
-  function getEffectiveNodes(context) {
-    var nodes = context.selection.nodes;
-console.log('getEffectiveNodes ', nodes.length, 'firstNode=' + nodes[0]);
-    if (!nodes.length)
-      return nodes;
-    var firstNode = nodes[0];
-    var lastNode = nodes[nodes.length - 1];
-    var commonAncestor = firstNode.commonAncestor(lastNode);
-    for (var ancestor = firstNode.parentNode; ancestor;
-         ancestor = ancestor.parentNode) {
-      if (!ancestor.isEditable)
-        break;
-      if (ancestor.firstChld !== ancestor.lastNode &&
-          !lastNode.isDescendantOf(ancestor)) {
-        break;
-      }
-console.log('getEffectiveNodes ancestor=' + ancestor);
-      nodes.unshift(ancestor);
-    }
-    return nodes;
-  }
-
-
-  /**
-   * @param {!EditingContext} context
    * @param {boolean} userInterface
    * @param {string} url
    * @return {boolean}
@@ -358,5 +364,30 @@ console.log('getEffectiveNodes ancestor=' + ancestor);
     return createLinkForRange(context, url);
   }
 
+  /**
+   * @param {!EditingContext} context
+   * @return {!Array.<EditingNode>}
+   */
+  function getEffectiveNodes(context) {
+    var nodes = context.selection.nodes;
+    if (!nodes.length)
+      return nodes;
+    var firstNode = nodes[0];
+    for (var ancestor = firstNode.parentNode; ancestor;
+         ancestor = ancestor.parentNode) {
+      if (!ancestor.isEditable)
+        break;
+      if (ancestor.firstChild !== firstNode)
+        break;
+      // TODO(yosin) We should use more efficient way to check |ancestor| is
+      // in selection.
+      var lastNode = editing.library.lastWithIn(ancestor);
+      if (nodes.findIndex(function(x) { return x == lastNode; }) < 0)
+        break;
+      nodes.unshift(ancestor);
+      firstNode = ancestor;
+    }
+    return nodes;
+  }
   return createLinkCommand;
 })());
