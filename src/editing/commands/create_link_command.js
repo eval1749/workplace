@@ -137,22 +137,35 @@ console.log('insertNewAnchorElement phrase=' + anchorPhraseNode);
       return anchorElement;
     }
 
+    function lastOf(array) {
+      return array.length ? array[array.length - 1] : null;
+    }
+
     var anchorElement = null;
     function wrapByAnchor(node) {
       console.log('wrapByAnchor anchor=' + anchorElement, 'node=' + node,
                   anchorElement && (anchorElement.parentNode == node.parentNode));
       if (!anchorElement) {
-        if (editing.library.isVisibleNode(node))
-          anchorElement = insertNewAnchorElement(node);
+        if (!editing.library.isVisibleNode(node)) {
+          // We don't have leading whitespaces in anchor element.
+          return;
+        }
+        anchorElement = insertNewAnchorElement(node);
         return;
       }
       if (anchorElement.parentNode != node.parentNode) {
-        removeTrailingWhitespaces(anchorElement);
-        anchorElement = null;
+        endAnchorElement();
         wrapByAnchor(node);
         return;
       }
       anchorElement.appendChild(node);
+    }
+
+    function endAnchorElement() {
+      if (!anchorElement)
+        return;
+      removeTrailingWhitespaces(anchorElement);
+      anchorElement = null;
     }
 
     var selection = context.selection;
@@ -160,6 +173,33 @@ console.log('insertNewAnchorElement phrase=' + anchorPhraseNode);
     if (!effectiveNodes.length) {
       console.log('createLinkForRange no nodes.');
       return createLinkBeforeCaret(context, url);
+    }
+
+    var pendingContainers = [];
+    var pendingContents = [];
+
+    function moveLastContainerToContents() {
+console.log('moveLastContainerToContents');
+      // All descendant of |lastPendingContainer| can be contents of anchor.
+      var lastContainer = pendingContainers.pop();
+      while (pendingContents.length &&
+             lastOf(pendingContents).parentNode == lastContainer) {
+        pendingContents.pop();
+      }
+      if (pendingContainers.length) {
+        pendingContents.push(lastContainer);
+        return;
+      }
+      wrapByAnchor(lastContainer);
+    }
+
+    // Wrap pending contents which are sibling of |stopNode|
+    function processPendingContents() {
+console.log('processPendingContents');
+      pendingContents.forEach(wrapByAnchor);
+      endAnchorElement();
+      pendingContainers = [];
+      pendingContents = [];
     }
 
     var selectionTracker = new editing.SelectionTracker(context);
@@ -175,22 +215,28 @@ console.log('insertNewAnchorElement phrase=' + anchorPhraseNode);
     if (startNode.parentNode.nodeName == 'A')
       anchorElement = startNode.parentNode;
 
-    var pendingContainer = null;
-    var visibleNode = null;
     effectiveNodes.forEach(function(currentNode) {
 console.log('createLinkForRange node=' + currentNode,
             'isPhrasing', currentNode.isPhrasing,
             'anchorElement=' + anchorElement,
             'interactive', isInteractive(currentNode),
-            'pendingContainer=' + pendingContainer);
+            'pendingContainer.last=' + lastOf(pendingContainers),
+            'current.prev=' + currentNode.previousSibling);
+
+      var lastPendingContainer = lastOf(pendingContainers);
+      if (lastPendingContainer &&
+          lastPendingContainer === currentNode.previousSibling) {
+        moveLastContainerToContents();
+      }
+
       if (!currentNode.isEditable || !currentNode.isPhrasing) {
-        if (anchorElement)
-          removeTrailingWhitespaces(anchorElement);
-        anchorElement = null;
+        processPendingContents();
+        endAnchorElement();
         return;
       }
 
       if (isInteractive(currentNode)) {
+        processPendingContents();
         if (anchorElement)
           anchorElement.setAttribute('href', url);
         anchorElement = null;
@@ -201,60 +247,24 @@ console.log('createLinkForRange node=' + currentNode,
       }
 
       if (currentNode.hasChildNodes()) {
-        if (!pendingContainer) {
-          pendingContainer = currentNode;
-          visibleNode = null;
-          return;
-        }
-
-        if (currentNode.isDescendantOf(pendingContainer))
-          return;
-
-        if (visibleNode)
-          wrapByAnchor(pendingContainer);
-        pendingContainer = currentNode;
-        visibleNode = null;
+        pendingContainers.push(currentNode);
         return;
       }
 
-      if (pendingContainer) {
-        if (currentNode.isDescendantOf(pendingContainer)) {
-          if (!visibleNode && editing.library.isVisibleNode(currentNode))
-            visibleNode = currentNode;
-          return;
-        }
-        if (visibleNode)
-          wrapByAnchor(pendingContainer);
-        pendingContainer = null;
-        visibleNode = null;
+      if (pendingContainers.length) {
+        pendingContents.push(currentNode);
+        if (!currentNode.nextSibling)
+          moveLastContainerToContents();
+        return;
       }
-
       wrapByAnchor(currentNode);
     });
 
-    if (pendingContainer && visibleNode) {
-      var lastNode = effectiveNodes[effectiveNodes.length - 1];
-      if (anchorElement &&
-          editing.library.lastWithIn(pendingContainer) == lastNode) {
-        // |pendingContainer| is in selection range.
-        // e.g. <b>foo^bar<i>baz|</i> => <b>foo<a>^bar<i>baz|</i></a>
-        wrapByAnchor(pendingContainer);
-      } else {
-        if (lastNode.parentNode != visibleNode.parentNode && lastNode.nextSibling) {
-          var newTree = editor.splitTree(pendingContainer, lastNode.nextSibling);
-          pendingContainer.parentNode.insertAfter(newTree, pendingContainer);
-        }
-        var runner = visibleNode.nextSibling;
-        anchorElement = insertNewAnchorElement(visibleNode);
-        if (visibleNode != lastNode) {
-          while (runner && runner != lastNode) {
-            var next = runner.nextSibling;
-            anchorElement.appendChild(runner);
-            runner = next;
-          }
-          removeTrailingWhitespaces(anchorElement);
-        }
-      }
+    if (pendingContents.length) {
+      // The last effective node is descendant of pending container.
+      // Example: foo<b>^bar<i>baz quux</i></b>|mox
+      // where the last effective node is "baz quux".
+      processPendingContents();
     }
 
     selectionTracker.setEndingSelection();

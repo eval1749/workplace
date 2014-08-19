@@ -63,7 +63,7 @@ testCaseFor('CreateLink', 'CaretInteractiveAtMiddle', {
 // <p contenteditable><a href="foo">^foo|</a></p>
 // =>
 // <p contenteditable>^<a href="URL">foo</a>|</p>
-testCaseFor('CreateLink', 'RangeAnchor', {
+testCaseFor('CreateLink', 'Range.AnchorText.1', {
   before: '<p contenteditable><a href="foo">^foo|</a></p>',
   after:  '<p contenteditable><a href="URL">^foo|</a></p>',
   value: 'URL'
@@ -75,7 +75,7 @@ testCaseFor('CreateLink', 'RangeAnchor', {
 // CR: <p contenteditable<a href="FOO">^fo<a href="URL">o</a></a></p>
 // FF: <p contenteditable<a href="URL">foo</a></p>
 // IE: <p contenteditable<a href="URL">foo</a></p>
-testCaseFor('CreateLink', 'RangeAnchor2', {
+testCaseFor('CreateLink', 'Range.AnchorText.2', {
   before: '<p contenteditable><a href="foo">^fo|o</a></p>',
   after:  '<p contenteditable><a href="URL">^fo|o</a></p>',
   value: 'URL'
@@ -92,13 +92,13 @@ testCaseFor('CreateLink', 'RangeList', {
 });
 
 // Create link with range.
-testCaseFor('CreateLink', 'RangeSimpleText', {
+testCaseFor('CreateLink', 'Range.SimpleText', {
   before: '<p contenteditable>^abcd|</p>',
   after:  '<p contenteditable><a href="URL">^abcd|</a></p>',
   value: 'URL'
 });
 
-testCaseFor('CreateLink', 'RangeSimpleTree', {
+testCaseFor('CreateLink', 'Range.SimpleTree', {
   before: '<p contenteditable>^abcd<b>efg</b>|</p>',
   after:  '<p contenteditable><a href="URL">^abcd<b>efg</b>|</a></p>',
   value: 'URL'
@@ -116,10 +116,18 @@ testCaseFor('CreateLink', 'EndTag', {
 });
 
 // Variation of w3c.3
+// <span style="font-weight: bold"> is in effective nodes.
+// An anchor element should have whitespace text node.
 testCaseFor('createLink', 'Range.3.1', {
   after: '<div contenteditable><a href="URL"><span style="font-weight: bold">^foo</span> <span>bar|</span></a></div>',
   before: '<div contenteditable><span style="font-weight: bold">^foo</span> <span>bar|</span></div>',
-  sampleId: 3,
+  value: 'URL'
+});
+
+// Similar to "Range.3.1", but use B and I instead of SPAN.
+testCaseFor('createLink', 'Range.3.2', {
+  after: '<div contenteditable><a href="URL"><b>^foo</b> <i>bar|</i></a></div>',
+  before: '<div contenteditable><b>^foo</b> <i>bar|</i></div>',
   value: 'URL'
 });
 
@@ -127,7 +135,6 @@ testCaseFor('createLink', 'Range.3.1', {
 testCaseFor('createLink', 'Range.4.1', {
   after: '<div contenteditable><p><a href="URL">^foo</a></p><p> <a href="URL"><span><b>bar</b>quux</span></a> </p><p><a href="URL">baz|</a></p></div>',
   before: '<div contenteditable><p>^foo</p><p> <span><b>bar</b>quux</span> </p><p>baz|</p></div>',
-  sampleId: 4,
   value: 'URL'
 });
 
@@ -142,14 +149,19 @@ testCaseFor('createLink', 'Range.4.2', {
 testCaseFor('createLink', 'Range.11.1', {
   after: '<div contenteditable>foo<b><a href="URL">^bar</a><i><a href="URL">baz |</a>quux</i></b>mox</div>',
   before: '<div contenteditable>foo<b>^bar<i>baz |quux</i></b>mox</div>',
-  sampleId: 3,
   value: 'URL'
 });
 
+// <b>...</b> is in effective range.
 testCaseFor('createLink', 'Range.11.2', {
-  after: '<div contenteditable>foo<b><a href="URL">^bar<i>baz quux</i></a></b>|mox</div>',
-  before: '<div contenteditable>foo<b>^bar<i>baz quux</i></b>|mox</div>',
-  sampleId: 3,
+  after: '<div contenteditable>foo<b><a href="URL">^bar<i>baz</i></a></b>|quux</div>',
+  before: '<div contenteditable>foo<b>^bar<i>baz</i></b>|quux</div>',
+  value: 'URL'
+});
+
+testCaseFor('createLink', 'Range.11.3', {
+  after: '<div contenteditable>foo<a href="URL"><b>^bar<i>baz</i></b>q|</a>uux</div>',
+  before: '<div contenteditable>foo<b>^bar<i>baz</i></b>q|uux</div>',
   value: 'URL'
 });
 
