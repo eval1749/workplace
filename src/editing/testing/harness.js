@@ -92,6 +92,10 @@ testing.define('serialzieNode', (function() {
       return '';
     }
 
+    function orderByAttributeName(attrNode1, attrNode2) {
+      return attrNode1.name.localeCompare(attrNode2.name);
+    }
+
     function visit(node) {
       if (!node.isElement) {
         // To support |Document| node, we iterate over child nodes.
@@ -103,7 +107,7 @@ testing.define('serialzieNode', (function() {
       }
       var tagName = node.domNode.nodeName.toLowerCase();
       var sink = '<' + tagName;
-      node.attributes.sort().forEach(function(attrNode) {
+      node.attributes.sort(orderByAttributeName).forEach(function(attrNode) {
         var attrName = attrNode.name;
         var attrValue = attrNode.value;
         if (attrValue){
