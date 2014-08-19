@@ -31,7 +31,11 @@ editing.define('EditingNode', (function() {
       var attrs = domNode.attributes;
       for (var index = 0; index < attrs.length; ++index) {
         var attr = attrs[index];
-        this.attributes_[attr.name] = attr.value;
+        var attrValue = attr.value;
+        // IE11 put ";" for "style" but others don't.
+        if (attr.name == 'style')
+          attrValue = attrValue.replace(/;$/, '');
+        this.attributes_[attr.name] = attrValue;
       }
     }
   };

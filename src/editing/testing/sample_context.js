@@ -128,6 +128,10 @@ testing.define('SampleContext', (function() {
           return;
         var attrValue = attr.value;
         if (attrValue){
+          // Remove last ";" since IE put ";" for "style" attribute, but
+          // other browsers don't.
+          if (attrName == 'style')
+            attrValue = attrValue.replace(/;$/, '');
           attrValue = String(attrValue).replace(/&/g, '&amp;')
               .replace(/\u0022/g, '&quot;')
           sink += ' ' + attrName + '="' + attrValue + '"';

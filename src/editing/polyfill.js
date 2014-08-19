@@ -11,6 +11,7 @@
 // - Selection.extend(node, offset) is missing.
 // - |window.getComputedStyle| throws an exception for Node.TEXT_NODE, Chrome
 //   returns null.
+// - IE11 puts ";" for end of "style" attribute.
 
 if (!Array.prototype.findIndex) {
   Object.defineProperty(Array.prototype, 'findIndex', {
