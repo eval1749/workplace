@@ -14,7 +14,7 @@ editing.define('EditingNode', (function() {
    */
   function EditingNode(context, domNode) {
     console.assert(domNode instanceof Node);
-    this.attributes_ = {};
+    this.attributes_ = [];
     this.context_ = context;
     this.domNode_ = domNode;
     this.hashCode_ = context.nextHashCode();
@@ -27,17 +27,21 @@ editing.define('EditingNode', (function() {
     this.textEndOffset_ = this.isText ? domNode.length : 0;
     this.textStartOffset_ = 0;
 
-    if (domNode.nodeType == Node.ELEMENT_NODE) {
-      var attrs = domNode.attributes;
-      for (var index = 0; index < attrs.length; ++index) {
-        var attr = attrs[index];
-        var attrValue = attr.value;
+    var attributes = domNode.attributes;
+    if (!attributes)
+      return;
+    var node = this;
+    [].forEach.call(attributes, function(attrNode) {
+      var newAttrNode = domNode.ownerDocument.createAttribute(
+          attrNode.name.toLowerCase());
+      if (newAttrNode.name == 'style') {
         // IE11 put ";" for "style" but others don't.
-        if (attr.name == 'style')
-          attrValue = attrValue.replace(/;$/, '');
-        this.attributes_[attr.name] = attrValue;
+        newAttrNode.value = attrNode.value.replace(/;$/, '');
+      } else {
+        newAttrNode.value = attrNode.value;
       }
-    }
+      node.attributes_.push(newAttrNode);
+    });
   };
 
   /**
@@ -47,14 +51,6 @@ editing.define('EditingNode', (function() {
   function appendChild(newChild) {
     this.context_.appendChild(this, newChild);
     internalAppendChild(this, newChild);
-  }
-
-  /**
-   * @this {!EditingNode}
-   * @return {!Array.<string>}
-   */
-  function attributeNames() {
-    return Object.keys(this.attributes_);
   }
 
   /**
@@ -132,15 +128,27 @@ editing.define('EditingNode', (function() {
   }
 
   /**
+   * @param {!EditingNode} node
+   * @param {string} attrName;
+   * @return {*}
+   */
+  function findAttributeNode(node, attrName) {
+    attrName = attrName.toLowerCase();
+    return node.attributes_.find(function(attributeNode) {
+      return attributeNode.name == attrName;
+    });
+  }
+
+  /**
    * @this {!EditingNode}
    * @param {string} attrName
    * @return {?string}
    */
   function getAttribute(attrName) {
-    var attrValue = this.attributes_[attrName.toLowerCase()];
-    if (attrValue === undefined)
+    var attributeNode = findAttributeNode(this, attrName);
+    if (!attributeNode)
       return null;
-    return attrValue;
+    return attributeNode.value;
   }
 
   /**
@@ -151,7 +159,7 @@ editing.define('EditingNode', (function() {
   function hasAttribute(attrName) {
     console.assert('EditingNode.Node expect string as attribute name ' +
                     'rather than ' + attrName);
-    return this.attributes_[attrName.toLowerCase()] !== undefined;
+    return findAttributeNode(this, attrName) != null;
   }
 
   /**
@@ -494,8 +502,16 @@ editing.define('EditingNode', (function() {
    */
   function setAttribute(attrName, attrValue) {
     console.assert(this.isElement);
-    this.attributes_[attrName.toLowerCase()] = String(attrValue);
+    attrName = attrName.toLowerCase();
     this.context_.setAttribute(this, attrName, attrValue);
+    var attributeNode = findAttributeNode(this, attrName);
+    if (attributeNode) {
+      attributeNode.value = attrValue;
+      return;
+    }
+    var newAttributeNode = this.context_.document.createAttribute(attrName);
+    newAttributeNode.value = attrValue;
+    this.attributes_.push(newAttributeNode);
   }
 
   /**
@@ -532,7 +548,7 @@ editing.define('EditingNode', (function() {
 
   Object.defineProperties(EditingNode.prototype, {
     appendChild: {value: appendChild},
-    attributeNames: {get: attributeNames},
+    attributes: {get: function() { return this.attributes_; }},
     attributes_: {writable: true},
     constructor: {value: EditingNode},
     childNodes: {get: childNodes},

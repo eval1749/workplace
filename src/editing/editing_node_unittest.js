@@ -341,5 +341,5 @@ testCase('EditingNode.setAttribute', function() {
   expectEq('two', function() { return element1.getAttribute('a2'); });
   element1.setAttribute('a1', 'abc');
   expectEq('abc', function() { return element1.getAttribute('a1'); });
-  expectEq(2, function() { return element1.attributeNames.length; });
+  expectEq(2, function() { return element1.attributes.length; });
 });

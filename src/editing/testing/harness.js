@@ -103,8 +103,9 @@ testing.define('serialzieNode', (function() {
       }
       var tagName = node.domNode.nodeName.toLowerCase();
       var sink = '<' + tagName;
-      node.attributeNames.sort().forEach(function(attrName) {
-        var attrValue = node.getAttribute(attrName);
+      node.attributes.sort().forEach(function(attrNode) {
+        var attrName = attrNode.name;
+        var attrValue = attrNode.value;
         if (attrValue){
           attrValue = attrValue.replace(/&/g, '&amp;')
               .replace(/\u0022/g, '&quot;')
