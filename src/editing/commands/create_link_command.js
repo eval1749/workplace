@@ -162,40 +162,7 @@ console.log('insertNewAnchorElement phrase=' + anchorPhraseNode);
       return createLinkBeforeCaret(context, url);
     }
 
-console.log('createLinkForRange anchor=' + selection.anchorNode + ' ' + selection.anchorOffset +' focus=' + selection.focusNode + ' ' + selection.focusOffset);
-    var anchorBoundaryPoint = {};
-    if (!selection.anchorNode.hasChildNodes()) {
-      anchorBoundaryPoint.type = 'beforeAllChildren';
-      anchorBoundaryPoint.node = selection.anchorNode;
-    } else if (selection.anchorNode.maxOffset == selection.anchorOffset) {
-      anchorBoundaryPoint.type = 'afterAllChildren';
-      anchorBoundaryPoint.node = selection.anchorNode.lastChild;
-    } else if (selection.anchorOffset && selection.direction == editing.SelectionDirection.FOCUS_IS_START) {
-      anchorBoundaryPoint.type = 'after';
-      anchorBoundaryPoint.node = selection.anchorNode.childNodes[selection.anchorOffset - 1];
-    } else {
-      anchorBoundaryPoint.type = 'itself';
-      anchorBoundaryPoint.node = selection.anchorNode.childNodes[selection.anchorOffset];
-    }
-
-    var focusBoundaryPoint = {};
-    if (!selection.focusNode.hasChildNodes()) {
-      focusBoundaryPoint.type = 'beforeAllChildren';
-      focusBoundaryPoint.node = selection.focusNode;
-    } else if (selection.focusNode.maxOffset == selection.focusOffset) {
-      focusBoundaryPoint.type = 'afterAllChildren';
-      focusBoundaryPoint.node = selection.focusNode.lastChild;
-    } else if (selection.focusOffset && selection.direction == editing.SelectionDirection.ANCHOR_IS_START) {
-      focusBoundaryPoint.type = 'after';
-      focusBoundaryPoint.node = selection.focusNode.childNodes[selection.focusOffset - 1];
-    } else {
-      focusBoundaryPoint.type = 'itself';
-      focusBoundaryPoint.node = selection.focusNode.childNodes[selection.focusOffset];
-    }
-
-console.log('createLinkForRange',
-            'anchor=' + anchorBoundaryPoint.type + ' ' + anchorBoundaryPoint.node,
-            'focus=' + focusBoundaryPoint.type + ' ' + focusBoundaryPoint.node);
+    var selectionTracker = new editing.SelectionTracker(context);
 
     // Handling of start node
     var startNode = effectiveNodes[0];
@@ -290,58 +257,7 @@ console.log('createLinkForRange node=' + currentNode,
       }
     }
 
-    var anchorNode, anchorOffset;
-    switch (anchorBoundaryPoint.type) {
-      case 'after':
-        anchorNode = anchorBoundaryPoint.node.parentNode;
-        anchorOffset = anchorBoundaryPoint.node.nodeIndex + 1;
-        break;
-      case 'afterAllChildren':
-        anchorNode = anchorBoundaryPoint.node.parentNode;
-        anchorOffset = anchorNode.maxOffset;
-        break;
-      case 'beforeAllChildren':
-        anchorNode = anchorBoundaryPoint.node;
-        anchorOffset = 0;
-        break;
-      case 'itself':
-        anchorNode = anchorBoundaryPoint.node.parentNode;
-        anchorOffset = anchorBoundaryPoint.node.nodeIndex;
-        break;
-      default:
-        throw new Error('Bad BoundaryPoint.type ' + anchorBoundaryPoint.type);
-    }
-
-console.log('createLinkForRange anchorBoundaryPoint=' + anchorBoundaryPoint.type + ' ' + anchorBoundaryPoint.node,
-    'anchorNode=' + anchorNode + ' ' + anchorOffset);
-
-    var focusNode, focusOffset;
-    switch (focusBoundaryPoint.type) {
-      case 'after':
-        focusNode = focusBoundaryPoint.node.parentNode;
-        focusOffset = focusBoundaryPoint.node.nodeIndex + 1;
-        break;
-      case 'afterAllChildren':
-        focusNode = focusBoundaryPoint.node.parentNode;
-        focusOffset = focusNode.maxOffset;
-        break;
-      case 'beforeAllChildren':
-        focusNode = focusBoundaryPoint.node;
-        focusOffset = 0;
-        break;
-      case 'itself':
-        focusNode = focusBoundaryPoint.node.parentNode;
-        focusOffset = focusBoundaryPoint.node.nodeIndex;
-        break;
-      default:
-        throw new Error('Bad BoundaryPoint.type ' + focusBoundaryPoint.type);
-    }
-
-console.log('createLinkForRange focusBoundaryPoint=' + focusBoundaryPoint.type + ' ' + focusBoundaryPoint.node,
-    'focusNode=' + focusNode + ' ' + focusOffset);
-
-    context.setEndingSelection(new editing.ReadOnlySelection(
-        anchorNode, anchorOffset, focusNode, focusOffset, selection.direction));
+    selectionTracker.setEndingSelection();
     return true;
   }
 
