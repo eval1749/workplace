@@ -5,8 +5,7 @@
 'use strict';
 
 function expectEq(expectedResult, testFunction, message) {
-  var actualResult;
-  function equal() {
+  function equal(expectedResult, actualResult) {
     if (typeof(expectedResult) != typeof(actualResult))
       return false;
     if (typeof(expectedResult) == 'object')
@@ -14,32 +13,27 @@ function expectEq(expectedResult, testFunction, message) {
     return expectedResult == actualResult;
   }
 
-  var useTryCatch = true;
-  if (useTryCatch) {
+  message = message || testFunction;
+
+  var actualResult;
+  if (testRunner.useTryCatch) {
     try {
       actualResult = testFunction();
     } catch (exception) {
-      actualResult = exception;
-      // TODO(yosin) We throw |exception| for debugging. Once, debugging is done,
-      // we should remove this.
-      throw exception;
+      testRunner.fail(message, {exception: exception});
+      return;
     }
   } else {
     actualResult = testFunction();
   }
 
-  if (equal()) {
-    testRunner.succeeded();
+  if (equal(expectedResult, actualResult)) {
+    testRunner.pass(message);
     return;
   }
-  var logElement = testRunner.failed(message || testFunction);
-  var listElement = document.createElement('ul');
-  logElement.appendChild(listElement);
-  ['Expected: ' + expectedResult, 'Actual__: ' + actualResult].forEach(
-    function(value) {
-      var listItemElement = document.createElement('li');
-      listItemElement.textContent = value;
-      listElement.appendChild(listItemElement);
+  testRunner.fail(message, {
+    actual: actualResult,
+    expected: expectedResult,
   });
 }
 
@@ -60,19 +54,7 @@ function expectUndefined(testFunction) {
 }
 
 function testCase(name, testFunction) {
-  testRunner.beginTest(name);
-testFunction();
-testRunner.endTest(name);
-return;
-  try {
-    testFunction();
-  } catch (exception) {
-    testRunner.log(name + ' exception: ' + exception.toString());
-    testRunner.failed(name);
-    throw exception;
-  } finally {
-    testRunner.endTest(name);
-  }
+  testRunner.addTest(name, testFunction);
 }
 
 function testCaseFor(commandName, testCaseId, data) {
@@ -101,62 +83,103 @@ function testCaseFor(commandName, testCaseId, data) {
     return text.replace('^', '').replace('|', '');
   }
 
-  if (typeof(data.after) != 'string')
-    throw new Error('You must specify before sample');
-  if (typeof(data.before) != 'string')
-    throw new Error('You must specify before sample');
+  if (typeof(data.after) != 'string') {
+    testRunner.fail('Test data after must be string: ' + data.after);
+    return;
+  }
+  if (data.after.indexOf('|') < 0) {
+    testRunner.fail('Test data after must have '|': ' + data.after);
+    return;
+  }
+
+  if (typeof(data.before) != 'string') {
+    testRunner.fail('Test data before must be string: ' + data.before);
+    return;
+  }
+  if (data.before.indexOf('|') < 0) {
+    testRunner.fail('Test data before must have '|': ' + data.before);
+    return;
+  }
 
   var testCaseName = commandName + '.' + testCaseId;
   testCase(testCaseName, function() {
     var context = testing.createSample(data.before);
+
+    // Execute command and check return value
     var expectedReturnValue = data.returnValue === undefined ?
         true : data.returnValue;
-    expectEq(expectedReturnValue, function() {
-      return testing.execCommand(context, commandName,
-                                 Boolean(data.userInferface),
-                                 data.value || '');
-    });
-
-    var actualResult = testing.serialzieNode(context.selection.rootForTesting,
-                                             context.endingSelection);
-    var expectedResult = data.after;
-    if (stripMarker(expectedResult) == stripMarker(actualResult))
-      testRunner.succeeded(testCaseName);
-    else
-      testRunner.failed(testCaseName);
-
-    if (expectedResult != actualResult) {
-      var logElement = testRunner.warn(testCaseName);
-      var listElement = document.createElement('ul');
-      logElement.appendChild(listElement);
-      ['Expected:' + expectedResult, 'Actual__:' + actualResult].forEach(
-        function(text) {
-          var listItemElement = document.createElement('li');
-          listItemElement.innerHTML = pretty(text);
-          listElement.appendChild(listItemElement);
+    var actualReturnValue = context.execCommand(commandName,
+                                                Boolean(data.userInferface),
+                                                data.value || '');
+    if (expectedReturnValue == actualReturnValue) {
+      testRunner.pass('execCommand return value');
+    } else {
+      testRunner.fail('execCommand return value', {
+        actual: actualReturnValue,
+        expected: expectedReturnValue,
       });
     }
 
-    var actualResult2 = testing.serialzieNode(context.selection.rootForTesting,
-                                              context.endingSelection, true);
-    var sample = context.sampleContext_.getResult();
-    if (sample == actualResult2)
-      return;
-    if (sample != expectedResult) {
-        if (stripMarker(sample) == stripMarker(expectedResult)) {
-          testRunner.logHtml('<b class="red">' +
-            'Cur and expected results are same.' +
-            ' but selection is different.</b>');
-        } else {
-          testRunner.logHtml('<b class="green">' +
-              'Cur and expected results are different.</b>');
-        }
+    // Compare result HTML and selection
+    var actualResult = testing.serialzieNode(
+        context.selection.rootForTesting,
+        {selection: context.endingSelection});
+    var expectedResult = data.after;
+    if (stripMarker(expectedResult) == stripMarker(actualResult)) {
+      testRunner.pass('Result HTML');
+      if (expectedResult != actualResult) {
+        testRunner.warn('Result Selection', {
+            format: 'html',
+            before: pretty(data.before),
+            actual: pretty(actualResult),
+            expected: pretty(expectedResult)
+        });
+      }
+    } else {
+      testRunner.fail('Result HTML', {
+        format: 'html',
+        before: pretty(data.before),
+        actual: pretty(actualResult),
+        expected: pretty(expectedResult)
+      });
     }
-    if (stripMarker(sample) == stripMarker(actualResult2))
-        testRunner.logHtml('<b class="green">Cur and New results are same,' +
-                           ' but selection is different.</b>');
-    testRunner.logHtml('Src: ' + pretty(context.sampleHtmlText_));
-    testRunner.logHtml('Cur: ' + pretty(sample));
-    testRunner.logHtml('New: ' + pretty(actualResult2));
+
+    // Compare result with browser's result.
+    var actualResult2 = testing.serialzieNode(
+        context.selection.rootForTesting, {
+        selection: context.endingSelection,
+        visbleTestNode: true
+    });
+
+    var sampleContext = context.sampleContext_;
+    var sampleReturnValue = sampleContext.execCommand(
+        commandName, Boolean(data.userInferface), data.value || '');
+    if (actualReturnValue != sampleReturnValue) {
+      testRunner.record('incompatible', {
+          actual: sampleReturnValue,
+          expected: actualReturnValue
+      });
+    }
+
+    var sampleResult = context.sampleContext_.getResult();
+    if (sampleResult == actualResult2) {
+      testRunner.record('compatible');
+      return;
+    }
+    if (stripMarker(sampleResult) == stripMarker(actualResult2)) {
+      testRunner.record('selection', {
+        format: 'html',
+        before: pretty(data.before),
+        actual: pretty(sampleResult),
+        expected: pretty(actualResult2)
+      });
+      return;
+    }
+    testRunner.record('incompatible', {
+        format: 'html',
+        before: pretty(data.before),
+        actual: pretty(sampleResult),
+        expected: pretty(actualResult2)
+    });
   });
 }

@@ -44,43 +44,20 @@ testing.define('createTree', (function() {
   return createTree;
 })());
 
-testing.define('execCommand', (function() {
-  /**
-   * @param {!editing.EditingContext} context
-   * @param {string} commandName
-   * @param {boolean=} opt_userInterface
-   * @param {string=} opt_value
-   * @return {boolean}
-   */
-  function execCommand(context, commandName, opt_userInterface, opt_value) {
-    var args = [];
-    for (var index = 1; index < arguments.length; ++index) {
-      args.push(arguments[index]);
-    }
-    var actualReturnValue = context.execCommand.apply(context, args);
-    var sampleContext = context.sampleContext_;
-    var sampleReturnValue = sampleContext.execCommand.apply(sampleContext,
-                                                            args);
-    if (actualReturnValue != sampleReturnValue) {
-      testRunner.log('Current return value is ' + sampleReturnValue +
-        ', but new result is ' + actualReturnValue + '.');
-    }
-    return actualReturnValue;
-  }
-  return execCommand;
-})());
-
 testing.define('serialzieNode', (function() {
   /**
    * @param {!EditingNode} node
-   * @param {editing.ReadOnlySelection=} opt_selection
-   * @param {boolean=} opt_visibleTextNode
+   * @param {Object=} opt_options
+   *    selection: editing.ReadOnlySelection
+   *    visibleTextNode: boolean
    * @return {string}
    */
-  function serialzieNode(node, opt_selection, opt_visibleTextNode) {
+  function serialzieNode(node, opt_options) {
     console.assert(node instanceof editing.EditingNode);
-    /** @const */ var selection = arguments.length >= 2 ?
-        /** @type {!editing.ReadOnlySelection} */(opt_selection) : null;
+    /** @const */ var option = arguments.length >= 2 ?
+        /** @type {Object} */(opt_options) : {};
+    /** @const */ var selection = option.selection || null;
+    /** @const */ var visibleTextNode = Boolean(option.visibleTextNode);
 
     function marker(node, offset) {
       if (!selection)
@@ -125,7 +102,7 @@ testing.define('serialzieNode', (function() {
         sink += marker(node, offset);
         sink += visit(child);
         var nextSibling = child.nextSibling;
-        if (opt_visibleTextNode && child.isText && nextSibling &&
+        if (visibleTextNode && child.isText && nextSibling &&
             nextSibling.isText) {
             sink += '_';
         }

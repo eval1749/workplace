@@ -7,31 +7,58 @@
 <head>
 <title>Editing Unit Test Runner</title>
 <style>
-body { font-size: 10pt; }
+body {
+  font-family: Tahoma;
+}
 li { white-space: nowrap; }
-.failed:before { color: red; content: 'FAILED '; }
-.failed { border: solid 2px red; }
+
+ul.fail {
+    border: solid 2px red;
+    background-color: #e51c23;
+    color: white;
+}
+ul.incompatible { background-color: #ffca28; }
+ul.selection { background-color: #80deea; }
+
+.actual { font-family: monospace; }
+.before{ font-family: monospace; }
+.caret { color: #e00032; }
+.expected { font-family: monospace; }
+.exception:before { color: red; content: 'EXCEPTION '; }
+.fail:before { color: red; content: 'FAIL '; }
 .green { color: #259b24; }
 .red { color: #bf360c; }
-.succeeded:before { color: green; content: 'SUCCEEDED '; }
-.selectionOverlay {
+.pass:before { color: green; content: 'PASS '; }
+.pass2 {
   background-color: #76a7fa;
   border-top: 1px solid #76a7fa;
   border-bottom: 1px solid #76a7fa;
   opacity: 0.50;
   z-index: 20;
 }
+
 .selectionAnchorFocus {
   background-color: rgba(118, 122, 250, 0.5);
-  border-right: 2px solid red;
+  border-right: 2px solid #3f51b5;
 }
 .selectionFocusAnchor {
   background-color: rgba(118, 122, 250, 0.5);
-  border-left: 2px solid red;
+  border-left: 2px solid #3f51b5;
 }
-.warn { background-color: yellow; }
-#log { font-family: monospace; }
+.warn:before { color: red; content: 'WARN '; }
+.warn { background-color: #ffff8d; }
 </style>
+<script>
+onerror = function(event) {
+  console.log('onerror', event);
+  document.write('Loading error. See console, Ctrl+Shift+J, for details.');
+};
+
+onload = function() {
+  onerror = null;
+  testRunner.runAllTests();
+};
+</script>
 <script src="polyfill.js"></script>
 <script src="editing.js"></script>
 <script src="content_model.js"></script>
@@ -56,11 +83,6 @@ DEPRECATED
 <script src="testing/testing_selection.js"></script>
 <script src="testing/test_case.js"></script>
 <script src="testing/test_runner.js"></script>
-</head>
-<body>
-<h1>Editing</h1>
-<div id="result"></div>
-<ol id="log"></ol>
 <script src="editing_node_unittest.js"></script>
 <script src="editing_selection_unittest.js"></script>
 <script src="editor_unittest.js"></script>
@@ -68,7 +90,9 @@ DEPRECATED
 <script src="commands/create_link_command_w3c_unittest.js"></script>
 <script src="commands/remove_format_command_unittest.js"></script>
 <script src="commands/unlink_command_unittest.js"></script>
-<script>
-testRunner.finishTesting();
-</script>
+</head>
+<body>
+<h1>Editing in JavaScript Test Runner</h1>
+<h2>Results</h2>
+<div id="result"></div>
 </body>
