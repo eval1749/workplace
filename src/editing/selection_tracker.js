@@ -67,7 +67,6 @@ editing.define('SelectionTracker', (function() {
     switch (this.type_) {
       case TrackingType.AFTER_NODE:
         return new NodeAndOffset(node.parentNode, node.nodeIndex + 1);
-        break;
       case TrackingType.AFTER_ALL_CHILDREN:
         return new NodeAndOffset(node.parentNode, node.maxOffset);
       case TrackingType.BEFORE_ALL_CHILDREN:
@@ -79,10 +78,35 @@ editing.define('SelectionTracker', (function() {
     }
   }
 
+  function willRemoveNodeTrackablePosition(node, startOrEnd) {
+    if (this.node_ !== node)
+      return;
+    switch (this.type_) {
+      case TrackingType.AFTER_NODE:
+        this.node_ = editing.nodes.previousNode(this.node_);
+        break;
+      case TrackingType.AFTER_ALL_CHILDREN:
+        this.type_ = TrackingType.NODE;
+        this.node_ = editing.nodes.nextNodeSkippingChildren(this.node_);
+        break;
+      case TrackingType.BEFORE_ALL_CHILDREN:
+        this.type_ = TrackingType.AFTER_NODE;
+        this.node_ = editing.nodes.previousNode(this.node_);
+        break;
+      case TrackingType.NODE:
+        this.type_ = TrackingType.AFTER_NODE;
+        this.node_ = editing.nodes.previousNode(this.node_);
+        break;
+      default:
+        throw new Error('Bad TrackablePosition.type ' + this.type_);
+    }
+  }
+
   Object.defineProperties(TrackablePosition.prototype, {
     convertToNodeAndOffset: {value: convertToNodeAndOffset},
     node_: {writable: true},
-    type_: {writable: true}
+    type_: {writable: true},
+    willRemoveNode: {value: willRemoveNodeTrackablePosition}
   });
 
   /**
@@ -121,12 +145,22 @@ editing.define('SelectionTracker', (function() {
         selection.direction));
   }
 
+  /**
+   * @this {!SelectionTracker}
+   * @param {!EditingNode} node
+   */
+  function willRemoveNode(node) {
+    this.start_.willRemoveNode(node, StartOrEnd.START);
+    this.end_.willRemoveNode(node, StartOrEnd.END);
+  }
+
   Object.defineProperties(SelectionTracker.prototype, {
     constructor: {value: SelectionTracker},
     context_: {writable: true},
     end_:{writable: true},
     setEndingSelection: {value: setEndingSelection},
-    start_: {writable: true}
+    start_: {writable: true},
+    willRemoveNode: {value: willRemoveNode}
   });
 
   return SelectionTracker;
