@@ -49,7 +49,7 @@ editing.define('EditingNode', (function() {
    * @param {!EditingNode} newChild
    */
   function appendChild(newChild) {
-    this.context_.appendChild(this, newChild);
+    this.context_.recordAppendChild(this, newChild);
     internalAppendChild(this, newChild);
   }
 
@@ -72,7 +72,7 @@ editing.define('EditingNode', (function() {
   function cloneNode(deep) {
     if (deep)
       throw new Error('We should not use cloneNode(true).');
-    this.context_.cloneNode(false);
+    this.context_.recordCloneNode(false);
     var domNode = this.domNode_.cloneNode(false);
     var cloneNode = new EditingNode(this.context_, domNode);
     if (this.domNode_.nodeType === Node.ELEMENT_NODE) {

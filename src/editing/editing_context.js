@@ -46,8 +46,7 @@ editing.define('EditingContext', (function() {
    */
   function appendChild(parentNode, newChild) {
     ASSERT_DOM_TREE_IS_MUTABLE(this);
-    this.instructions_.push({opcode: 'appendChild', parentNode: parentNode,
-                             newChild: newChild});
+    parentNode.appendChild(newChild);
   }
 
   /**
@@ -75,9 +74,10 @@ editing.define('EditingContext', (function() {
   /**
    * @this {!EditingContext}
    * @param {!EditingNode} node
+   * @return {!EditingNode}
    */
   function cloneNode(node) {
-    this.instructions_.push({opcode: 'cloneNode', node: node});
+    return node.cloneNode(false);
   }
 
   /**
@@ -143,6 +143,25 @@ editing.define('EditingContext', (function() {
    */
   function nextHashCode() {
     return ++this.hashCode_;
+  }
+
+  /**
+   * @this {!EditingContext}
+   * @param {!EditingNode} parentNode
+   * @param {!EditingNode} newChild
+   */
+  function recordAppendChild(parentNode, newChild) {
+    ASSERT_DOM_TREE_IS_MUTABLE(this);
+    this.instructions_.push({opcode: 'appendChild', parentNode: parentNode,
+                             newChild: newChild});
+  }
+
+  /**
+   * @this {!EditingContext}
+   * @param {!EditingNode} node
+   */
+  function recordCloneNode(node) {
+    this.instructions_.push({opcode: 'cloneNode', node: node});
   }
 
   /**
@@ -304,6 +323,8 @@ editing.define('EditingContext', (function() {
     insertBefore: {value: insertBefore},
     instructions_: {writable: true},
     nextHashCode: {value: nextHashCode },
+    recordAppendChild: {value: recordAppendChild},
+    recordCloneNode: {value: recordCloneNode},
     recordInsertBefore: {value: recordInsertBefore},
     removeAttribute: {value: removeAttribute},
     removeChild: {value: removeChild},
