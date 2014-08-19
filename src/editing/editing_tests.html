@@ -12,7 +12,6 @@ li { white-space: nowrap; }
 .failed:before { color: red; content: 'FAILED '; }
 .failed { border: solid 2px red; }
 .green { color: #259b24; }
-.log { font-family: monospace; }
 .red { color: #bf360c; }
 .succeeded:before { color: green; content: 'SUCCEEDED '; }
 .selectionOverlay {
@@ -31,6 +30,7 @@ li { white-space: nowrap; }
   border-left: 2px solid red;
 }
 .warn { background-color: yellow; }
+#log { font-family: monospace; }
 </style>
 <script src="polyfill.js"></script>
 <script src="editing.js"></script>
@@ -58,9 +58,9 @@ DEPRECATED
 <script src="testing/test_runner.js"></script>
 </head>
 <body>
-<h1>Editing Tests</h1>
+<h1>Editing</h1>
 <div id="result"></div>
-<h2>Library Tests</h2>
+<ol id="log"></ol>
 <script src="editing_node_unittest.js"></script>
 <script src="editing_selection_unittest.js"></script>
 <script src="editor_unittest.js"></script>

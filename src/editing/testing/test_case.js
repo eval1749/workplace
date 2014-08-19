@@ -103,15 +103,10 @@ function testCaseFor(commandName, testCaseId, data) {
 
   if (typeof(data.after) != 'string')
     throw new Error('You must specify before sample');
-  if (data.after.indexOf('|') < 0)
-    throw new Error('You must specify focus marker in after: ' + data.after);
   if (typeof(data.before) != 'string')
     throw new Error('You must specify before sample');
-  if (data.before.indexOf('|') < 0)
-    throw new Error('You must specify focus marker in before: ' + data.before);
 
   var testCaseName = commandName + '.' + testCaseId;
-  testRunner.beginCommandTest(commandName);
   testCase(testCaseName, function() {
     var context = testing.createSample(data.before);
     var expectedReturnValue = data.returnValue === undefined ?
@@ -126,12 +121,12 @@ function testCaseFor(commandName, testCaseId, data) {
                                              context.endingSelection);
     var expectedResult = data.after;
     if (stripMarker(expectedResult) == stripMarker(actualResult))
-      testRunner.recordCommandSucceeded(commandName, testCaseName);
+      testRunner.succeeded(testCaseName);
     else
-      testRunner.recordCommandFailed(commandName, testCaseName);
+      testRunner.failed(testCaseName);
 
     if (expectedResult != actualResult) {
-      var logElement = testRunner.recordSelectionFailure(commandName, testCase);
+      var logElement = testRunner.warn(testCaseName);
       var listElement = document.createElement('ul');
       logElement.appendChild(listElement);
       ['Expected:' + expectedResult, 'Actual__:' + actualResult].forEach(
@@ -164,5 +159,4 @@ function testCaseFor(commandName, testCaseId, data) {
     testRunner.logHtml('Cur: ' + pretty(sample));
     testRunner.logHtml('New: ' + pretty(actualResult2));
   });
-  testRunner.endCommandTest(commandName);
 }
