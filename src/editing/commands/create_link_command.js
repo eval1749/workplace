@@ -99,11 +99,17 @@ editing.defineCommand('CreateLink', (function() {
     console.assert(url != '');
     var editor = context.editor;
 
+    function canMerge(node){
+      return node && node.nodeName == 'A' &&
+             node.getAttribute('href') == url &&
+             node.attributes.length == 1;
+    }
+
     function removeTrailingWhitespaces(anchorElement) {
       // Remove trailing invisible nodes.
       var lastChild;
       while (lastChild = anchorElement.lastChild) {
-        if (editing.library.isVisibleNode(lastChild))
+        if (editing.nodes.isVisibleNode(lastChild))
           break;
         console.log('wrapByAnchor remove trailing whitespaces');
         anchorElement.parentNode.insertAfter(lastChild, anchorElement);
@@ -128,7 +134,7 @@ editing.defineCommand('CreateLink', (function() {
 
     function insertNewAnchorElement(anchorPhraseNode) {
 console.log('insertNewAnchorElement phrase=' + anchorPhraseNode);
-      if (editing.library.isWhitespaceNode(anchorPhraseNode))
+      if (editing.nodes.isWhitespaceNode(anchorPhraseNode))
         return null;
       var anchorElement = context.createElement('a');
       anchorElement.setAttribute('href', url);
@@ -146,19 +152,38 @@ console.log('insertNewAnchorElement phrase=' + anchorPhraseNode);
       console.log('wrapByAnchor anchor=' + anchorElement, 'node=' + node,
                   anchorElement && (anchorElement.parentNode == node.parentNode));
       if (!anchorElement) {
-        if (!editing.library.isVisibleNode(node)) {
+        if (!editing.nodes.isVisibleNode(node)) {
           // We don't have leading whitespaces in anchor element.
+          return;
+        }
+        var nextSibling = node.nextSibling;
+        if (canMerge(nextSibling)) {
+          // See w3c.26, w3c.30
+          anchorElement = nextSibling;
+console.log('wrapByAnchor merge to next ' + node + ' firstChild=' + anchorElement.firstChild);
+          anchorElement.insertBefore(node, anchorElement.firstChild);
+          return;
+        }
+        var previousSibling = node.previousSibling;
+        if (canMerge(previousSibling)) {
+          // See w3c.27
+          anchorElement = previousSibling;
+          anchorElement.appendChild(node);
           return;
         }
         anchorElement = insertNewAnchorElement(node);
         return;
       }
-      if (anchorElement.parentNode != node.parentNode) {
-        endAnchorElement();
-        wrapByAnchor(node);
+      if (editing.nodes.isDescendantOf(node, anchorElement)) {
+        // See w3c.44
         return;
       }
-      anchorElement.appendChild(node);
+      if (node.parentNode == anchorElement.parentNode) {
+        anchorElement.appendChild(node);
+        return;
+      }
+      endAnchorElement();
+      wrapByAnchor(node);
     }
 
     function endAnchorElement() {
@@ -204,16 +229,41 @@ console.log('processPendingContents');
 
     var selectionTracker = new editing.SelectionTracker(context);
 
-    // Handling of start node
+    // Special handling of start node, see w3c.30, w3c.40.
     var startNode = effectiveNodes[0];
-    // TODO(yosin) We should split at |startNode| if |startNode| is in
-    // interactive element.
-    // For compatibility with Firefox and IE, we don't split A element
-    // which is parent of |startNode|.
-    // Example:
-    //  <a href="foo">^fo|o</a> => ^<a href="URL">foo</a>|
-    if (startNode.parentNode.nodeName == 'A')
-      anchorElement = startNode.parentNode;
+    var outerAnchorElement = startNode.parentNode;
+    while (outerAnchorElement) {
+      if (outerAnchorElement.nodeName == 'A')
+        break;
+      outerAnchorElement = outerAnchorElement.parentNode;
+    }
+    if (outerAnchorElement) {
+      // Note: Even if A element has "name" or other attributes, we
+      // override "href" as IE11. See w3c.46, w3c.47.
+      var allNodesInAnchor = effectiveNodes.every(function(node) {
+        return editing.nodes.isDescendantOf(node, outerAnchorElement);
+      });
+      if (allNodesInAnchor) {
+        // Special case for compatibility with Firefox and IE.
+        // See w3c.32, w3c.33
+        outerAnchorElement.setAttribute('href', url);
+        selectionTracker.setEndingSelection();
+        return true;
+      }
+
+      if (outerAnchorElement.getAttribute('href') == url) {
+        anchorElement = outerAnchorElement;
+      } else {
+        // Move |startNode| out of anchor element.
+        if (startNode.nextSibling) {
+console.log('createLinkForRange split start', 'nextSibling=' + startNode.nextSibling);
+          var newAnchorElement = context.splitNode(outerAnchorElement,
+                                                   startNode.nextSibling);
+          context.insertAfter(newAnchorElement, outerAnchorElement);
+        }
+        context.insertAfter(startNode, outerAnchorElement);
+      }
+    }
 
     effectiveNodes.forEach(function(currentNode) {
 console.log('createLinkForRange node=' + currentNode,
@@ -223,6 +273,9 @@ console.log('createLinkForRange node=' + currentNode,
             'pendingContainer.last=' + lastOf(pendingContainers),
             'current.prev=' + currentNode.previousSibling);
 
+      if (currentNode == anchorElement)
+        return;
+
       var lastPendingContainer = lastOf(pendingContainers);
       if (lastPendingContainer &&
           lastPendingContainer === currentNode.previousSibling) {
@@ -231,18 +284,35 @@ console.log('createLinkForRange node=' + currentNode,
 
       if (!currentNode.isEditable || !currentNode.isPhrasing) {
         processPendingContents();
-        endAnchorElement();
         return;
       }
 
-      if (isInteractive(currentNode)) {
-        processPendingContents();
-        if (anchorElement)
+      if (currentNode.nodeName == 'A') {
+        if (!anchorElement) {
+          processPendingContents();
+          anchorElement = currentNode;
           anchorElement.setAttribute('href', url);
-        anchorElement = null;
-        if (currentNode.nodeName != 'A')
           return;
+        }
+        console.assert(anchorElement.getAttribute('href') == url);
         currentNode.setAttribute('href', url);
+        if (canMerge(currentNode)) {
+          var child = currentNode.firstChild;
+          while (child) {
+            var next = child.nextSibling;
+            currentNode.parentNode.insertBefore(child, currentNode);
+            child = next;
+          }
+          selectionTracker.willRemoveNode(currentNode);
+          currentNode.parentNode.removeChild(currentNode);
+          return;
+        }
+        processPendingContents();
+        anchorElement = currentNode;
+      }
+
+      if (currentNode.isInteractive) {
+        processPendingContents();
         return;
       }
 
@@ -295,10 +365,10 @@ console.log('createLinkForRange node=' + currentNode,
    * @return {!Array.<EditingNode>}
    */
   function getEffectiveNodes(context) {
-    var nodes = context.selection.nodes;
-    if (!nodes.length)
-      return nodes;
-    var firstNode = nodes[0];
+    var nodesInRange = context.selection.nodes;
+    if (!nodesInRange.length)
+      return nodesInRange;
+    var firstNode = nodesInRange[0];
     for (var ancestor = firstNode.parentNode; ancestor;
          ancestor = ancestor.parentNode) {
       if (!ancestor.isEditable)
@@ -307,13 +377,25 @@ console.log('createLinkForRange node=' + currentNode,
         break;
       // TODO(yosin) We should use more efficient way to check |ancestor| is
       // in selection.
-      var lastNode = editing.library.lastWithIn(ancestor);
-      if (nodes.findIndex(function(x) { return x == lastNode; }) < 0)
+      var lastNode = editing.nodes.lastWithIn(ancestor);
+      if (nodesInRange.findIndex(function(x) { return x == lastNode; }) < 0)
         break;
-      nodes.unshift(ancestor);
+      nodesInRange.unshift(ancestor);
       firstNode = ancestor;
     }
-    return nodes;
+    return nodesInRange;
   }
+
+  function isModifiableAnchorElement(element) {
+    switch (element.attributes.length) {
+      case 0:
+        return true;
+      case 1:
+        return element.hasAttribute('href');
+      default:
+        return false;
+    }
+  }
+
   return createLinkCommand;
 })());

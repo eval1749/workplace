@@ -21,19 +21,19 @@ testCase('CreateLink.NoUrl', function() {
 
 // Simple createLink
 // <b>foo|bar</b> => <b>foo^<a>url</a>|bar</b>
-testCaseFor('CreateLink', 'CaretAtFirst', {
+testCaseFor('createLink', 'CaretAtFirst', {
   before: '<p contenteditable>|abcd</p>',
   after:'<p contenteditable>^<a href="URL">URL</a>|abcd</p>',
   value: 'URL'
 });
 
-testCaseFor('CreateLink', 'CaretAtLast', {
+testCaseFor('createLink', 'Caret.AtLast', {
   before: '<p contenteditable>abcd|</p>',
   after: '<p contenteditable>abcd^<a href="URL">URL</a>|</p>',
   value: 'URL'
 });
 
-testCaseFor('CreateLink', 'CaretAtMiddle', {
+testCaseFor('createLink', 'Caret.AtMiddle', {
   before: '<p contenteditable>ab|cd</p>',
   after:  '<p contenteditable>ab^<a href="URL">URL</a>|cd</p>',
   value: 'URL'
@@ -41,19 +41,19 @@ testCaseFor('CreateLink', 'CaretAtMiddle', {
 
 // createLink in interactive
 // <a><b>foo|bar</b></a> => <a><b>foo</b></a><b><a>URL</a></b><a><b>bar</a>
-testCaseFor('CreateLink', 'CaretInteractiveAtFirst', {
+testCaseFor('createLink', 'Caret.InteractiveAtFirst', {
   before: '<p contenteditable><a><b>|abcd</b></a></p>',
   after:  '<p contenteditable><b>^<a href="URL">URL</a>|</b><a><b>abcd</b></a></p>',
   value: 'URL'
 });
 
-testCaseFor('CreateLink', 'CaretInteractiveAtLast', {
+testCaseFor('createLink', 'Caret.InteractiveAtLast', {
   before: '<p contenteditable><a><b>abcd|</b></a></p>',
   after:  '<p contenteditable><a><b>abcd</b></a><b>^<a href="URL">URL</a>|</b></p>',
   value: 'URL'
 });
 
-testCaseFor('CreateLink', 'CaretInteractiveAtMiddle', {
+testCaseFor('createLink', 'Caret.InteractiveAtMiddle', {
   before: '<p contenteditable><a><b>ab|cd</b></a></p>',
   after:  '<p contenteditable><a><b>ab</b></a><b>^<a href="URL">URL</a>|</b><a><b>cd</b></a></p>',
   value: 'URL'
@@ -63,7 +63,7 @@ testCaseFor('CreateLink', 'CaretInteractiveAtMiddle', {
 // <p contenteditable><a href="foo">^foo|</a></p>
 // =>
 // <p contenteditable>^<a href="URL">foo</a>|</p>
-testCaseFor('CreateLink', 'Range.AnchorText.1', {
+testCaseFor('createLink', 'Range.AnchorText.1', {
   before: '<p contenteditable><a href="foo">^foo|</a></p>',
   after:  '<p contenteditable><a href="URL">^foo|</a></p>',
   value: 'URL'
@@ -75,9 +75,10 @@ testCaseFor('CreateLink', 'Range.AnchorText.1', {
 // CR: <p contenteditable<a href="FOO">^fo<a href="URL">o</a></a></p>
 // FF: <p contenteditable<a href="URL">foo</a></p>
 // IE: <p contenteditable<a href="URL">foo</a></p>
-testCaseFor('CreateLink', 'Range.AnchorText.2', {
+testCaseFor('createLink', 'Range.AnchorText.2', {
   before: '<p contenteditable><a href="foo">^fo|o</a></p>',
   after:  '<p contenteditable><a href="URL">^fo|o</a></p>',
+  notes: 'Special case?',
   value: 'URL'
 });
 
@@ -85,20 +86,20 @@ testCaseFor('CreateLink', 'Range.AnchorText.2', {
 // Create link with LI
 // Node: P element can't have UL as content, because P's context model is
 // PHRASING,
-testCaseFor('CreateLink', 'RangeList', {
+testCaseFor('createLink', 'RangeList', {
   before: '<div contenteditable>^<ul><li>one</li><li>two</li></ul>|</div>',
   after:  '<div contenteditable>^<ul><li><a href="URL">one</a></li><li><a href="URL">two</a></li></ul>|</div>',
   value: 'URL'
 });
 
 // Create link with range.
-testCaseFor('CreateLink', 'Range.SimpleText', {
+testCaseFor('createLink', 'Range.SimpleText', {
   before: '<p contenteditable>^abcd|</p>',
   after:  '<p contenteditable><a href="URL">^abcd|</a></p>',
   value: 'URL'
 });
 
-testCaseFor('CreateLink', 'Range.SimpleTree', {
+testCaseFor('createLink', 'Range.SimpleTree', {
   before: '<p contenteditable>^abcd<b>efg</b>|</p>',
   after:  '<p contenteditable><a href="URL">^abcd<b>efg</b>|</a></p>',
   value: 'URL'
@@ -109,7 +110,7 @@ testCaseFor('CreateLink', 'Range.SimpleTree', {
 // FF: No insertion, returns true
 // IE: No insertion, ending selection is empty
 // See also w3c.9 "^</span><span>|"
-testCaseFor('CreateLink', 'EndTag', {
+testCaseFor('createLink', 'EndTag', {
   before: '<p contenteditable><b>abc^</b>|</p>',
   after:  '<p contenteditable><b>abc</b>^<a href="URL">URL</a>|</p>',
   value: 'URL'

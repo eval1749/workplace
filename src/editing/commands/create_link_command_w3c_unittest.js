@@ -333,6 +333,7 @@ testCaseFor('createLink', 'w3c.25r', {
 testCaseFor('createLink', 'w3c.26', {
   after: '<div contenteditable><a href="http://www.google.com/">^foo|bar</a>baz</div>',
   before: '<div contenteditable>^foo|<a href=http://www.google.com/>bar</a>baz</div>',
+  notes: 'merge A elements.',
   sampleId: 26,
   value: 'http://www.google.com/'
 });
