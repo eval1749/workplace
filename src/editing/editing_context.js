@@ -115,14 +115,26 @@ editing.define('EditingContext', (function() {
 
   /**
    * @this {!EditingContext}
-   * @param {!EditingNode} parentNode
    * @param {!EditingNode} newChild
    * @param {!EditingNode} refChild
    */
-  function insertBefore(parentNode, newChild, refChild) {
+  function insertAfter(newChild, refChild) {
     ASSERT_DOM_TREE_IS_MUTABLE(this);
-    this.instructions_.push({opcode: 'insertBefore', parentNode: parentNode,
-                             newChild: newChild, refChild: refChild});
+    if (refChild.nextSibling) {
+      refChild.parentNode.insertBefore(newChild, refChild.nextSibling);
+      return;
+    }
+    refChild.parentNode.appendChild(newChild, refChild);
+  }
+
+  /**
+   * @this {!EditingContext}
+   * @param {!EditingNode} newChild
+   * @param {!EditingNode} refChild
+   */
+  function insertBefore(newChild, refChild) {
+    ASSERT_DOM_TREE_IS_MUTABLE(this);
+    refChild.parentNode.appendChild(newChild, refChild);
   }
 
   /**
@@ -131,6 +143,18 @@ editing.define('EditingContext', (function() {
    */
   function nextHashCode() {
     return ++this.hashCode_;
+  }
+
+  /**
+   * @this {!EditingContext}
+   * @param {!EditingNode} parentNode
+   * @param {!EditingNode} newChild
+   * @param {!EditingNode} refChild
+   */
+  function recordInsertBefore(parentNode, newChild, refChild) {
+    ASSERT_DOM_TREE_IS_MUTABLE(this);
+    this.instructions_.push({opcode: 'insertBefore', parentNode: parentNode,
+                             newChild: newChild, refChild: refChild});
   }
 
   /**
@@ -224,6 +248,27 @@ editing.define('EditingContext', (function() {
 
   /**
    * @this {!EditingContext}
+   * @param {!EditingNode} parent
+   * @param {!EditingNode} child
+   * @return {!EditingNode}
+   *
+   * Split |parent| at |child|, and returns new node which contains |child|
+   * to its sibling nodes.
+   */
+  function splitNode(parent, child) {
+    var newParent = parent.cloneNode(false);
+    var sibling = child;
+    while (sibling) {
+      console.assert(sibling.parentNode === parent);
+      var nextSibling = sibling.nextSibling;
+      newParent.appendChild(sibling);
+      sibling = nextSibling;
+    }
+    return newParent;
+  }
+
+  /**
+   * @this {!EditingContext}
    * @param {!EditingNode} textNode
    * @param {number} offset
    * @param {!EditingNode} newNode
@@ -255,9 +300,11 @@ editing.define('EditingContext', (function() {
     endingSelection_: {writable: true},
     execCommand: {value: execCommand},
     hashCode_: {writable: true},
+    insertAfter: {value: insertAfter},
     insertBefore: {value: insertBefore},
     instructions_: {writable: true},
     nextHashCode: {value: nextHashCode },
+    recordInsertBefore: {value: recordInsertBefore},
     removeAttribute: {value: removeAttribute},
     removeChild: {value: removeChild},
     replaceChild: {value: replaceChild},
@@ -266,6 +313,7 @@ editing.define('EditingContext', (function() {
     setAttribute: {value: setAttribute},
     setEndingSelection: {value: setEndingSelection },
     setStyle: {value: setStyle},
+    splitNode: {value: splitNode},
     splitText: {value: splitText},
     // Selection before executing editing command. This |ReadOnlySelection| is
     // put into undo stack for undo operation. See also |endingSelection|

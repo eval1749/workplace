@@ -218,7 +218,7 @@ editing.define('EditingNode', (function() {
     if (refChild.parentNode !== this)
       throw new Error('refChild ' + refChild + ' must be a child of ' + this);
 
-    this.context_.insertBefore(newChild, refChild);
+    this.context_.recordInsertBefore(newChild, refChild);
     internalInsertBefore(this, newChild, refChild);
     console.assert(newChild.parentNode === this);
   }
