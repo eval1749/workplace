@@ -7,6 +7,20 @@
 editing.define('nodes', (function() {
   /**
    * @param {!EditingNode} node
+   * @param {!EditingNode} other
+   * Returns true if |other| is an ancestor of |node|, otherwise false.
+   */
+  function isDescendantOf(node, other) {
+    console.assert(other instanceof editing.EditingNode);
+    for (var runner = node.parentNode; runner; runner = runner.parentNode) {
+      if (runner == other)
+        return true;
+    }
+    return false;
+  }
+
+  /**
+   * @param {!EditingNode} node
    * @return {boolean}
    */
   function isVisibleNode(node) {
@@ -67,11 +81,35 @@ editing.define('nodes', (function() {
     return nextAncestorOrSibling(current);
   }
 
+  function previousNode(current) {
+    var previous = current.previousSibling;
+    if (!previous)
+      return current.parentNode;
+    var child;
+    while (child = previous.lastChild) {
+      previous = child;
+    }
+    return previous;
+  }
+
+  function previousNodeSkippingChildren(current) {
+    if (current.previousSibling)
+      return current.previousSibling;
+    for (var parent = current.parentNode; parent; parent = parent.parentNode) {
+      if (parent.previousSibling)
+        return parent.previousSibling;
+    }
+    return null;
+  }
+
   return Object.defineProperties({}, {
+    isDescendantOf: {value: isDescendantOf},
     isVisibleNode: {value: isVisibleNode},
     isWhitespaceNode: {value: isWhitespaceNode},
     lastWithIn: {value: lastWithIn},
     nextNode: {value: nextNode},
     nextNodeSkippingChildren: {value: nextNodeSkippingChildren},
+    previousNode: {value: previousNode},
+    previousNodeSkippingChildren: {value: previousNodeSkippingChildren},
   });
 })());
