@@ -4,7 +4,7 @@
 
 'use strict';
 
-editing.define('library', (function() {
+editing.define('nodes', (function() {
   /**
    * @param {!EditingNode} node
    * @return {boolean}
