@@ -9,10 +9,10 @@
 //
 testCase('nodes.isEditable', function() {
   var context = testing.createContext();
-  var elementA = testing.createElement(context, 'a');
+  var elementA = context.createElement('a');
   expectFalse(function () { return editing.nodes.isEditable(elementA); });
 
-  var elementB = testing.createElement(context, 'b');
+  var elementB = context.createElement('b');
   context.appendChild(elementA, elementB);
   context.setAttribute(elementA, 'contentEditable', 'true');
   expectTrue(function () { return editing.nodes.isContentEditable(elementA); });
@@ -25,8 +25,8 @@ testCase('nodes.isEditable', function() {
 //
 testCase('nodes.isInteractive', function() {
   var context = testing.createContext();
-  var elementA = testing.createElement(context, 'a');
-  var elementB = testing.createElement(context, 'b');
+  var elementA = context.createElement('a');
+  var elementB = context.createElement('b');
   expectTrue(function () { return editing.nodes.isInteractive(elementA); });
   expectFalse(function () { return editing.nodes.isInteractive(elementB); });
 });
@@ -36,10 +36,10 @@ testCase('nodes.isInteractive', function() {
 //
 testCase('nodes.isPhrasing', function() {
   var context = testing.createContext();
-  var elementA = testing.createElement(context, 'a');
-  var elementB = testing.createElement(context, 'b');
-  var elementDiv = testing.createElement(context, 'div');
-  var elementH1 = testing.createElement(context, 'h1');
+  var elementA = context.createElement('a');
+  var elementB = context.createElement('b');
+  var elementDiv = context.createElement('div');
+  var elementH1 = context.createElement('h1');
   expectTrue(function () { return editing.nodes.isPhrasing(elementA); });
   expectTrue(function () { return editing.nodes.isPhrasing(elementB); });
   expectFalse(function () { return editing.nodes.isPhrasing(elementDiv); });
@@ -51,7 +51,7 @@ testCase('nodes.isPhrasing', function() {
 //
 testCase('nodes.isWhitespaceNode', function() {
   var context = testing.createContext();
-  var elementA = testing.createElement(context, 'a');
+  var elementA = context.createElement('a');
   var textB = testing.createTextNode(context, 'b');
   var textC = testing.createTextNode(context, '  ');
   expectFalse(function () { return editing.nodes.isWhitespaceNode(elementA); });

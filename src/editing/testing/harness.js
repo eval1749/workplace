@@ -13,21 +13,12 @@ testing.define('createContext', (function() {
   return createContext;
 })());
 
-testing.define('createElement', (function() {
-  function createElement(context, tagName) {
-    var domNode = context.document.createElement(tagName);
-    return new editing.EditingNode(context, domNode);
-  }
-  return createElement;
-})());
-
 testing.define('createSample', (function() {
   function createSample(htmlText){
     var context = testing.createTree(htmlText);
     context.sampleContext_ = new testing.SampleContext(htmlText);
     return context;
   }
-
   return createSample;
 })());
 

@@ -6,8 +6,8 @@
 
 testCase('EditingNode.appendChild', function() {
   var context = testing.createContext();
-  var element1 = testing.createElement(context, 'e1');
-  var element2 = testing.createElement(context, 'e2');
+  var element1 = context.createElement('e1');
+  var element2 = context.createElement('e2');
   context.appendChild(element1, element2);
 
   expectEq(element2, function() { return element1.firstChild; });
@@ -24,7 +24,7 @@ testCase('EditingNode.appendChild', function() {
 //
 testCase('EditingNode.hasAttribute', function() {
   var context = testing.createContext();
-  var element1 = testing.createElement(context, 'e1');
+  var element1 = context.createElement('e1');
   context.setAttribute(element1, 'a1', 'one');
   context.setAttribute(element1, 'a2', 'one');
   expectTrue(function() { return element1.hasAttribute('a1'); });
@@ -37,8 +37,8 @@ testCase('EditingNode.hasAttribute', function() {
 //
 testCase('EditingNode.hasChildNodes', function() {
   var context = testing.createContext();
-  var element1 = testing.createElement(context, 'e1');
-  var element2 = testing.createElement(context, 'e2');
+  var element1 = context.createElement('e1');
+  var element2 = context.createElement('e2');
   context.appendChild(element1, element2);
   expectTrue(function() { return element1.hasChildNodes(); });
   expectFalse(function() { return element2.hasChildNodes(); });
@@ -49,8 +49,8 @@ testCase('EditingNode.hasChildNodes', function() {
 //
 testCase('EditingNode.insertBeforeNull', function() {
   var context = testing.createContext();
-  var element1 = testing.createElement(context, 'e1');
-  var element2 = testing.createElement(context, 'e2');
+  var element1 = context.createElement('e1');
+  var element2 = context.createElement('e2');
   context.insertBefore(element1, element2, null);
 
   expectEq(element2, function() { return element1.firstChild; });
@@ -64,9 +64,9 @@ testCase('EditingNode.insertBeforeNull', function() {
 
 testCase('EditingNode.insertBeforeToFirst', function() {
   var context = testing.createContext();
-  var element1 = testing.createElement(context, 'e1');
-  var element2 = testing.createElement(context, 'e2');
-  var element3 = testing.createElement(context, 'e3');
+  var element1 = context.createElement('e1');
+  var element2 = context.createElement('e2');
+  var element3 = context.createElement('e3');
   context.appendChild(element1, element3);
   context.insertBefore(element1, element2, element3);
 
@@ -84,10 +84,10 @@ testCase('EditingNode.insertBeforeToFirst', function() {
 
 testCase('EditingNode.insertBeforeToSecond', function() {
   var context = testing.createContext();
-  var element1 = testing.createElement(context, 'e1');
-  var element2 = testing.createElement(context, 'e2');
-  var element3 = testing.createElement(context, 'e3');
-  var element4 = testing.createElement(context, 'e4');
+  var element1 = context.createElement('e1');
+  var element2 = context.createElement('e2');
+  var element3 = context.createElement('e3');
+  var element4 = context.createElement('e4');
   context.appendChild(element1, element2);
   context.appendChild(element1, element3);
   context.insertBefore(element1, element4, element3);
@@ -108,8 +108,8 @@ testCase('EditingNode.insertBeforeToSecond', function() {
 //
 testCase('EditingNode.hasCode', function() {
   var context = testing.createContext();
-  var element1 = testing.createElement(context, 'e1');
-  var element2 = testing.createElement(context, 'e2');
+  var element1 = context.createElement('e1');
+  var element2 = context.createElement('e2');
   expectEq('number', function() { return typeof(element1.hashCode); });
   expectEq('number', function() { return typeof(element2.hashCode); });
   expectTrue(function() { return element1.hashCode != element2.hashCode; });
@@ -120,10 +120,10 @@ testCase('EditingNode.hasCode', function() {
 //
 testCase('EditingNode.removeChildFirstChild', function() {
   var context = testing.createContext();
-  var element1 = testing.createElement(context, 'e1');
-  var element2 = testing.createElement(context, 'e2');
-  var element3 = testing.createElement(context, 'e3');
-  var element4 = testing.createElement(context, 'e4');
+  var element1 = context.createElement('e1');
+  var element2 = context.createElement('e2');
+  var element3 = context.createElement('e3');
+  var element4 = context.createElement('e4');
   context.appendChild(element1, element2);
   context.appendChild(element1, element3);
   context.appendChild(element1, element4);
@@ -144,10 +144,10 @@ testCase('EditingNode.removeChildFirstChild', function() {
 
 testCase('EditingNode.removeChildSecondChild', function() {
   var context = testing.createContext();
-  var element1 = testing.createElement(context, 'e1');
-  var element2 = testing.createElement(context, 'e2');
-  var element3 = testing.createElement(context, 'e3');
-  var element4 = testing.createElement(context, 'e4');
+  var element1 = context.createElement('e1');
+  var element2 = context.createElement('e2');
+  var element3 = context.createElement('e3');
+  var element4 = context.createElement('e4');
   context.appendChild(element1, element2);
   context.appendChild(element1, element3);
   context.appendChild(element1, element4);
@@ -168,10 +168,10 @@ testCase('EditingNode.removeChildSecondChild', function() {
 
 testCase('EditingNode.removeChildLastChild', function() {
   var context = testing.createContext();
-  var element1 = testing.createElement(context, 'e1');
-  var element2 = testing.createElement(context, 'e2');
-  var element3 = testing.createElement(context, 'e3');
-  var element4 = testing.createElement(context, 'e4');
+  var element1 = context.createElement('e1');
+  var element2 = context.createElement('e2');
+  var element3 = context.createElement('e3');
+  var element4 = context.createElement('e4');
   context.appendChild(element1, element2);
   context.appendChild(element1, element3);
   context.appendChild(element1, element4);
@@ -194,9 +194,9 @@ testCase('EditingNode.removeChildLastChild', function() {
 //
 testCase('EditingNode.replaceChildFirstChildByNew', function() {
   var context = testing.createContext();
-  var element1 = testing.createElement(context, 'e1');
-  var element2 = testing.createElement(context, 'e2');
-  var element3 = testing.createElement(context, 'e3');
+  var element1 = context.createElement('e1');
+  var element2 = context.createElement('e2');
+  var element3 = context.createElement('e3');
   context.appendChild(element1, element2);
   context.replaceChild(element1, element3, element2);
 
@@ -214,10 +214,10 @@ testCase('EditingNode.replaceChildFirstChildByNew', function() {
 
 testCase('EditingNode.replaceChildLastChildByNew', function() {
   var context = testing.createContext();
-  var element1 = testing.createElement(context, 'e1');
-  var element2 = testing.createElement(context, 'e2');
-  var element3 = testing.createElement(context, 'e3');
-  var element4 = testing.createElement(context, 'e4');
+  var element1 = context.createElement('e1');
+  var element2 = context.createElement('e2');
+  var element3 = context.createElement('e3');
+  var element4 = context.createElement('e4');
   context.appendChild(element1, element2);
   context.appendChild(element1, element3);
   context.replaceChild(element1, element4, element3);
@@ -240,11 +240,11 @@ testCase('EditingNode.replaceChildLastChildByNew', function() {
 
 testCase('EditingNode.replaceChildMiddleChildByNew', function() {
   var context = testing.createContext();
-  var element1 = testing.createElement(context, 'e1');
-  var element2 = testing.createElement(context, 'e2');
-  var element3 = testing.createElement(context, 'e3');
-  var element4 = testing.createElement(context, 'e4');
-  var element5 = testing.createElement(context, 'e5');
+  var element1 = context.createElement('e1');
+  var element2 = context.createElement('e2');
+  var element3 = context.createElement('e3');
+  var element4 = context.createElement('e4');
+  var element5 = context.createElement('e5');
   context.appendChild(element1, element2);
   context.appendChild(element1, element3);
   context.appendChild(element1, element4);
@@ -268,9 +268,9 @@ testCase('EditingNode.replaceChildMiddleChildByNew', function() {
 
 testCase('EditingNode.replaceChildByChild', function() {
   var context = testing.createContext();
-  var element1 = testing.createElement(context, 'e1');
-  var element2 = testing.createElement(context, 'e2');
-  var element3 = testing.createElement(context, 'e3');
+  var element1 = context.createElement('e1');
+  var element2 = context.createElement('e2');
+  var element3 = context.createElement('e3');
   context.appendChild(element1, element2);
   context.appendChild(element1, element3);
   context.replaceChild(element1, element2, element3);
@@ -292,7 +292,7 @@ testCase('EditingNode.replaceChildByChild', function() {
 //
 testCase('EditingNode.setAttribute', function() {
   var context = testing.createContext();
-  var element1 = testing.createElement(context, 'e1');
+  var element1 = context.createElement('e1');
   context.setAttribute(element1, 'a1', 'one');
   context.setAttribute(element1, 'a2', 'two');
   expectEq('one', function() { return element1.getAttribute('a1'); });
