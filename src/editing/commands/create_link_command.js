@@ -39,7 +39,7 @@ editing.defineCommand('CreateLink', (function() {
     var ancestors = [];
     var interactive = null;
     for (var runner = containerNode; runner; runner = runner.parentNode) {
-      if (runner.isInteractive)
+      if (editing.nodes.isInteractive(runner))
         interactive = runner;
       ancestors.push(runner);
     }
@@ -69,7 +69,7 @@ editing.defineCommand('CreateLink', (function() {
 
     var anchorTree = ancestors.reverse().reduce(
         function(previousValue, currentValue) {
-          if (currentValue.isInteractive)
+          if (editing.nodes.isInteractive(currentValue))
             return previousValue;
           var newNode = currentValue.cloneNode(false);
           context.appendChild(newNode, previousValue);
@@ -302,7 +302,7 @@ editing.defineCommand('CreateLink', (function() {
         anchorElement = currentNode;
       }
 
-      if (currentNode.isInteractive) {
+      if (editing.nodes.isInteractive(currentNode)) {
         processPendingContents();
         return;
       }

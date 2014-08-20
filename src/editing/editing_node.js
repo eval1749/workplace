@@ -5,7 +5,6 @@
 'use strict';
 
 editing.define('EditingNode', (function() {
-  /* @const */ var INTERACTIVE = editing.CONTENT_CATEGORY.INTERACTIVE;
   /* @const */ var PHRASING = editing.CONTENT_CATEGORY.PHRASING;
 
   /**
@@ -232,15 +231,6 @@ editing.define('EditingNode', (function() {
    * @this {!EditingNode}
    * @return {boolean}
    */
-  function isInteractive() {
-    var model = editing.contentModel[this.domNode_.nodeName];
-    return model !== undefined && Boolean(model.categories[INTERACTIVE]);
-  }
-
-  /**
-   * @this {!EditingNode}
-   * @return {boolean}
-   */
   function isPhrasing() {
     if (!editing.nodes.isElement(this))
       return true;
@@ -389,7 +379,6 @@ editing.define('EditingNode', (function() {
     hasChildNodes: {value: hasChildNodes },
     hashCode: {get: function() { return this.hashCode_; }},
     hashCode_: {writable: true},
-    isInteractive: {get: isInteractive},
     isPhrasing: {get: isPhrasing},
     isText: {get: isText},
     lastChild: {get: function() { return this.lastChild_; }},

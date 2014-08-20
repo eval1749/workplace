@@ -138,8 +138,8 @@ testCase('EditingNode.isInteractive', function() {
   var context = testing.createContext();
   var elementA = testing.createElement(context, 'a');
   var elementB = testing.createElement(context, 'b');
-  expectTrue(function () { return elementA.isInteractive; });
-  expectFalse(function () { return elementB.isInteractive; });
+  expectTrue(function () { return editing.nodes.isInteractive(elementA); });
+  expectFalse(function () { return editing.nodes.isInteractive(elementB); });
 });
 
 //

@@ -5,6 +5,8 @@
 'use strict';
 
 editing.define('nodes', (function() {
+  /* @const */ var INTERACTIVE = editing.CONTENT_CATEGORY.INTERACTIVE;
+
   /**
    * @param {!EditingNode} node1
    * @param {!EditingNode} node2
@@ -114,6 +116,15 @@ editing.define('nodes', (function() {
    * @param {!EditingNode} node
    * @return {boolean}
    */
+  function isInteractive(node) {
+    var model = editing.contentModel[node.domNode_.nodeName];
+    return model !== undefined && Boolean(model.categories[INTERACTIVE]);
+  }
+
+  /**
+   * @param {!EditingNode} node
+   * @return {boolean}
+   */
   function isVisibleNode(node) {
     console.assert(node instanceof editing.EditingNode);
     if (isWhitespaceNode(node))
@@ -200,6 +211,7 @@ editing.define('nodes', (function() {
     isDescendantOf: {value: isDescendantOf},
     isEditable: {value: isEditable},
     isElement: {value: isElement},
+    isInteractive: {value: isInteractive},
     isVisibleNode: {value: isVisibleNode},
     isWhitespaceNode: {value: isWhitespaceNode},
     lastWithIn: {value: lastWithIn},
