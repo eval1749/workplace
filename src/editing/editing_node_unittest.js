@@ -116,48 +116,6 @@ testCase('EditingNode.hasCode', function() {
 });
 
 //
-// isEditable
-//
-testCase('EditingNode.isEditable', function() {
-  var context = testing.createContext();
-  var elementA = testing.createElement(context, 'a');
-  expectFalse(function () { return editing.nodes.isEditable(elementA); });
-
-  var elementB = testing.createElement(context, 'b');
-  context.appendChild(elementA, elementB);
-  context.setAttribute(elementA, 'contentEditable', 'true');
-  expectTrue(function () { return editing.nodes.isContentEditable(elementA); });
-  expectFalse(function () { return editing.nodes.isEditable(elementA); });
-  expectTrue(function () { return editing.nodes.isEditable(elementB); });
-});
-
-//
-// isInteractive
-//
-testCase('EditingNode.isInteractive', function() {
-  var context = testing.createContext();
-  var elementA = testing.createElement(context, 'a');
-  var elementB = testing.createElement(context, 'b');
-  expectTrue(function () { return editing.nodes.isInteractive(elementA); });
-  expectFalse(function () { return editing.nodes.isInteractive(elementB); });
-});
-
-//
-// isPhrasing
-//
-testCase('EditingNode.isPhrasing', function() {
-  var context = testing.createContext();
-  var elementA = testing.createElement(context, 'a');
-  var elementB = testing.createElement(context, 'b');
-  var elementDiv = testing.createElement(context, 'div');
-  var elementH1 = testing.createElement(context, 'h1');
-  expectTrue(function () { return editing.nodes.isPhrasing(elementA); });
-  expectTrue(function () { return editing.nodes.isPhrasing(elementB); });
-  expectFalse(function () { return editing.nodes.isPhrasing(elementDiv); });
-  expectFalse(function () { return editing.nodes.isPhrasing(elementH1); });
-});
-
-//
 // removeChild
 //
 testCase('EditingNode.removeChildFirstChild', function() {
