@@ -128,7 +128,7 @@ editing.define('EditingContext', (function() {
    * @return {!EditingNode}
    */
   function internalSplitText(textNode, offset) {
-    if (!textNode.isText)
+    if (!editing.nodes.isText(textNode))
       throw new Error('Expect Text node');
     var nodeValue = textNode.domNode_.nodeValue;
     if (offset <= 0)
@@ -454,9 +454,9 @@ editing.define('EditingContext', (function() {
   function splitText(textNode, offset, newNode) {
     ASSERT_DOM_TREE_IS_MUTABLE(this);
     console.assert(textNode instanceof editing.EditingNode);
-    console.assert(textNode.isText);
+    console.assert(editing.nodes.isText(textNode));
     console.assert(newNode instanceof editing.EditingNode);
-    console.assert(newNode.isText);
+    console.assert(editing.nodes.isText(newNode));
     internalSplitText(textNode, offset);
     this.instructions_.push({operation: 'splitText', node: textNode,
                              offset: offset, newNode: newNode});

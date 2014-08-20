@@ -102,8 +102,8 @@ testing.define('serialzieNode', (function() {
         sink += marker(node, offset);
         sink += visit(child);
         var nextSibling = child.nextSibling;
-        if (visibleTextNode && child.isText && nextSibling &&
-            nextSibling.isText) {
+        if (visibleTextNode && editing.nodes.isText(child) && nextSibling &&
+            editing.nodes.isText(nextSibling)) {
             sink += '_';
         }
         child = nextSibling;

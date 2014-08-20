@@ -21,7 +21,7 @@ editing.define('EditingNode', (function() {
     this.nextSibling_ = null;
     this.previousSibling_ = null;
     this.styleMap_ = {};
-    this.textEndOffset_ = this.isText ? domNode.length : 0;
+    this.textEndOffset_ = editing.nodes.isText(this) ? domNode.length : 0;
     this.textStartOffset_ = 0;
     Object.seal(this);
 
@@ -227,18 +227,10 @@ editing.define('EditingNode', (function() {
 
   /**
    * @this {!EditingNode}
-   * @return {boolean}
-   */
-  function isText() {
-    return this.domNode_ instanceof CharacterData;
-  }
-
-  /**
-   * @this {!EditingNode}
    * @return {number}
    */
   function maxOffset() {
-    return this.isText ? this.nodeValue.length : this.childNodes.length;
+    return editing.nodes.isText(this) ? this.nodeValue.length : this.childNodes.length;
   }
 
   /**
@@ -366,7 +358,6 @@ editing.define('EditingNode', (function() {
     hasChildNodes: {value: hasChildNodes },
     hashCode: {get: function() { return this.hashCode_; }},
     hashCode_: {writable: true},
-    isText: {get: isText},
     lastChild: {get: function() { return this.lastChild_; }},
     lastChild_: {writable: true},
     maxOffset: {get: maxOffset},

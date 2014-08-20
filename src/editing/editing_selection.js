@@ -265,7 +265,7 @@ editing.define('EditingSelection', (function() {
     }
 
     // Convert text node + offset to container node + offset.
-    if (anchorNode.isText) {
+    if (editing.nodes.isText(anchorNode)) {
       console.assert(!anchorOffset ||
                      anchorOffset == anchorNode.nodeValue.length);
       anchorOffset = anchorOffset ? indexOfNode(anchorNode) + 1
@@ -273,7 +273,7 @@ editing.define('EditingSelection', (function() {
       anchorNode = anchorNode.parentNode;
     }
 
-    if (focusNode.isText) {
+    if (editing.nodes.isText(focusNode)) {
       if (focusOffset && focusOffset != focusNode.nodeValue.length) {
         throw new Error('focusOffset ' + focusOffset + ' must be zero or ' +
                         focusNode.nodeValue.length);
@@ -296,7 +296,7 @@ editing.define('EditingSelection', (function() {
    */
   function isNeedSplit(node, offset) {
     console.assert(node instanceof editing.EditingNode);
-    return node.isText && offset && offset < node.nodeValue.length;
+    return editing.nodes.isText(node) && offset && offset < node.nodeValue.length;
   }
 
   /**

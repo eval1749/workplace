@@ -46,7 +46,7 @@ console.log('\n\nremoveFormatCommand first=' + firstNode + ' last=' + lastNode +
             ' focus=' + focusNode + ' ' + focusOffset);
 */
 
-    if (firstNode && firstNode.isText) {
+    if (firstNode && editing.nodes.isText(firstNode)) {
       // Collect removal ancestors.
       var ancestors = [];
       for (var runner = firstNode.parentNode; shouldRemove(runner);

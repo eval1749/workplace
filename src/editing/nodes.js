@@ -137,6 +137,14 @@ editing.define('nodes', (function() {
    * @param {!EditingNode} node
    * @return {boolean}
    */
+  function isText(node) {
+    return node.nodeType == Node.TEXT_NODE;
+  }
+
+  /**
+   * @param {!EditingNode} node
+   * @return {boolean}
+   */
   function isVisibleNode(node) {
     console.assert(node instanceof editing.EditingNode);
     if (isWhitespaceNode(node))
@@ -225,6 +233,7 @@ editing.define('nodes', (function() {
     isElement: {value: isElement},
     isInteractive: {value: isInteractive},
     isPhrasing: {value: isPhrasing},
+    isText: {value: isText},
     isVisibleNode: {value: isVisibleNode},
     isWhitespaceNode: {value: isWhitespaceNode},
     lastWithIn: {value: lastWithIn},
