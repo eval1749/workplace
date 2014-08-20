@@ -399,7 +399,7 @@ editing.define('EditingContext', (function() {
     while (sibling) {
       console.assert(sibling.parentNode === parent);
       var nextSibling = sibling.nextSibling;
-      newParent.appendChild(sibling);
+      this.appendChild(newParent, sibling);
       sibling = nextSibling;
     }
     return newParent;
@@ -420,6 +420,25 @@ editing.define('EditingContext', (function() {
     console.assert(newNode.isText);
     this.instructions_.push({operation: 'splitText', node: textNode,
                              offset: offset, newNode: newNode});
+  }
+
+  /**
+   * @this {!EditingContext}
+   * @param {!EditingNode} refNode
+   * @return {!EditingNode}
+   */
+  function splitTree(treeNode, refNode) {
+    console.assert(refNode.isDescendantOf(treeNode), 'refNode', refNode,
+                  'must be descendant of treeNdoe', treeNode);
+    var lastNode = refNode;
+    for (var runner = refNode.parentNode; runner !== treeNode;
+         runner = runner.parentNode) {
+      var newNode = this.splitNode(runner, lastNode);
+      runner.parentNode.insertAfter(newNode, runner);
+      lastNode = newNode;
+    }
+    var newNode = this.splitNode(treeNode, lastNode);
+    return newNode;
   }
 
   Object.defineProperties(EditingContext.prototype, {
@@ -457,6 +476,7 @@ editing.define('EditingContext', (function() {
     setStyle: {value: setStyle},
     splitNode: {value: splitNode},
     splitText: {value: splitText},
+    splitTree: {value: splitTree},
     // Selection before executing editing command. This |ReadOnlySelection| is
     // put into undo stack for undo operation. See also |endingSelection|
     startingSelection: {get: function() { return this.startingSelection_; }},

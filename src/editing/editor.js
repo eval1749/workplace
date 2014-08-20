@@ -52,54 +52,12 @@ editing.define('Editor', (function() {
     node.styleMap[propertyName] = newValue;
   }
 
-  /**
-   * @this {!Editor}
-   * @param {!EditingNode} refNode
-   * @return {!EditingNode}
-   */
-  function splitTree(treeNode, refNode) {
-    var context = treeNode.context;
-    /**
-     * @param {!EditingNode} parent
-     * @param {!EditingNode} child
-     * @return {!EditingNode}
-     *
-     * Split |parent| at |child|, and returns new node which contains |child|
-     * to its sibling nodes.
-     */
-    function splitNode(parent, child) {
-      var newParent = parent.cloneNode(false);
-      var sibling = child;
-      while (sibling) {
-        console.assert(sibling.parentNode === parent);
-        var nextSibling = sibling.nextSibling;
-        context.appendChild(newParent, sibling);
-        sibling = nextSibling;
-      }
-      return newParent;
-    }
-
-    console.assert(refNode.isDescendantOf(treeNode), 'refNode', refNode,
-                  'must be descendant of treeNdoe', treeNode);
-
-    var lastNode = refNode;
-    for (var runner = refNode.parentNode; runner !== treeNode;
-         runner = runner.parentNode) {
-      var newNode = splitNode(runner, lastNode);
-      runner.parentNode.insertAfter(newNode, runner);
-      lastNode = newNode;
-    }
-    var newNode = splitNode(treeNode, lastNode);
-    return newNode;
-  }
-
   Object.defineProperties(Editor.prototype, {
     document: {get: function() { return this.document_; }},
     document_: {writable: true},
     insertChildrenBefore: {value: insertChildrenBefore},
     newContext: {value: newContext},
     setStyle: {value: setStyle},
-    splitTree: {value: splitTree}
   });
   return Editor;
 })());
