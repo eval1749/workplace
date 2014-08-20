@@ -55,7 +55,22 @@ editing.define('nodes', (function() {
     // TODO(yosin) We should have real version of |inDocument|.
     for (var runner = node; runner; runner = runner.parentNode) {
       if (!runner.parentNode)
-        return runner.isContentEditable;
+        return editing.nodes.isContentEditable(runner);
+    }
+    return false;
+  }
+
+  /**
+   * @param {!EditingNode} node
+   * @return {boolean}
+   */
+  function isContentEditable(node) {
+    for (var runner = node; runner; runner = runner.parentNode) {
+      var contentEditable = runner.getAttribute('contenteditable');
+      if (typeof(contentEditable) == 'string')
+        return contentEditable.toLowerCase() != 'false';
+      if (editing.isContentEditable(runner.domNode_))
+        return true;
     }
     return false;
   }
@@ -84,7 +99,7 @@ editing.define('nodes', (function() {
     var container = node.parentNode;
     if (!container)
       return false;
-    return container.isContentEditable
+    return editing.nodes.isContentEditable(container);
   }
 
   /**
@@ -181,6 +196,7 @@ editing.define('nodes', (function() {
   return Object.defineProperties({}, {
     commonAncestor: {value: commonAncestor},
     inDocument: {value: inDocument},
+    isContentEditable: {value: isContentEditable},
     isDescendantOf: {value: isDescendantOf},
     isEditable: {value: isEditable},
     isElement: {value: isElement},

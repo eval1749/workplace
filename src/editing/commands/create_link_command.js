@@ -32,7 +32,7 @@ editing.defineCommand('CreateLink', (function() {
     /** @const @type {?editing.EditableNode} */
     var caretNode = containerNode.childNodes[selection.focusOffset];
 
-    if (!containerNode.isContentEditable)
+    if (!editing.nodes.isContentEditable(containerNode))
       throw new Error('Caret should be in editable element.' +
                       String(containerNode));
 
@@ -55,7 +55,7 @@ editing.defineCommand('CreateLink', (function() {
     }
 
     var editable = interactive.parentNode;
-    if (!editable || !editable.isContentEditable) {
+    if (!editable || !editing.nodes.isContentEditable(editable)) {
       // We can't insert anchor element before/after focus node.
       context.setEndingSelection(context.startingSelection);
       return false;

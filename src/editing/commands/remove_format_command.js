@@ -15,7 +15,7 @@ editing.defineCommand('removeFormat', (function() {
 
   function shouldRemove(node) {
     return node && editing.nodes.isElement(node) && node.parentNode &&
-           node.parentNode.isContentEditable &&
+           editing.nodes.isContentEditable(node.parentNode) &&
            TAG_NAMES_TO_REMOVE.has(node.nodeName);
   }
 
@@ -113,9 +113,9 @@ console.log('removeFormatCommand',
         return;
       }
       if (TAG_NAMES_TO_REMOVE.has(node.nodeName)) {
-//console.log('removeFormatCommand', 'removeTag ' + node, node.parentNode.isContentEditable);
+//console.log('removeFormatCommand', 'removeTag ' + node, editing.nodes.isContentEditable(node.parentNode));
         var parent = node.parentNode;
-        if (!parent.isContentEditable)
+        if (!editing.nodes.isContentEditable(parent))
           return;
         if (node === anchorNode) {
           anchorNode = parent;

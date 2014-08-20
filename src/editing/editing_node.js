@@ -232,21 +232,6 @@ editing.define('EditingNode', (function() {
    * @this {!EditingNode}
    * @return {boolean}
    */
-  function isContentEditable() {
-    for (var runner = this; runner; runner = runner.parentNode) {
-      var contentEditable = runner.getAttribute('contenteditable');
-      if (typeof(contentEditable) == 'string')
-        return contentEditable.toLowerCase() != 'false';
-      if (editing.isContentEditable(runner.domNode_))
-        return true;
-    }
-    return false;
-  }
-
-  /**
-   * @this {!EditingNode}
-   * @return {boolean}
-   */
   function isInteractive() {
     var model = editing.contentModel[this.domNode_.nodeName];
     return model !== undefined && Boolean(model.categories[INTERACTIVE]);
@@ -404,7 +389,6 @@ editing.define('EditingNode', (function() {
     hasChildNodes: {value: hasChildNodes },
     hashCode: {get: function() { return this.hashCode_; }},
     hashCode_: {writable: true},
-    isContentEditable: {get: isContentEditable},
     isInteractive: {get: isInteractive},
     isPhrasing: {get: isPhrasing},
     isText: {get: isText},
