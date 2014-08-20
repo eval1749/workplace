@@ -120,7 +120,7 @@ editing.defineCommand('Unlink', (function() {
     var selectionTracker = new SelectionTrackerForUnlink(selection);
     nodes.forEach(function(node) {
       while (anchorElement) {
-        if (node.isDescendantOf(anchorElement)) {
+        if (editing.nodes.isDescendantOf(node, anchorElement)) {
           if (anchorElement != node.parentNode)
             return;
           context.insertBefore(anchorElement.parentNode, node, anchorElement);

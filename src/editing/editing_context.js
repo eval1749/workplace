@@ -452,7 +452,8 @@ editing.define('EditingContext', (function() {
    * @return {!EditingNode}
    */
   function splitTree(treeNode, refNode) {
-    console.assert(refNode.isDescendantOf(treeNode), 'refNode', refNode,
+    console.assert(editing.nodes.isDescendantOf(refNode, treeNode),
+                  'refNode', refNode,
                   'must be descendant of treeNdoe', treeNode);
     var lastNode = refNode;
     for (var runner = refNode.parentNode; runner !== treeNode;

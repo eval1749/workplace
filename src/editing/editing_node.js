@@ -244,20 +244,6 @@ editing.define('EditingNode', (function() {
   }
 
   /**
-   * @this {!EditingNode} node
-   * @param {!EditingNode} other
-   * Returns true if |other| is an ancestor of |node|, otherwise false.
-   */
-  function isDescendantOf(other) {
-    console.assert(other instanceof editing.EditingNode);
-    for (var runner = this.parentNode; runner; runner = runner.parentNode) {
-      if (runner == other)
-        return true;
-    }
-    return false;
-  }
-
-  /**
    * @this {!EditingNode}
    * @return {boolean}
    */
@@ -438,7 +424,6 @@ editing.define('EditingNode', (function() {
     hashCode: {get: function() { return this.hashCode_; }},
     hashCode_: {writable: true},
     isContentEditable: {get: isContentEditable},
-    isDescendantOf: {value: isDescendantOf},
     isElement: {get: isElement},
     isEditable: {get: isEditable},
     isInteractive: {get: isInteractive},
