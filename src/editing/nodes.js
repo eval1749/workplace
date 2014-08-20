@@ -165,7 +165,7 @@ editing.define('nodes', (function() {
    */
   function isWhitespaceNode(node) {
     console.assert(node instanceof editing.EditingNode);
-    if (!node.isText)
+    if (!editing.nodes.isText(node))
       return false;
     var text = node.nodeValue.replace(/[ \t\r\n]/g, '');
     return text == '';
