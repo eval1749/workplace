@@ -12,6 +12,7 @@ editing.define('Editor', (function() {
   function Editor(document) {
     this.context_ = null;
     this.document_ = document;
+    Object.seal(this);
   }
 
   /**

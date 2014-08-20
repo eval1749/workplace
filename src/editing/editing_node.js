@@ -26,6 +26,7 @@ editing.define('EditingNode', (function() {
     this.styleMap_ = {};
     this.textEndOffset_ = this.isText ? domNode.length : 0;
     this.textStartOffset_ = 0;
+    Object.seal(this);
 
     var attributes = domNode.attributes;
     if (!attributes)

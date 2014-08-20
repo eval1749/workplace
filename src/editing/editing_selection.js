@@ -183,6 +183,113 @@ editing.define('EditingSelection', (function() {
   }
 
   /**
+   * @param {!EditingSelection} selection
+   * @param {!EditingContext} context
+   * @param {!Object} domSelection
+   */
+  function initSelection(selection, context, domSelection) {
+    if (!domSelection || !domSelection.rangeCount)
+      return;
+
+    var domCommonAncestor = computeCommonAncestor(domSelection.anchorNode,
+                                                  domSelection.focusNode);
+    console.assert(domCommonAncestor instanceof Node,
+                   'No common ancestor for', domSelection.anchorNode, 'and',
+                   domSelection.focusNode);
+    var treeContext = {
+      context: context,
+      domSelection: domSelection,
+      selection: selection
+    };
+    var domRoot = computeEditingRoot(domCommonAncestor);
+    if (!domRoot) {
+      // There is no editable in selection.
+      return;
+    }
+    selection.rootForTesting_ = createEditingTree(treeContext, domRoot);
+
+    var anchorNode = selection.anchorNode_;
+    var anchorOffset = domSelection.anchorOffset;
+    var focusNode = selection.focusNode_;
+    var focusOffset = domSelection.focusOffset;
+
+    if (domSelection.collapsed()) {
+      if (isNeedSplit(anchorNode, anchorOffset)) {
+        anchorNode = splitTextAndInsert(anchorNode, anchorOffset);
+        anchorOffset = 0;
+        focusNode = anchorNode;
+        focusOffset = 0;
+      }
+
+    } else {
+      var range = domSelection.getRangeAt(0);
+      selection.anchorIsStart_ = range.startContainer == anchorNode.domNode &&
+                            range.startOffset == anchorOffset;
+      var splitAnchorNode = isNeedSplit(anchorNode, anchorOffset);
+      var splitFocusNode = isNeedSplit(focusNode, focusOffset);
+
+      if (anchorNode === focusNode && splitAnchorNode && splitFocusNode) {
+        if (selection.anchorIsStart_) {
+          anchorNode = splitTextAndInsert(anchorNode, anchorOffset);
+          focusNode = anchorNode;
+          focusOffset -= anchorOffset;
+          anchorOffset = 0;
+          splitTextAndInsert(focusNode, focusOffset);
+        } else {
+          focusNode = splitTextAndInsert(focusNode, focusOffset);
+          anchorNode = focusNode;
+          anchorOffset -= focusOffset;
+          focusOffset = 0;
+          splitTextAndInsert(anchorNode, anchorOffset);
+        }
+
+      } else {
+        if (splitAnchorNode) {
+          var newNode = splitTextAndInsert(anchorNode, anchorOffset);
+          if (selection.anchorIsStart_) {
+            anchorNode = newNode;
+            anchorOffset = 0;
+            if (newNode.parentNode == focusNode)
+              ++focusOffset;
+          }
+        }
+
+        if (splitFocusNode) {
+          var newNode = splitTextAndInsert(focusNode, focusOffset);
+          if (!selection.anchorIsStart_) {
+            focusNode = newNode;
+            focusOffset = 0;
+          }
+        }
+      }
+    }
+
+    // Convert text node + offset to container node + offset.
+    if (anchorNode.isText) {
+      console.assert(!anchorOffset ||
+                     anchorOffset == anchorNode.nodeValue.length);
+      anchorOffset = anchorOffset ? indexOfNode(anchorNode) + 1
+                                  : indexOfNode(anchorNode);
+      anchorNode = anchorNode.parentNode;
+    }
+
+    if (focusNode.isText) {
+      if (focusOffset && focusOffset != focusNode.nodeValue.length) {
+        throw new Error('focusOffset ' + focusOffset + ' must be zero or ' +
+                        focusNode.nodeValue.length);
+      }
+      focusOffset = focusOffset ? indexOfNode(focusNode) + 1
+                                : indexOfNode(focusNode);
+      focusNode = focusNode.parentNode;
+    }
+    selection.anchorNode_ = anchorNode;
+    selection.anchorOffset_ = anchorOffset;
+    selection.focusNode_ = focusNode;
+    selection.focusOffset_ = focusOffset;
+    selection.nodes_ = collectNodesInSelection(selection);
+  }
+
+  /**
    * @param {!editing.EditingNode} node
    * @param {number} offset
    * @return {boolean}
@@ -231,106 +338,8 @@ editing.define('EditingSelection', (function() {
     this.focusNode_ = null;
     this.focusOffset_ = null;
     this.nodes_ = [];
-
-    if (!domSelection || !domSelection.rangeCount)
-      return;
-
-    var domCommonAncestor = computeCommonAncestor(domSelection.anchorNode,
-                                                  domSelection.focusNode);
-    console.assert(domCommonAncestor instanceof Node,
-                   'No common ancestor for', domSelection.anchorNode, 'and',
-                   domSelection.focusNode);
-    var treeContext = {
-      context: context,
-      domSelection: domSelection,
-      selection: this
-    };
-    var domRoot = computeEditingRoot(domCommonAncestor);
-    if (!domRoot) {
-      // There is no editable in selection.
-      return;
-    }
-    this.rootForTesting_ = createEditingTree(treeContext, domRoot);
-
-    var anchorNode = this.anchorNode_;
-    var anchorOffset = domSelection.anchorOffset;
-    var focusNode = this.focusNode_;
-    var focusOffset = domSelection.focusOffset;
-
-    if (domSelection.collapsed()) {
-      if (isNeedSplit(anchorNode, anchorOffset)) {
-        anchorNode = splitTextAndInsert(anchorNode, anchorOffset);
-        anchorOffset = 0;
-        focusNode = anchorNode;
-        focusOffset = 0;
-      }
-
-    } else {
-      var range = domSelection.getRangeAt(0);
-      this.anchorIsStart_ = range.startContainer == anchorNode.domNode &&
-                            range.startOffset == anchorOffset;
-      var splitAnchorNode = isNeedSplit(anchorNode, anchorOffset);
-      var splitFocusNode = isNeedSplit(focusNode, focusOffset);
-
-      if (anchorNode === focusNode && splitAnchorNode && splitFocusNode) {
-        if (this.anchorIsStart_) {
-          anchorNode = splitTextAndInsert(anchorNode, anchorOffset);
-          focusNode = anchorNode;
-          focusOffset -= anchorOffset;
-          anchorOffset = 0;
-          splitTextAndInsert(focusNode, focusOffset);
-        } else {
-          focusNode = splitTextAndInsert(focusNode, focusOffset);
-          anchorNode = focusNode;
-          anchorOffset -= focusOffset;
-          focusOffset = 0;
-          splitTextAndInsert(anchorNode, anchorOffset);
-        }
-
-      } else {
-        if (splitAnchorNode) {
-          var newNode = splitTextAndInsert(anchorNode, anchorOffset);
-          if (this.anchorIsStart_) {
-            anchorNode = newNode;
-            anchorOffset = 0;
-            if (newNode.parentNode == focusNode)
-              ++focusOffset;
-          }
-        }
-
-        if (splitFocusNode) {
-          var newNode = splitTextAndInsert(focusNode, focusOffset);
-          if (!this.anchorIsStart_) {
-            focusNode = newNode;
-            focusOffset = 0;
-          }
-        }
-      }
-    }
-
-    // Convert text node + offset to container node + offset.
-    if (anchorNode.isText) {
-      console.assert(!anchorOffset ||
-                     anchorOffset == anchorNode.nodeValue.length);
-      anchorOffset = anchorOffset ? indexOfNode(anchorNode) + 1
-                                  : indexOfNode(anchorNode);
-      anchorNode = anchorNode.parentNode;
-    }
-
-    if (focusNode.isText) {
-      if (focusOffset && focusOffset != focusNode.nodeValue.length) {
-        throw new Error('focusOffset ' + focusOffset + ' must be zero or ' +
-                        focusNode.nodeValue.length);
-      }
-      focusOffset = focusOffset ? indexOfNode(focusNode) + 1
-                                : indexOfNode(focusNode);
-      focusNode = focusNode.parentNode;
-    }
-    this.anchorNode_ = anchorNode;
-    this.anchorOffset_ = anchorOffset;
-    this.focusNode_ = focusNode;
-    this.focusOffset_ = focusOffset;
-    this.nodes_ = collectNodesInSelection(this);
+    initSelection(this, context, domSelection);
+    Object.seal(this);
   }
 
   /**
@@ -404,6 +413,18 @@ editing.define('EditingSelection', (function() {
     return this.anchorIsStart ? this.anchorOffset_ : this.focusOffset_;
   }
 
+  /**
+   * @this {!editing.EditingSelection}
+   * @return {!editing.ReadOnlySelection}
+   */
+  function value() {
+    return new editing.ReadOnlySelection(
+        this.anchorNode_, this.anchorOffset_,
+        this.focusNode_, this.focusOffset_,
+        this.anchorIsStart_ ? editing.SelectionDirection.ANCHOR_IS_START :
+                              editing.SelectionDirection.FOCUS_IS_START);
+  }
+
   Object.defineProperties(EditingSelection.prototype, {
     anchorIsStart: {get: function() { return this.anchorIsStart_; }},
     anchorIsStart_: {writable: true},
@@ -429,6 +450,7 @@ editing.define('EditingSelection', (function() {
     rootForTesting_: {writable: true},
     startContainer: {get: startContainer},
     startOffset: {get: startOffset},
+    value: {get: value}
   });
 
   return EditingSelection;

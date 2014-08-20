@@ -32,7 +32,13 @@ editing.define('SelectionTracker', (function() {
   function NodeAndOffset(node, offset) {
     this.node = node;
     this.offset = offset;
+    Object.seal(this);
   }
+
+  Object.defineProperties(NodeAndOffset.prototype, {
+    node: {writable: true},
+    offset: {writable: true}
+  });
 
   /**
    * @constructor
@@ -56,6 +62,7 @@ editing.define('SelectionTracker', (function() {
       this.type_ = TrackingType.NODE;
       this.node_ = node.childNodes[offset];
     }
+    Object.seal(this);
   }
 
   /**
@@ -123,6 +130,7 @@ editing.define('SelectionTracker', (function() {
     this.end_ = new TrackablePosition(selection.endContainer,
                                       selection.endOffset,
                                       StartOrEnd.END);
+    Object.seal(this);
   }
 
   /**

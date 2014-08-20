@@ -24,19 +24,13 @@ editing.define('EditingContext', (function() {
     this.hashCode_ = 0;
     this.instructions_ = [];
     this.selection_ = new editing.EditingSelection(this, domSelection);
-
-    if (!domSelection || !domSelection.rangeCount)
-      return;
-
+    this.sampleContext_ = '';
+    this.sampleHtmlText_ = '';
     // We don't make ending selection as starting selection here. Because,
     // |ReadOnlySelection| doesn't track DOM modification during command
     // execution.
-    this.startingSelection_ = new editing.ReadOnlySelection(
-        this.selection_.anchorNode, this.selection_.anchorOffset,
-        this.selection_.focusNode, this.selection_.focusOffset,
-        this.selection_.anchorIsStart ?
-            editing.SelectionDirection.ANCHOR_IS_START :
-            editing.SelectionDirection.FOCUS_IS_START);
+    this.startingSelection_ = this.selection_.value;
+    Object.seal(this);
   }
 
   /**
@@ -341,6 +335,8 @@ editing.define('EditingContext', (function() {
     removeAttribute: {value: removeAttribute},
     removeChild: {value: removeChild},
     replaceChild: {value: replaceChild},
+    sampleContext_: {writable: true}, // for debugging
+    sampleHtmlText_: {writable: true}, // for debugging
     selection: {get: function() { return this.selection_; }},
     selection_: {writable: true},
     setAttribute: {value: setAttribute},

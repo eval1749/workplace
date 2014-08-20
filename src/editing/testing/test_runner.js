@@ -8,12 +8,13 @@ function TestRunner() {
   this.testListElement_ = null;
   this.name_ = '';
   this.results_ = [];
-  this.sectionName = '';
+  this.sectionName_ = '';
   this.testCaseListElement_ = null;
   this.testListElement_ = null;
   this.testCaseList_ = [];
   this.testCaseMap_ = {};
   this.useTryCatch_ = true;
+  Object.seal(this);
 }
 
 Object.defineProperties(TestRunner.prototype, (function() {
@@ -295,6 +296,7 @@ Object.defineProperties(TestRunner.prototype, (function() {
     results_: {writable: true},
     runAllTests: {value: runAllTests},
     runTests_: {writable: true},
+    sectionName_: {writable: true},
     skip: {value: skip},
     testsCaseList_: {writable: true},
     testsCaseMap_: {writable: true},

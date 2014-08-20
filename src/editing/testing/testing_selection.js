@@ -129,17 +129,19 @@ testing.define('TestingSelection', (function() {
     fixupAnchorAndFocus(this, this.anchorNode_, this.anchorOffset_);
     fixupAnchorAndFocus(this, this.focusNode_, this.focusOffset_);
 
-    if (!this.focusNode_)
-      return;
-    console.assert(this.anchorNode_,
-                  'AnchorNode should no be null for', htmlSource);
-    if (this.anchorIsStart_) {
-      this.range_.setStart(this.anchorNode_, this.anchorOffset_);
-      this.range_.setEnd(this.focusNode_, this.focusOffset_);
-    } else {
-      this.range_.setStart(this.focusNode_, this.focusOffset_);
-      this.range_.setEnd(this.anchorNode_, this.anchorOffset_);
+    if (this.focusNode_) {
+      console.assert(this.anchorNode_,
+                    'AnchorNode should no be null for', htmlSource);
+      if (this.anchorIsStart_) {
+        this.range_.setStart(this.anchorNode_, this.anchorOffset_);
+        this.range_.setEnd(this.focusNode_, this.focusOffset_);
+      } else {
+        this.range_.setStart(this.focusNode_, this.focusOffset_);
+        this.range_.setEnd(this.anchorNode_, this.anchorOffset_);
+      }
     }
+
+    Object.seal(this);
   }
 
   /**

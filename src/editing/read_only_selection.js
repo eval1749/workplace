@@ -25,6 +25,7 @@ editing.define('ReadOnlySelection', (function() {
     this.direction_ = direction;
     this.focusNode_ = focusNode;
     this.focusOffset_ = focusOffset;
+    Object.seal(this);
   }
 
   /**

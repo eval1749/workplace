@@ -11,12 +11,16 @@ testing.define('SampleContext', (function() {
    */
   function SampleContext(htmlText) {
     var iframe = document.createElement('iframe');
-    this.iframe_ = iframe;
     document.body.appendChild(iframe);
-    this.document_ = iframe.contentDocument;
     // Note: Firefox requires focus to retrieve selection from IFRAME.
     iframe.focus();
+
+    this.endingSelection_ = null;
+    this.iframe_ = iframe;
+    this.document_ = iframe.contentDocument;
     this.selection_ = iframe.contentWindow.getSelection();
+    this.startinggSelection_ = null;
+
     if (!this.selection_)
       throw new Error('Can not get selection from IFRAME');
 
@@ -25,23 +29,24 @@ testing.define('SampleContext', (function() {
 
     if (!sample.rangeCount) {
       this.startingSelection_ = new editing.ReadOnlySelection(null, 0, null, 0);
-      return;
-    }
-
-    if (this.selection_.extend) {
-      this.selection_.collapse(sample.anchorNode, sample.anchorOffset);
-      this.selection_.extend(sample.focusNode, sample.focusOffset);
     } else {
-      var range = document.createRange();
-      range.setStart(sample.anchorNode, sample.anchorOffset);
-      range.setEnd(sample.focusNode, sample.focusOffset);
-      this.selection_.addRange(range);
-    }
+      // Note: IE doesn't have |Selection.extend()|.
+      if (this.selection_.extend) {
+        this.selection_.collapse(sample.anchorNode, sample.anchorOffset);
+        this.selection_.extend(sample.focusNode, sample.focusOffset);
+      } else {
+        var range = document.createRange();
+        range.setStart(sample.anchorNode, sample.anchorOffset);
+        range.setEnd(sample.focusNode, sample.focusOffset);
+        this.selection_.addRange(range);
+      }
 
-    // Since Blink normalize anchor and focus position, we use normalized
-    // value rather than user specified value.
-    this.startingSelection_ = editing.ReadOnlySelection.createFromDom(
-        this.selection_);
+      // Since Blink normalize anchor and focus position, we use normalized
+      // value rather than user specified value.
+      this.startingSelection_ = editing.ReadOnlySelection.createFromDom(
+          this.selection_);
+    }
+    Object.seal(this);
   }
 
   
