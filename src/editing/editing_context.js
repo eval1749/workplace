@@ -396,17 +396,17 @@ editing.define('EditingContext', (function() {
       throw new Error('Can not set anchor node not in document ' +
                       anchorNode + ' parent=' + anchorNode.parentNode);
     }
-    if (anchorOffset < 0 || anchorOffset > anchorNode.maxOffset) {
+    if (anchorOffset < 0 || anchorOffset > editing.nodes.maxOffset(anchorNode)) {
       throw new Error('Invalid anchor offset ' + anchorOffset +
-                      ' on ' + anchorNode + ' max=' + anchorNode.maxOffset);
+                      ' on ' + anchorNode + ' max=' + editing.nodes.maxOffset(anchorNode));
     }
     if (!editing.nodes.inDocument(focusNode)) {
       throw new Error('Can not set focus node not in document ' +
                       focusNode);
     }
-    if (focusOffset < 0 || focusOffset > focusNode.maxOffset) {
+    if (focusOffset < 0 || focusOffset > editing.nodes.maxOffset(focusNode)) {
       throw new Error('Invalid focus offset ' + focusOffset +
-                      ' on ' + focusNode + ' max=' + focusNode.maxOffset);
+                      ' on ' + focusNode + ' max=' + editing.nodes.maxOffset(focusNode));
     }
     this.endingSelection_ = selection;
   }

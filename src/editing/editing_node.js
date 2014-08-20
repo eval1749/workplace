@@ -229,14 +229,6 @@ editing.define('EditingNode', (function() {
    * @this {!EditingNode}
    * @return {number}
    */
-  function maxOffset() {
-    return editing.nodes.isText(this) ? this.nodeValue.length : this.childNodes.length;
-  }
-
-  /**
-   * @this {!EditingNode}
-   * @return {number}
-   */
   function nodeIndex(){
     var index = 0;
     var parentNode = this.parentNode;
@@ -360,7 +352,6 @@ editing.define('EditingNode', (function() {
     hashCode_: {writable: true},
     lastChild: {get: function() { return this.lastChild_; }},
     lastChild_: {writable: true},
-    maxOffset: {get: maxOffset},
     nextSibling: {get: function() { return this.nextSibling_; }},
     nextSibling_: {writable: true},
     nodeIndex: {get: nodeIndex }, // for debugging

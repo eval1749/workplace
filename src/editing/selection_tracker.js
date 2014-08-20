@@ -52,7 +52,7 @@ editing.define('SelectionTracker', (function() {
     if (!node.hasChildNodes()) {
       this.type_ = TrackingType.BEFORE_ALL_CHILDREN;
       this.node_ = node;
-    } else if (node.maxOffset == node) {
+    } else if (editing.nodes.maxOffset(node) == node) {
       this.type_ = TrackingType.AFTER_ALL_CHILDREN;
       this.node_ = node.lastChild;
     } else if (offset && startOrEnd == StartOrEnd.END) {
@@ -75,7 +75,7 @@ editing.define('SelectionTracker', (function() {
       case TrackingType.AFTER_NODE:
         return new NodeAndOffset(node.parentNode, node.nodeIndex + 1);
       case TrackingType.AFTER_ALL_CHILDREN:
-        return new NodeAndOffset(node.parentNode, node.maxOffset);
+        return new NodeAndOffset(node.parentNode, editing.nodes.maxOffset(node));
       case TrackingType.BEFORE_ALL_CHILDREN:
         return new NodeAndOffset(node, 0);
       case TrackingType.NODE:

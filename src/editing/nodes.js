@@ -179,6 +179,15 @@ editing.define('nodes', (function() {
     return descendant;
   }
 
+  /**
+   * @param {!EditingNode} node
+   * @return {number}
+   */
+  function maxOffset(node) {
+    return editing.nodes.isText(node) ? node.nodeValue.length :
+                                        node.childNodes.length;
+  }
+
   // nextNode(<a><b>foo|</b><a>bar) = bar
   function nextNode(current) {
     if (current.firstChild)
@@ -237,6 +246,7 @@ editing.define('nodes', (function() {
     isVisibleNode: {value: isVisibleNode},
     isWhitespaceNode: {value: isWhitespaceNode},
     lastWithIn: {value: lastWithIn},
+    maxOffset: {value: maxOffset},
     nextNode: {value: nextNode},
     nextNodeSkippingChildren: {value: nextNodeSkippingChildren},
     previousNode: {value: previousNode},
