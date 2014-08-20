@@ -187,32 +187,10 @@ editing.define('EditingNode', (function() {
 
     var nextSibling = refChild.nextSibling;
     if (nextSibling) {
-      this.insertBefore(newChild, nextSibling);
+      this.context.insertBefore(this, newChild, nextSibling);
       return;
     }
     this.context.appendChild(this, newChild);
-  }
-
-  /**
-   * @this {!EditingNode}
-   * @param {!EditingNode} newChild
-   * @param {!EditingNode} refChild
-   */
-  function insertBefore(newChild, refChild) {
-    if (!refChild) {
-      this.context.appendChild(this, newChild);
-      return;
-    }
-    console.assert(newChild instanceof editing.EditingNode);
-    console.assert(refChild instanceof editing.EditingNode);
-    if (newChild === refChild)
-      throw new Error('newChild and refChild must be different');
-    if (refChild.parentNode !== this)
-      throw new Error('refChild ' + refChild + ' must be a child of ' + this);
-
-    this.context_.recordInsertBefore(newChild, refChild);
-    internalInsertBefore(this, newChild, refChild);
-    console.assert(newChild.parentNode === this);
   }
 
   /**
@@ -558,7 +536,6 @@ editing.define('EditingNode', (function() {
     hashCode_: {writable: true},
     inDocument: {value: inDocument },
     insertAfter: {value: insertAfter},
-    insertBefore: {value: insertBefore},
     isContentEditable: {get: isContentEditable},
     isDescendantOf: {value: isDescendantOf},
     isElement: {get: isElement},

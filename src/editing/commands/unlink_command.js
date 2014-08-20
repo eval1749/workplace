@@ -61,10 +61,11 @@ editing.defineCommand('Unlink', (function() {
   * @param {?EditingNode} stopNode
   */
   function moveChildNodesBeforeParentNode(parentNode, stopNode) {
+    var context = parentNode.context;
      var child = parentNode.firstChild;
      while (child) {
        var nextSibling = child.nextSibling;
-       parentNode.parentNode.insertBefore(child, parentNode);
+       context.insertBefore(parentNode.parentNode, child, parentNode);
        child = nextSibling;
      }
   }
@@ -122,7 +123,7 @@ editing.defineCommand('Unlink', (function() {
         if (node.isDescendantOf(anchorElement)) {
           if (anchorElement != node.parentNode)
             return;
-          anchorElement.parentNode.insertBefore(node, anchorElement);
+          context.insertBefore(anchorElement.parentNode, node, anchorElement);
           return;
         }
         anchorElement.parentNode.removeChild(anchorElement);

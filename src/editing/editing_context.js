@@ -11,29 +11,6 @@ editing.define('EditingContext', (function() {
     throw new Error("You can't mutate DOM tree once you set ending selection.");
   }
 
-
-  /**
-   * @this {!EditingNode}
-   * @param {!EditingNode} newChild
-   * @param {!EditingNode} refChild
-   */
-  function insertBefore(newChild, refChild) {
-    if (!refChild) {
-      this.appendChild(newChild);
-      return;
-    }
-    console.assert(newChild instanceof editing.EditingNode);
-    console.assert(refChild instanceof editing.EditingNode);
-    if (newChild === refChild)
-      throw new Error('newChild and refChild must be different');
-    if (refChild.parentNode !== this)
-      throw new Error('refChild ' + refChild + ' must be a child of ' + this);
-
-    this.context_.recordInsertBefore(newChild, refChild);
-    internalInsertBefore(this, newChild, refChild);
-    console.assert(newChild.parentNode === this);
-  }
-
   /**
    * @this {!EditingNode}
    * @param {!EditingNode} newChild
@@ -152,6 +129,20 @@ editing.define('EditingContext', (function() {
     ASSERT_DOM_TREE_IS_MUTABLE(context);
     context.instructions_.push({operation: 'appendChild', parentNode: parentNode,
                                 newChild: newChild});
+  }
+
+
+  /**
+   * @param {!EditingContext}
+   * @param {!EditingNode} parentNode
+   * @param {!EditingNode} newChild
+   * @param {!EditingNode} refChild
+   */
+  function recordInsertBefore(context, parentNode, newChild, refChild) {
+    ASSERT_DOM_TREE_IS_MUTABLE(context);
+    context.instructions_.push({operation: 'insertBefore',
+                                parentNode: parentNode, newChild: newChild,
+                                refChild: refChild});
   }
 
   /**
@@ -284,7 +275,8 @@ editing.define('EditingContext', (function() {
       this.appendChild(parent, newChild);
       return;
     }
-    parent.insertBefore(newChild, refChild);
+    recordInsertBefore(this, newChild, refChild);
+    internalInsertBefore(parent, newChild, refChild);
   }
 
   /**
@@ -301,18 +293,6 @@ editing.define('EditingContext', (function() {
    */
   function recordCloneNode(node) {
     this.instructions_.push({operation: 'cloneNode', node: node});
-  }
-
-  /**
-   * @this {!EditingContext}
-   * @param {!EditingNode} parentNode
-   * @param {!EditingNode} newChild
-   * @param {!EditingNode} refChild
-   */
-  function recordInsertBefore(parentNode, newChild, refChild) {
-    ASSERT_DOM_TREE_IS_MUTABLE(this);
-    this.instructions_.push({operation: 'insertBefore', parentNode: parentNode,
-                             newChild: newChild, refChild: refChild});
   }
 
   /**

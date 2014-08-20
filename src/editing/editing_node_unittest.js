@@ -51,7 +51,7 @@ testCase('EditingNode.insertBeforeNull', function() {
   var context = testing.createContext();
   var element1 = testing.createElement(context, 'e1');
   var element2 = testing.createElement(context, 'e2');
-  element1.insertBefore(element2, null);
+  context.insertBefore(element1, element2, null);
 
   expectEq(element2, function() { return element1.firstChild; });
   expectEq(element2, function() { return element1.lastChild; });
@@ -68,7 +68,7 @@ testCase('EditingNode.insertBeforeToFirst', function() {
   var element2 = testing.createElement(context, 'e2');
   var element3 = testing.createElement(context, 'e3');
   context.appendChild(element1, element3);
-  element1.insertBefore(element2, element3);
+  context.insertBefore(element1, element2, element3);
 
   expectEq(element2, function() { return element1.firstChild; });
   expectEq(element3, function() { return element1.lastChild; });
@@ -90,7 +90,7 @@ testCase('EditingNode.insertBeforeToSecond', function() {
   var element4 = testing.createElement(context, 'e4');
   context.appendChild(element1, element2);
   context.appendChild(element1, element3);
-  element1.insertBefore(element4, element3);
+  context.insertBefore(element1, element4, element3);
 
   expectEq(element2, function() { return element1.firstChild; });
   expectEq(element3, function() { return element1.lastChild; });
