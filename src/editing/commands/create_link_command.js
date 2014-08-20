@@ -193,7 +193,7 @@ editing.defineCommand('CreateLink', (function() {
     }
 
     var selection = context.selection;
-    var effectiveNodes = getEffectiveNodes(context);
+    var effectiveNodes = selection.computeEffectiveNodes();
     if (!effectiveNodes.length) {
       if (INSERT_LINK_FOR_CARET)
         return createLinkBeforeCaret(context, url);
@@ -350,43 +350,6 @@ editing.defineCommand('CreateLink', (function() {
       return true;
     }
     return createLinkForRange(context, url);
-  }
-
-  /**
-   * @param {!EditingContext} context
-   * @return {!Array.<EditingNode>}
-   */
-  function getEffectiveNodes(context) {
-    var nodesInRange = context.selection.nodes;
-    if (!nodesInRange.length)
-      return nodesInRange;
-    var firstNode = nodesInRange[0];
-    for (var ancestor = firstNode.parentNode; ancestor;
-         ancestor = ancestor.parentNode) {
-      if (!ancestor.isEditable)
-        break;
-      if (ancestor.firstChild !== firstNode)
-        break;
-      // TODO(yosin) We should use more efficient way to check |ancestor| is
-      // in selection.
-      var lastNode = editing.nodes.lastWithIn(ancestor);
-      if (nodesInRange.findIndex(function(x) { return x == lastNode; }) < 0)
-        break;
-      nodesInRange.unshift(ancestor);
-      firstNode = ancestor;
-    }
-    return nodesInRange;
-  }
-
-  function isModifiableAnchorElement(element) {
-    switch (element.attributes.length) {
-      case 0:
-        return true;
-      case 1:
-        return element.hasAttribute('href');
-      default:
-        return false;
-    }
   }
 
   return createLinkCommand;

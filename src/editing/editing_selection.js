@@ -343,6 +343,33 @@ editing.define('EditingSelection', (function() {
   }
 
   /**
+   * @param {!EditingSelection} context
+   * @return {!Array.<EditingNode>}
+   * Computes effective nodes for inline formatting commands.
+   */
+  function computeEffectiveNodes() {
+    var nodesInRange = this.nodes;
+    if (!nodesInRange.length)
+      return nodesInRange;
+    var firstNode = nodesInRange[0];
+    for (var ancestor = firstNode.parentNode; ancestor;
+         ancestor = ancestor.parentNode) {
+      if (!ancestor.isEditable)
+        break;
+      if (ancestor.firstChild !== firstNode)
+        break;
+      // TODO(yosin) We should use more efficient way to check |ancestor| is
+      // in selection.
+      var lastNode = editing.nodes.lastWithIn(ancestor);
+      if (nodesInRange.findIndex(function(x) { return x == lastNode; }) < 0)
+        break;
+      nodesInRange.unshift(ancestor);
+      firstNode = ancestor;
+    }
+    return nodesInRange;
+  }
+
+  /**
    * @this {!editing.EditingSelection}
    * @return {editing.SelectionDirection}
    */
@@ -432,6 +459,7 @@ editing.define('EditingSelection', (function() {
     anchorNode_: {writable: true},
     anchorOffset: {get: function() { return this.anchorOffset_; }},
     anchorOffset_: {writable: true},
+    computeEffectiveNodes: {value: computeEffectiveNodes},
     context: {get: function() { return this.context_;}},
     context_: {writable: true},
     direction: {get: direction},
