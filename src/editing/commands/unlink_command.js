@@ -5,6 +5,57 @@
 'use strict';
 
 editing.defineCommand('Unlink', (function() {
+  /**
+   * @constructor
+   * @final
+   * @param {!EditingSelection} selection
+   */
+  function SelectionTrackerForUnlink(selection) {
+    this.anchorNode_ = selection.anchorNode_;
+    this.anchorOffset_ = selection.anchorOffset_;
+    this.focusNode_ = selection.focusNode_;
+    this.focusOffset_ = selection.focusOffset_;
+    this.selection_ = selection;
+    Object.seal(this);
+  }
+
+  Object.defineProperties(SelectionTrackerForUnlink.prototype, (function() {
+    /**
+     * @this {!SelectionTrackerForUnlink}
+     */
+    function finish() {
+      this.selection_.context.setEndingSelection(new editing.ReadOnlySelection(
+         this.anchorNode_, this.anchorOffset_,
+         this.focusNode_, this.focusOffset_,
+         this.selection_.direction));
+    }
+
+    /**
+     * @this {!SelectionTrackerForUnlink}
+     * @param {!EditingSelection} anchorElement
+     */
+    function relocateIfNeeded(anchorElement) {
+      if (this.anchorNode_ === anchorElement) {
+        this.anchorNode_ = this.anchorNode_.parentNode;
+        this.anchorOffset_ += anchorElement.nodeIndex;
+      }
+
+      if (this.focusNode_ === anchorElement) {
+        this.focusNode_ = this.focusNode_.parentNode;
+        this.focusOffset_ += anchorElement.nodeIndex;
+      }
+    };
+
+    return {
+      anchorNode_: {writable: true},
+      anchorOffset_: {writable: true},
+      finish: {value: finish},
+      focusNode_: {writable: true},
+      focusOffset_: {writable: true},
+      relocateIfNeeded: {value: relocateIfNeeded},
+    };
+  })());
+
  /**
   * @param {!EditingNode} parentNode
   * @param {?EditingNode} stopNode
@@ -57,21 +108,16 @@ editing.defineCommand('Unlink', (function() {
       return true;
     }
 
-    if (selection.isCaret)
+    var nodes = selection.nodes;
+    if (selection.isCaret || !nodes.length)
       return unlinkForCaret(context);
 
     // We'll remove nested anchor elements event if nested anchor elements
     // aren't valid HTML5.
     var anchorElements = [];
     var anchorElement = null;
-    var anchorNode = selection.anchorNode;
-    var anchorOffset = selection.anchorOffset;
-    var focusNode = selection.focusNode;
-    var focusOffset = selection.focusOffset;
-
-    // TODO(yosin) We should not split text nodes at boundary points if
-    // they aren't inside A element.
-    selection.nodes.forEach(function(node) {
+    var selectionTracker = new SelectionTrackerForUnlink(selection);
+    nodes.forEach(function(node) {
       while (anchorElement) {
         if (node.isDescendantOf(anchorElement)) {
           if (anchorElement != node.parentNode)
@@ -96,16 +142,7 @@ editing.defineCommand('Unlink', (function() {
         return;
       }
 
-      // Relocate anchor/focus points
-      if (anchorNode === anchorElement) {
-        anchorNode = anchorNode.parentNode;
-        anchorOffset += anchorElement.nodeIndex;
-      }
-
-      if (focusNode === anchorElement) {
-        focusNode = focusNode.parentNode;
-        focusOffset += anchorElement.nodeIndex;
-      }
+      selectionTracker.relocateIfNeeded(anchorElement);
 
       anchorElements.push(anchorElement);
       if (anchorElement == node)
@@ -120,9 +157,7 @@ editing.defineCommand('Unlink', (function() {
       anchorElement.parentNode.removeChild(anchorElement);
     }
 
-    context.setEndingSelection(new editing.ReadOnlySelection(
-       anchorNode, anchorOffset, focusNode, focusOffset,
-       selection.direction));
+    selectionTracker.finish();
     return true;
   }
 
