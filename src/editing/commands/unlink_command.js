@@ -80,7 +80,7 @@ editing.defineCommand('Unlink', (function() {
     while (anchorElement && anchorElement.nodeName != 'A') {
       anchorElement = anchorElement.parentNode;
     }
-    if (!anchorElement || !anchorElement.isEditable) {
+    if (!anchorElement || !editing.nodes.isEditable(anchorElement)) {
       context.setEndingSelection(context.startingSelection);
       return true;
     }
@@ -138,7 +138,7 @@ editing.defineCommand('Unlink', (function() {
       while (anchorElement && anchorElement.nodeName != 'A') {
         anchorElement = anchorElement.parentNode;
       }
-      if (!anchorElement || !anchorElement.isEditable) {
+      if (!anchorElement || !editing.nodes.isEditable(anchorElement)) {
         anchorElement = null;
         return;
       }

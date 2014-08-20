@@ -121,14 +121,14 @@ testCase('EditingNode.hasCode', function() {
 testCase('EditingNode.isEditable', function() {
   var context = testing.createContext();
   var elementA = testing.createElement(context, 'a');
-  expectFalse(function () { return elementA.isEditable; });
+  expectFalse(function () { return editing.nodes.isEditable(elementA); });
 
   var elementB = testing.createElement(context, 'b');
   context.appendChild(elementA, elementB);
   elementA.setAttribute('contentEditable', 'true');
   expectTrue(function () { return elementA.isContentEditable; });
-  expectFalse(function () { return elementA.isEditable; });
-  expectTrue(function () { return elementB.isEditable; });
+  expectFalse(function () { return editing.nodes.isEditable(elementA); });
+  expectTrue(function () { return editing.nodes.isEditable(elementB); });
 });
 
 //

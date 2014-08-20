@@ -101,7 +101,7 @@ console.log('removeFormatCommand splitLast new=' + newRoot);
     }
 
     nodes.forEach(function(node) {
-      if (!editing.ndoes.isElement(node) || !node.isEditable) {
+      if (!editing.nodes.isElement(node) || !editing.nodes.isEditable(node)) {
         // TODO(yosin) Insert SPAN with "style" attribute to remove styles
         // if needed, e.g. <span class="bold">foo</span> =>
         // <span class="bold" style="font-weight:normal">foo</span>

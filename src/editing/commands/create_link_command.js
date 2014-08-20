@@ -273,7 +273,7 @@ editing.defineCommand('CreateLink', (function() {
         moveLastContainerToContents();
       }
 
-      if (!currentNode.isEditable || !currentNode.isPhrasing) {
+      if (!editing.nodes.isEditable(currentNode) || !currentNode.isPhrasing) {
         processPendingContents();
         return;
       }

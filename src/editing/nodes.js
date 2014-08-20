@@ -66,12 +66,25 @@ editing.define('nodes', (function() {
    * Returns true if |other| is an ancestor of |node|, otherwise false.
    */
   function isDescendantOf(node, other) {
+    console.assert(node instanceof editing.EditingNode);
     console.assert(other instanceof editing.EditingNode);
     for (var runner = node.parentNode; runner; runner = runner.parentNode) {
       if (runner == other)
         return true;
     }
     return false;
+  }
+
+  /**
+   * @param {!EditingNode} node
+   * @return {boolean}
+   */
+  function isEditable(node) {
+    console.assert(node instanceof editing.EditingNode);
+    var container = node.parentNode;
+    if (!container)
+      return false;
+    return container.isContentEditable
   }
 
   /**
@@ -169,6 +182,7 @@ editing.define('nodes', (function() {
     commonAncestor: {value: commonAncestor},
     inDocument: {value: inDocument},
     isDescendantOf: {value: isDescendantOf},
+    isEditable: {value: isEditable},
     isElement: {value: isElement},
     isVisibleNode: {value: isVisibleNode},
     isWhitespaceNode: {value: isWhitespaceNode},

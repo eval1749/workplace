@@ -355,7 +355,7 @@ editing.define('EditingSelection', (function() {
     var firstNode = nodesInRange[0];
     for (var ancestor = firstNode.parentNode; ancestor;
          ancestor = ancestor.parentNode) {
-      if (!ancestor.isEditable)
+      if (!editing.nodes.isEditable(ancestor))
         break;
       if (ancestor.firstChild !== firstNode)
         break;

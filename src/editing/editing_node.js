@@ -247,17 +247,6 @@ editing.define('EditingNode', (function() {
    * @this {!EditingNode}
    * @return {boolean}
    */
-  function isEditable() {
-    var container = this.parentNode;
-    if (!container)
-      return false;
-    return container.isContentEditable
-  }
-
-  /**
-   * @this {!EditingNode}
-   * @return {boolean}
-   */
   function isInteractive() {
     var model = editing.contentModel[this.domNode_.nodeName];
     return model !== undefined && Boolean(model.categories[INTERACTIVE]);
@@ -416,7 +405,6 @@ editing.define('EditingNode', (function() {
     hashCode: {get: function() { return this.hashCode_; }},
     hashCode_: {writable: true},
     isContentEditable: {get: isContentEditable},
-    isEditable: {get: isEditable},
     isInteractive: {get: isInteractive},
     isPhrasing: {get: isPhrasing},
     isText: {get: isText},
