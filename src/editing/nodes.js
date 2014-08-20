@@ -6,6 +6,48 @@
 
 editing.define('nodes', (function() {
   /**
+   * @param {!EditingNode} node1
+   * @param {!EditingNode} node2
+   * @return {?EditingNode}
+   */
+  function commonAncestor(node1, node2) {
+    console.assert(node1.ownerDocument === node2.ownerDocument);
+    if (node1 === node2)
+      return node1;
+    var depth1 = 0;
+    for (var node = node1; node; node = node.parentNode) {
+      if (node == node2)
+        return node;
+      ++depth1;
+    }
+    var depth2 = 0;
+    for (var node = node2; node; node = node.parentNode) {
+      if (node == node1)
+        return node;
+      ++depth2;
+    }
+    var runner1 = node1;
+    var runner2 = node2;
+    if (depth1 > depth2) {
+      for (var depth  = depth1; depth > depth2; --depth) {
+        runner1 = runner1.parentNode;
+      }
+    } else if (depth2 > depth1) {
+      for (var depth  = depth2; depth > depth1; --depth) {
+        runner2 = runner2.parentNode;
+      }
+    }
+    while (runner1) {
+      if (runner1 == runner2)
+        return runner1;
+       runner1 = runner1.parentNode;
+       runner2 = runner2.parentNode;
+    }
+    console.assert(!runner2);
+    return null;
+  }
+
+  /**
    * @param {!EditingNode} node
    * @param {!EditingNode} other
    * Returns true if |other| is an ancestor of |node|, otherwise false.
@@ -103,6 +145,7 @@ editing.define('nodes', (function() {
   }
 
   return Object.defineProperties({}, {
+    commonAncestor: {value: commonAncestor},
     isDescendantOf: {value: isDescendantOf},
     isVisibleNode: {value: isVisibleNode},
     isWhitespaceNode: {value: isWhitespaceNode},
