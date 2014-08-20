@@ -18,7 +18,7 @@ editing.define('EditingContext', (function() {
   function internalAppendChild(parentNode, newChild) {
     console.assert(parentNode instanceof editing.EditingNode);
     console.assert(newChild instanceof editing.EditingNode);
-    if (!parentNode.isElement &&
+    if (!editing.nodes.isElement(parentNode) &&
          parentNode.domNode.nodeType != Node.DOCUMENT_NODE) {
         throw 'parentNode must be an Element: ' + parentNode.domNode_;
     }
@@ -41,7 +41,7 @@ editing.define('EditingContext', (function() {
    * @param {!EditingNode} refChild
    */
   function internalInsertBefore(parentNode, newChild, refChild) {
-    console.assert(parentNode.isElement);
+    console.assert(editing.nodes.isElement(parentNode));
     if (!refChild) {
       internalAppendChild(parentNode, newChild);
       return;
@@ -70,7 +70,7 @@ editing.define('EditingContext', (function() {
    */
   function internalRemoveChild(oldChild) {
     var parentNode = oldChild.parentNode_;
-    console.assert(parentNode.isElement);
+    console.assert(editing.nodes.isElement(parentNode));
     console.assert(parentNode === oldChild.parentNode_);
     var nextSibling = oldChild.nextSibling_;
     var previousSibling = oldChild.previousSibling_;

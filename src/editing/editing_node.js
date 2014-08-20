@@ -126,7 +126,7 @@ editing.define('EditingNode', (function() {
   function internalAppendChild(parentNode, newChild) {
     console.assert(parentNode instanceof editing.EditingNode);
     console.assert(newChild instanceof editing.EditingNode);
-    if (!parentNode.isElement &&
+    if (!editing.nodes.isElement(parentNode) &&
          parentNode.domNode.nodeType != Node.DOCUMENT_NODE) {
         throw 'parentNode must be an Element: ' + parentNode.domNode_;
     }
@@ -149,7 +149,7 @@ editing.define('EditingNode', (function() {
    * @param {!EditingNode} refChild
    */
   function internalInsertBefore(parentNode, newChild, refChild) {
-    console.assert(parentNode.isElement);
+    console.assert(editing.nodes.isElement(parentNode));
     if (!refChild) {
       internalAppendChild(parentNode, newChild);
       return;
@@ -178,7 +178,7 @@ editing.define('EditingNode', (function() {
    */
   function internalRemoveChild(oldChild) {
     var parentNode = oldChild.parentNode_;
-    console.assert(parentNode.isElement);
+    console.assert(editing.nodes.isElement(parentNode));
     console.assert(parentNode === oldChild.parentNode_);
     var nextSibling = oldChild.nextSibling_;
     var previousSibling = oldChild.previousSibling_;
@@ -258,14 +258,6 @@ editing.define('EditingNode', (function() {
    * @this {!EditingNode}
    * @return {boolean}
    */
-  function isElement() {
-    return this.domNode_.nodeType === Node.ELEMENT_NODE;
-  }
-
-  /**
-   * @this {!EditingNode}
-   * @return {boolean}
-   */
   function isInteractive() {
     var model = editing.contentModel[this.domNode_.nodeName];
     return model !== undefined && Boolean(model.categories[INTERACTIVE]);
@@ -276,7 +268,7 @@ editing.define('EditingNode', (function() {
    * @return {boolean}
    */
   function isPhrasing() {
-    if (!this.isElement)
+    if (!editing.nodes.isElement(this))
       return true;
     var model = editing.contentModel[this.domNode_.nodeName];
     return model !== undefined && Boolean(model.categories[PHRASING]);
@@ -383,7 +375,7 @@ editing.define('EditingNode', (function() {
    * @param {string} value
    */
   function setAttribute(attrName, attrValue) {
-    console.assert(this.isElement);
+    console.assert(editing.nodes.isElement(this));
     attrName = attrName.toLowerCase();
     this.context_.setAttribute(this, attrName, attrValue);
     var attributeNode = findAttributeNode(this, attrName);
@@ -424,7 +416,6 @@ editing.define('EditingNode', (function() {
     hashCode: {get: function() { return this.hashCode_; }},
     hashCode_: {writable: true},
     isContentEditable: {get: isContentEditable},
-    isElement: {get: isElement},
     isEditable: {get: isEditable},
     isInteractive: {get: isInteractive},
     isPhrasing: {get: isPhrasing},
@@ -436,6 +427,7 @@ editing.define('EditingNode', (function() {
     nextSibling_: {writable: true},
     nodeIndex: {get: nodeIndex }, // for debugging
     nodeName: {get: nodeName},
+    nodeType: {get: function() { return this.domNode_.nodeType; }},
     nodeValue: {get: nodeValue},
     parentNode: {get: function() { return this.parentNode_; }},
     parentNode_: {writable: true},

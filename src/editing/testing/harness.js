@@ -74,7 +74,7 @@ testing.define('serialzieNode', (function() {
     }
 
     function visit(node) {
-      if (!node.isElement) {
+      if (!editing.nodes.isElement(node)) {
         // To support |Document| node, we iterate over child nodes.
         var sink = '';
         for (var child = node.firstChild; child; child = child.nextSibling) {

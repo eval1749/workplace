@@ -48,7 +48,7 @@ editing.define('SelectionTracker', (function() {
    * @param {!StartOrEnd} startOrEnd
    */
   function TrackablePosition(node, offset, startOrEnd) {
-    console.assert(node.isElement, 'node=' + node);
+    console.assert(editing.nodes.isElement(node), 'node=' + node);
     if (!node.hasChildNodes()) {
       this.type_ = TrackingType.BEFORE_ALL_CHILDREN;
       this.node_ = node;

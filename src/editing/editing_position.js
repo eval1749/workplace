@@ -15,7 +15,7 @@ editing.define('EditingPosition', (function() {
     console.assert(containerNode instanceof editing.EditingNode);
     console.assert(offsetInContainer >= 0);
     if (containerNode.firstChild) {
-      console.assert(containerNode.isElement);
+      console.assert(editing.nodes.isElement(containerNode));
       console.assert(offsetInContainer <= containerNode.childNodes.length);
     } else {
       console.assert(offsetInContainer <=

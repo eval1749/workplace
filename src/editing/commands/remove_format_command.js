@@ -14,7 +14,7 @@ editing.defineCommand('removeFormat', (function() {
         'VAR']);
 
   function shouldRemove(node) {
-    return node && node.isElement && node.parentNode &&
+    return node && editing.ndoes.isElement(node) && node.parentNode &&
            node.parentNode.isContentEditable &&
            TAG_NAMES_TO_REMOVE.has(node.nodeName);
   }
@@ -101,7 +101,7 @@ console.log('removeFormatCommand splitLast new=' + newRoot);
     }
 
     nodes.forEach(function(node) {
-      if (!node.isElement || !node.isEditable) {
+      if (!editing.ndoes.isElement(node) || !node.isEditable) {
         // TODO(yosin) Insert SPAN with "style" attribute to remove styles
         // if needed, e.g. <span class="bold">foo</span> =>
         // <span class="bold" style="font-weight:normal">foo</span>

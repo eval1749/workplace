@@ -78,6 +78,14 @@ editing.define('nodes', (function() {
    * @param {!EditingNode} node
    * @return {boolean}
    */
+  function isElement(node) {
+    return node.nodeType == Node.ELEMENT_NODE;
+  }
+
+  /**
+   * @param {!EditingNode} node
+   * @return {boolean}
+   */
   function isVisibleNode(node) {
     console.assert(node instanceof editing.EditingNode);
     if (isWhitespaceNode(node))
@@ -161,6 +169,7 @@ editing.define('nodes', (function() {
     commonAncestor: {value: commonAncestor},
     inDocument: {value: inDocument},
     isDescendantOf: {value: isDescendantOf},
+    isElement: {value: isElement},
     isVisibleNode: {value: isVisibleNode},
     isWhitespaceNode: {value: isWhitespaceNode},
     lastWithIn: {value: lastWithIn},
