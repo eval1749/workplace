@@ -58,6 +58,7 @@ editing.define('Editor', (function() {
    * @return {!EditingNode}
    */
   function splitTree(treeNode, refNode) {
+    var context = treeNode.context;
     /**
      * @param {!EditingNode} parent
      * @param {!EditingNode} child
@@ -72,7 +73,7 @@ editing.define('Editor', (function() {
       while (sibling) {
         console.assert(sibling.parentNode === parent);
         var nextSibling = sibling.nextSibling;
-        newParent.appendChild(sibling);
+        context.appendChild(newParent, sibling);
         sibling = nextSibling;
       }
       return newParent;

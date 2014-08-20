@@ -162,7 +162,7 @@ editing.define('EditingSelection', (function() {
     var domChild = domNode.firstChild;
     while (domChild) {
       var child = createEditingTree(treeContext, domChild);
-      node.appendChild(child);
+      treeContext.context.appendChild(node, child);
       domChild = domChild.nextSibling;
     }
     return node;

@@ -8,7 +8,7 @@ testCase('EditingNode.appendChild', function() {
   var context = testing.createContext();
   var element1 = testing.createElement(context, 'e1');
   var element2 = testing.createElement(context, 'e2');
-  element1.appendChild(element2);
+  context.appendChild(element1, element2);
 
   expectEq(element2, function() { return element1.firstChild; });
   expectEq(element2, function() { return element1.lastChild; });
@@ -39,7 +39,7 @@ testCase('EditingNode.hasChildNodes', function() {
   var context = testing.createContext();
   var element1 = testing.createElement(context, 'e1');
   var element2 = testing.createElement(context, 'e2');
-  element1.appendChild(element2);
+  context.appendChild(element1, element2);
   expectTrue(function() { return element1.hasChildNodes(); });
   expectFalse(function() { return element2.hasChildNodes(); });
 });
@@ -67,7 +67,7 @@ testCase('EditingNode.insertBeforeToFirst', function() {
   var element1 = testing.createElement(context, 'e1');
   var element2 = testing.createElement(context, 'e2');
   var element3 = testing.createElement(context, 'e3');
-  element1.appendChild(element3);
+  context.appendChild(element1, element3);
   element1.insertBefore(element2, element3);
 
   expectEq(element2, function() { return element1.firstChild; });
@@ -88,8 +88,8 @@ testCase('EditingNode.insertBeforeToSecond', function() {
   var element2 = testing.createElement(context, 'e2');
   var element3 = testing.createElement(context, 'e3');
   var element4 = testing.createElement(context, 'e4');
-  element1.appendChild(element2);
-  element1.appendChild(element3);
+  context.appendChild(element1, element2);
+  context.appendChild(element1, element3);
   element1.insertBefore(element4, element3);
 
   expectEq(element2, function() { return element1.firstChild; });
@@ -124,7 +124,7 @@ testCase('EditingNode.isEditable', function() {
   expectFalse(function () { return elementA.isEditable; });
 
   var elementB = testing.createElement(context, 'b');
-  elementA.appendChild(elementB);
+  context.appendChild(elementA, elementB);
   elementA.setAttribute('contentEditable', 'true');
   expectTrue(function () { return elementA.isContentEditable; });
   expectFalse(function () { return elementA.isEditable; });
@@ -166,9 +166,9 @@ testCase('EditingNode.removeChildFirstChild', function() {
   var element2 = testing.createElement(context, 'e2');
   var element3 = testing.createElement(context, 'e3');
   var element4 = testing.createElement(context, 'e4');
-  element1.appendChild(element2);
-  element1.appendChild(element3);
-  element1.appendChild(element4);
+  context.appendChild(element1, element2);
+  context.appendChild(element1, element3);
+  context.appendChild(element1, element4);
 
   element1.removeChild(element2);
 
@@ -190,9 +190,9 @@ testCase('EditingNode.removeChildSecondChild', function() {
   var element2 = testing.createElement(context, 'e2');
   var element3 = testing.createElement(context, 'e3');
   var element4 = testing.createElement(context, 'e4');
-  element1.appendChild(element2);
-  element1.appendChild(element3);
-  element1.appendChild(element4);
+  context.appendChild(element1, element2);
+  context.appendChild(element1, element3);
+  context.appendChild(element1, element4);
 
   element1.removeChild(element3);
 
@@ -214,9 +214,9 @@ testCase('EditingNode.removeChildLastChild', function() {
   var element2 = testing.createElement(context, 'e2');
   var element3 = testing.createElement(context, 'e3');
   var element4 = testing.createElement(context, 'e4');
-  element1.appendChild(element2);
-  element1.appendChild(element3);
-  element1.appendChild(element4);
+  context.appendChild(element1, element2);
+  context.appendChild(element1, element3);
+  context.appendChild(element1, element4);
   element1.removeChild(element4);
 
   expectEq(element2, function() { return element1.firstChild; });
@@ -239,7 +239,7 @@ testCase('EditingNode.replaceChildFirstChildByNew', function() {
   var element1 = testing.createElement(context, 'e1');
   var element2 = testing.createElement(context, 'e2');
   var element3 = testing.createElement(context, 'e3');
-  element1.appendChild(element2);
+  context.appendChild(element1, element2);
   element1.replaceChild(element3, element2);
 
   expectEq(element3, function() { return element1.firstChild; });
@@ -260,8 +260,8 @@ testCase('EditingNode.replaceChildLastChildByNew', function() {
   var element2 = testing.createElement(context, 'e2');
   var element3 = testing.createElement(context, 'e3');
   var element4 = testing.createElement(context, 'e4');
-  element1.appendChild(element2);
-  element1.appendChild(element3);
+  context.appendChild(element1, element2);
+  context.appendChild(element1, element3);
   element1.replaceChild(element4, element3);
 
   expectEq(element2, function() { return element1.firstChild; });
@@ -287,9 +287,9 @@ testCase('EditingNode.replaceChildMiddleChildByNew', function() {
   var element3 = testing.createElement(context, 'e3');
   var element4 = testing.createElement(context, 'e4');
   var element5 = testing.createElement(context, 'e5');
-  element1.appendChild(element2);
-  element1.appendChild(element3);
-  element1.appendChild(element4);
+  context.appendChild(element1, element2);
+  context.appendChild(element1, element3);
+  context.appendChild(element1, element4);
   element1.replaceChild(element5, element3);
 
   expectEq(element2, function() { return element1.firstChild; });
@@ -313,8 +313,8 @@ testCase('EditingNode.replaceChildByChild', function() {
   var element1 = testing.createElement(context, 'e1');
   var element2 = testing.createElement(context, 'e2');
   var element3 = testing.createElement(context, 'e3');
-  element1.appendChild(element2);
-  element1.appendChild(element3);
+  context.appendChild(element1, element2);
+  context.appendChild(element1, element3);
   element1.replaceChild(element2, element3);
 
   expectEq(element2, function() { return element1.firstChild; });

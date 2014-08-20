@@ -47,15 +47,6 @@ editing.define('EditingNode', (function() {
 
   /**
    * @this {!EditingNode}
-   * @param {!EditingNode} newChild
-   */
-  function appendChild(newChild) {
-    this.context_.recordAppendChild(this, newChild);
-    internalAppendChild(this, newChild);
-  }
-
-  /**
-   * @this {!EditingNode}
    * @return {!Array.<!EditingNode?}
    */
   function childNodes() {
@@ -199,7 +190,7 @@ editing.define('EditingNode', (function() {
       this.insertBefore(newChild, nextSibling);
       return;
     }
-    this.appendChild(newChild);
+    this.context.appendChild(this, newChild);
   }
 
   /**
@@ -209,7 +200,7 @@ editing.define('EditingNode', (function() {
    */
   function insertBefore(newChild, refChild) {
     if (!refChild) {
-      this.appendChild(newChild);
+      this.context.appendChild(this, newChild);
       return;
     }
     console.assert(newChild instanceof editing.EditingNode);
@@ -548,7 +539,6 @@ editing.define('EditingNode', (function() {
   }
 
   Object.defineProperties(EditingNode.prototype, {
-    appendChild: {value: appendChild},
     attributes: {get: function() { return this.attributes_; }},
     attributes_: {writable: true},
     constructor: {value: EditingNode},

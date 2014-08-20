@@ -21,7 +21,7 @@ editing.defineCommand('CreateLink', (function() {
 
     var anchorElement = context.createElement('a');
     anchorElement.setAttribute('href', url);
-    anchorElement.appendChild(context.createTextNode(url));
+    context.appendChild(anchorElement, context.createTextNode(url));
 
     /** @const @type {!editing.EditingSelection} */
     var selection = context.selection;
@@ -72,7 +72,7 @@ editing.defineCommand('CreateLink', (function() {
           if (currentValue.isInteractive)
             return previousValue;
           var newNode = currentValue.cloneNode(false);
-          newNode.appendChild(previousValue);
+          context.appendChild(newNode, previousValue);
           return newNode;
        }, anchorElement);
 
@@ -141,7 +141,7 @@ editing.defineCommand('CreateLink', (function() {
       var anchorElement = context.createElement('a');
       anchorElement.setAttribute('href', url);
       anchorPhraseNode.parentNode.replaceChild(anchorElement, anchorPhraseNode);
-      anchorElement.appendChild(anchorPhraseNode);
+      context.appendChild(anchorElement, anchorPhraseNode);
       return anchorElement;
     }
 
@@ -167,7 +167,7 @@ editing.defineCommand('CreateLink', (function() {
         if (canMerge(previousSibling)) {
           // See w3c.27
           anchorElement = previousSibling;
-          anchorElement.appendChild(node);
+          context.appendChild(anchorElement, node);
           return;
         }
         anchorElement = insertNewAnchorElement(node);
@@ -178,7 +178,7 @@ editing.defineCommand('CreateLink', (function() {
         return;
       }
       if (node.parentNode == anchorElement.parentNode) {
-        anchorElement.appendChild(node);
+        context.appendChild(anchorElement, node);
         return;
       }
       endAnchorElement();
