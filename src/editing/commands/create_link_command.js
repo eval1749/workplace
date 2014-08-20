@@ -160,6 +160,7 @@ editing.defineCommand('CreateLink', (function() {
         if (canMerge(nextSibling)) {
           // See w3c.26, w3c.30
           anchorElement = nextSibling;
+          context.insertBefore(anchorElement, node, anchorElement.firstChild);
           return;
         }
         var previousSibling = node.previousSibling;
