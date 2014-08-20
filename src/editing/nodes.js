@@ -49,6 +49,19 @@ editing.define('nodes', (function() {
 
   /**
    * @param {!EditingNode} node
+   * @return {boolean}
+   */
+  function inDocument(node) {
+    // TODO(yosin) We should have real version of |inDocument|.
+    for (var runner = node; runner; runner = runner.parentNode) {
+      if (!runner.parentNode)
+        return runner.isContentEditable;
+    }
+    return false;
+  }
+
+  /**
+   * @param {!EditingNode} node
    * @param {!EditingNode} other
    * Returns true if |other| is an ancestor of |node|, otherwise false.
    */
@@ -146,6 +159,7 @@ editing.define('nodes', (function() {
 
   return Object.defineProperties({}, {
     commonAncestor: {value: commonAncestor},
+    inDocument: {value: inDocument},
     isDescendantOf: {value: isDescendantOf},
     isVisibleNode: {value: isVisibleNode},
     isWhitespaceNode: {value: isWhitespaceNode},

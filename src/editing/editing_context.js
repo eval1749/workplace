@@ -377,15 +377,15 @@ editing.define('EditingContext', (function() {
       throw new Error('Can not set null anchor node to ending ');
     if (!focusNode)
       throw new Error('Can not set null focus node to ending ');
-    if (!anchorNode.inDocument) {
+    if (!editing.nodes.inDocument(anchorNode)) {
       throw new Error('Can not set anchor node not in document ' +
-                      anchorNode);
+                      anchorNode + ' parent=' + anchorNode.parentNode);
     }
     if (anchorOffset < 0 || anchorOffset > anchorNode.maxOffset) {
       throw new Error('Invalid anchor offset ' + anchorOffset +
                       ' on ' + anchorNode + ' max=' + anchorNode.maxOffset);
     }
-    if (!focusNode.inDocument) {
+    if (!editing.nodes.inDocument(focusNode)) {
       throw new Error('Can not set focus node not in document ' +
                       focusNode);
     }
