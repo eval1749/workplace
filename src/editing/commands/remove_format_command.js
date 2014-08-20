@@ -14,7 +14,7 @@ editing.defineCommand('removeFormat', (function() {
         'VAR']);
 
   function shouldRemove(node) {
-    return node && editing.ndoes.isElement(node) && node.parentNode &&
+    return node && editing.nodes.isElement(node) && node.parentNode &&
            node.parentNode.isContentEditable &&
            TAG_NAMES_TO_REMOVE.has(node.nodeName);
   }
@@ -121,7 +121,7 @@ console.log('removeFormatCommand', 'removeTag ' + node, node.parentNode.isConten
           focusNode = parent;
           focusOffset += node.nodeIndex;
         }
-        editor.insertChildrenBefore(node, node);
+        context.insertChildrenBefore(node, node);
         parent.removeChild(node);
         return;
       }

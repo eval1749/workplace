@@ -17,21 +17,6 @@ editing.define('Editor', (function() {
 
   /**
    * @this {!Editor}
-   * @param {!EditingNode} oldParent
-   * @param {!EditingNode} refNode
-   */
-  function insertChildrenBefore(oldParent, refNode) {
-    var newParent = refNode.parentNode;
-    var child = oldParent.firstChild;
-    while (child) {
-      var nextSibling = child.nextSibling;
-      newParent.insertBefore(child, refNode);
-      child = nextSibling;
-    }
-  }
-
-  /**
-   * @this {!Editor}
    * @param {?Object} domSelection Once |Selection| keeps passed node and
    *    offset, we don't need to use |selection| parameter.
    * @return {!EditingContext}
@@ -55,7 +40,6 @@ editing.define('Editor', (function() {
   Object.defineProperties(Editor.prototype, {
     document: {get: function() { return this.document_; }},
     document_: {writable: true},
-    insertChildrenBefore: {value: insertChildrenBefore},
     newContext: {value: newContext},
     setStyle: {value: setStyle},
   });

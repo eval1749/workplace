@@ -304,6 +304,21 @@ editing.define('EditingContext', (function() {
 
   /**
    * @this {!EditingContext}
+   * @param {!EditingNode} oldParent
+   * @param {!EditingNode} refNode
+   */
+  function insertChildrenBefore(oldParent, refNode) {
+    var newParent = refNode.parentNode;
+    var child = oldParent.firstChild;
+    while (child) {
+      var nextSibling = child.nextSibling;
+      this.insertBefore(newParent, child, refNode);
+      child = nextSibling;
+    }
+  }
+
+  /**
+   * @this {!EditingContext}
    * @return {number}
    */
   function nextHashCode() {
@@ -484,6 +499,7 @@ editing.define('EditingContext', (function() {
     hashCode_: {writable: true},
     insertAfter: {value: insertAfter},
     insertBefore: {value: insertBefore},
+    insertChildrenBefore: {value: insertChildrenBefore},
     instructions_: {writable: true},
     nextHashCode: {value: nextHashCode },
     recordAppendChild: {value: recordAppendChild},
