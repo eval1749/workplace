@@ -9,14 +9,14 @@ editing.defineCommand('Unlink', (function() {
   * @param {!EditingNode} parentNode
   * @param {?EditingNode} stopNode
   */
- function moveChildNodesBeforeParentNode(parentNode, stopNode) {
-    var child = parentNode.firstChild;
-    while (child) {
-      var nextSibling = child.nextSibling;
-      parentNode.parentNode.insertBefore(child, parentNode);
-      child = nextSibling;
-    }
- }
+  function moveChildNodesBeforeParentNode(parentNode, stopNode) {
+     var child = parentNode.firstChild;
+     while (child) {
+       var nextSibling = child.nextSibling;
+       parentNode.parentNode.insertBefore(child, parentNode);
+       child = nextSibling;
+     }
+  }
 
   /**
    * @param {!EditingContext} context
