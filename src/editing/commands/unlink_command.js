@@ -89,7 +89,7 @@ editing.defineCommand('Unlink', (function() {
     var containerNode = nodeAtCaret ? nodeAtCaret.parentNode :
                                       selection.focusNode.parentNode;
     var offset = nodeAtCaret ? editing.nodes.nodeIndex(nodeAtCaret) : selection.focusOffset;
-    anchorElement.parentNode.removeChild(anchorElement);
+    context.removeChild(anchorElement.parentNode, anchorElement);
     context.setEndingSelection(new editing.ReadOnlySelection(
         containerNode, offset, containerNode, offset,
         editing.SelectionDirection.ANCHOR_IS_START));
@@ -126,7 +126,7 @@ editing.defineCommand('Unlink', (function() {
           context.insertBefore(anchorElement.parentNode, node, anchorElement);
           return;
         }
-        anchorElement.parentNode.removeChild(anchorElement);
+        context.removeChild(anchorElement.parentNode, anchorElement);
         anchorElements.pop();
         if (anchorElements.length)
           anchorElement = anchorElements[anchorElements.length - 1];
@@ -155,7 +155,7 @@ editing.defineCommand('Unlink', (function() {
     while (anchorElements.length) {
       var anchorElement = anchorElements.pop();
       moveChildNodesBeforeParentNode(anchorElement, null);
-      anchorElement.parentNode.removeChild(anchorElement);
+      context.removeChild(anchorElement.parentNode, anchorElement);
     }
 
     selectionTracker.finish();

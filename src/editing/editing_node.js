@@ -250,18 +250,6 @@ editing.define('EditingNode', (function() {
 
   /**
    * @this {!EditingNode}
-   * @param {!EditingNode} oldChild
-   */
-  function removeChild(oldChild) {
-    console.assert(oldChild instanceof editing.EditingNode);
-    if (oldChild.parentNode_ !== this)
-      throw new Error('Bad parent');
-    this.context_.removeChild(this, oldChild);
-    internalRemoveChild(oldChild);
-  }
-
-  /**
-   * @this {!EditingNode}
    * @param {!EditingNode} newChild
    * @param {!EditingNode} oldChild
    */
@@ -334,7 +322,6 @@ editing.define('EditingNode', (function() {
     parentNode_: {writable: true},
     previousSibling: {get: function() { return this.previousSibling_; }},
     previousSibling_: {writable: true},
-    removeChild: {value: removeChild},
     replaceChild: {value: replaceChild},
     setAttribute: {value: setAttribute},
     styleMap: {get: function() { return this.styleMap_; }},

@@ -296,7 +296,7 @@ editing.defineCommand('CreateLink', (function() {
             child = next;
           }
           selectionTracker.willRemoveNode(currentNode);
-          currentNode.parentNode.removeChild(currentNode);
+          context.removeChild(currentNode.parentNode, currentNode);
           return;
         }
         processPendingContents();

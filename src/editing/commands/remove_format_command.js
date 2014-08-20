@@ -126,7 +126,7 @@ console.log('removeFormatCommand',
           focusOffset += editing.nodes.nodeIndex(node);
         }
         context.insertChildrenBefore(node, node);
-        parent.removeChild(node);
+        context.removeChild(parent, node);
         return;
       }
 

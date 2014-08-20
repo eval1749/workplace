@@ -353,6 +353,11 @@ editing.define('EditingContext', (function() {
    */
   function removeChild(parentNode, oldChild) {
     ASSERT_DOM_TREE_IS_MUTABLE(this);
+    console.assert(oldChild instanceof editing.EditingNode);
+    if (oldChild.parentNode_ !== parentNode)
+      throw new Error('A parent of oldChild ' + oldChild + ' must be ' +
+                      parentNode);
+    internalRemoveChild(oldChild);
     this.instructions_.push({operation: 'removeChild', parentNode: parentNode,
                              oldChild: oldChild});
   }

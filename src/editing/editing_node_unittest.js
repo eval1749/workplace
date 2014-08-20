@@ -170,7 +170,7 @@ testCase('EditingNode.removeChildFirstChild', function() {
   context.appendChild(element1, element3);
   context.appendChild(element1, element4);
 
-  element1.removeChild(element2);
+  context.removeChild(element1, element2);
 
   expectEq(element3, function() { return element1.firstChild; });
   expectEq(element4, function() { return element1.lastChild; });
@@ -194,7 +194,7 @@ testCase('EditingNode.removeChildSecondChild', function() {
   context.appendChild(element1, element3);
   context.appendChild(element1, element4);
 
-  element1.removeChild(element3);
+  context.removeChild(element1, element3);
 
   expectEq(element2, function() { return element1.firstChild; });
   expectEq(element4, function() { return element1.lastChild; });
@@ -217,7 +217,7 @@ testCase('EditingNode.removeChildLastChild', function() {
   context.appendChild(element1, element2);
   context.appendChild(element1, element3);
   context.appendChild(element1, element4);
-  element1.removeChild(element4);
+  context.removeChild(element1, element4);
 
   expectEq(element2, function() { return element1.firstChild; });
   expectEq(element3, function() { return element1.lastChild; });
