@@ -111,7 +111,6 @@ editing.defineCommand('CreateLink', (function() {
       while (lastChild = anchorElement.lastChild) {
         if (editing.nodes.isVisibleNode(lastChild))
           break;
-        console.log('wrapByAnchor remove trailing whitespaces');
         anchorElement.parentNode.insertAfter(lastChild, anchorElement);
       }
     }
@@ -133,7 +132,6 @@ editing.defineCommand('CreateLink', (function() {
     }
 
     function insertNewAnchorElement(anchorPhraseNode) {
-console.log('insertNewAnchorElement phrase=' + anchorPhraseNode);
       if (editing.nodes.isWhitespaceNode(anchorPhraseNode))
         return null;
       var anchorElement = context.createElement('a');
@@ -149,8 +147,6 @@ console.log('insertNewAnchorElement phrase=' + anchorPhraseNode);
 
     var anchorElement = null;
     function wrapByAnchor(node) {
-      console.log('wrapByAnchor anchor=' + anchorElement, 'node=' + node,
-                  anchorElement && (anchorElement.parentNode == node.parentNode));
       if (!anchorElement) {
         if (!editing.nodes.isVisibleNode(node)) {
           // We don't have leading whitespaces in anchor element.
@@ -160,8 +156,6 @@ console.log('insertNewAnchorElement phrase=' + anchorPhraseNode);
         if (canMerge(nextSibling)) {
           // See w3c.26, w3c.30
           anchorElement = nextSibling;
-console.log('wrapByAnchor merge to next ' + node + ' firstChild=' + anchorElement.firstChild);
-          anchorElement.insertBefore(node, anchorElement.firstChild);
           return;
         }
         var previousSibling = node.previousSibling;
@@ -195,16 +189,13 @@ console.log('wrapByAnchor merge to next ' + node + ' firstChild=' + anchorElemen
 
     var selection = context.selection;
     var effectiveNodes = getEffectiveNodes(context);
-    if (!effectiveNodes.length) {
-      console.log('createLinkForRange no nodes.');
+    if (!effectiveNodes.length)
       return createLinkBeforeCaret(context, url);
-    }
 
     var pendingContainers = [];
     var pendingContents = [];
 
     function moveLastContainerToContents() {
-console.log('moveLastContainerToContents');
       // All descendant of |lastPendingContainer| can be contents of anchor.
       var lastContainer = pendingContainers.pop();
       while (pendingContents.length &&
@@ -220,7 +211,6 @@ console.log('moveLastContainerToContents');
 
     // Wrap pending contents which are sibling of |stopNode|
     function processPendingContents() {
-console.log('processPendingContents');
       pendingContents.forEach(wrapByAnchor);
       endAnchorElement();
       pendingContainers = [];
@@ -256,7 +246,6 @@ console.log('processPendingContents');
       } else {
         // Move |startNode| out of anchor element.
         if (startNode.nextSibling) {
-console.log('createLinkForRange split start', 'nextSibling=' + startNode.nextSibling);
           var newAnchorElement = context.splitNode(outerAnchorElement,
                                                    startNode.nextSibling);
           context.insertAfter(newAnchorElement, outerAnchorElement);
@@ -266,13 +255,6 @@ console.log('createLinkForRange split start', 'nextSibling=' + startNode.nextSib
     }
 
     effectiveNodes.forEach(function(currentNode) {
-console.log('createLinkForRange node=' + currentNode,
-            'isPhrasing', currentNode.isPhrasing,
-            'anchorElement=' + anchorElement,
-            'interactive', isInteractive(currentNode),
-            'pendingContainer.last=' + lastOf(pendingContainers),
-            'current.prev=' + currentNode.previousSibling);
-
       if (currentNode == anchorElement)
         return;
 

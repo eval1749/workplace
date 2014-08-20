@@ -71,8 +71,6 @@ editing.define('EditingSelection', (function() {
     if (!endNode)
       endNode = nextNodeSkippingChildren(endContainer.lastChild);
 
-console.log('collectNodesInSelection', 'start=' + startNode, 'end=' + endNode);
-
     // Both, |startNode| and |endNode| are nullable, e.g. <a><b>abcd|</b></a>
     if (!startNode)
       return [];
