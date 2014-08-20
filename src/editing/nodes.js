@@ -212,6 +212,21 @@ editing.define('nodes', (function() {
     return nextAncestorOrSibling(current);
   }
 
+  /**
+   * @param {!EditingNode} node
+   * @return {number}
+   */
+  function nodeIndex(node) {
+    var index = 0;
+    var parentNode = node.parentNode;
+    for (var child = parentNode.firstChild; child; child = child.nextSibling) {
+      if (child === node)
+        return index;
+      ++index;
+    }
+    throw new Error('NOTREACEHD');
+  }
+
   function previousNode(current) {
     var previous = current.previousSibling;
     if (!previous)
@@ -249,6 +264,7 @@ editing.define('nodes', (function() {
     maxOffset: {value: maxOffset},
     nextNode: {value: nextNode},
     nextNodeSkippingChildren: {value: nextNodeSkippingChildren},
+    nodeIndex: {value: nodeIndex},
     previousNode: {value: previousNode},
     previousNodeSkippingChildren: {value: previousNodeSkippingChildren},
   });

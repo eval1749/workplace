@@ -73,13 +73,16 @@ editing.define('SelectionTracker', (function() {
     var node = this.node_;
     switch (this.type_) {
       case TrackingType.AFTER_NODE:
-        return new NodeAndOffset(node.parentNode, node.nodeIndex + 1);
+        return new NodeAndOffset(node.parentNode,
+                                 editing.nodes.nodeIndex(node) + 1);
       case TrackingType.AFTER_ALL_CHILDREN:
-        return new NodeAndOffset(node.parentNode, editing.nodes.maxOffset(node));
+        return new NodeAndOffset(node.parentNode,
+                                 editing.nodes.maxOffset(node));
       case TrackingType.BEFORE_ALL_CHILDREN:
         return new NodeAndOffset(node, 0);
       case TrackingType.NODE:
-        return new NodeAndOffset(node.parentNode, node.nodeIndex);
+        return new NodeAndOffset(node.parentNode,
+                                 editing.nodes.nodeIndex(node));
       default:
         throw new Error('Bad TrackablePosition.type ' + this.type_);
     }

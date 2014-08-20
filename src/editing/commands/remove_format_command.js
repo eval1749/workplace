@@ -58,12 +58,12 @@ console.log('\n\nremoveFormatCommand first=' + firstNode + ' last=' + lastNode +
         var shouldUpdateAnchor = false;
         if (anchorNode === firstNode.parentNode) {
           shouldUpdateAnchor = true;
-          anchorOffset -= firstNode.nodeIndex;
+          anchorOffset -= editing.nodes.nodeIndex(firstNode);
         }
         var shouldUpdateFocus = false;
         if (focusNode === firstNode.parentNode) {
           shouldUpdateFocus = true;
-          focusOffset -= firstNode.nodeIndex;
+          focusOffset -= editing.nodes.nodeIndex(firstNode);
         }
         var root = ancestors[ancestors.length - 1];
         var newRoot = context.splitTree(root, firstNode);
@@ -119,11 +119,11 @@ console.log('removeFormatCommand',
           return;
         if (node === anchorNode) {
           anchorNode = parent;
-          anchorOffset += node.nodeIndex;
+          anchorOffset += editing.nodes.nodeIndex(node);
         }
         if (node === focusNode) {
           focusNode = parent;
-          focusOffset += node.nodeIndex;
+          focusOffset += editing.nodes.nodeIndex(node);
         }
         context.insertChildrenBefore(node, node);
         parent.removeChild(node);

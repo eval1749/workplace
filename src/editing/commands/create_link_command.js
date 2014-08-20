@@ -47,7 +47,7 @@ editing.defineCommand('CreateLink', (function() {
     if (!interactive) {
       // Insert anchor element before caret.
       context.insertBefore(containerNode, anchorElement, caretNode);
-      var offset = anchorElement.nodeIndex;
+      var offset = editing.nodes.nodeIndex(anchorElement);
       context.setEndingSelection(new editing.ReadOnlySelection(
           containerNode, offset, containerNode, offset + 1,
           editing.SelectionDirection.ANCHOR_IS_START));
@@ -86,7 +86,7 @@ editing.defineCommand('CreateLink', (function() {
       context.insertBefore(editable, anchorTree, interactive);
     }
 
-    var offset = anchorElement.nodeIndex;
+    var offset = editing.nodes.nodeIndex(anchorElement);
     context.setEndingSelection(new editing.ReadOnlySelection(
         anchorElement.parentNode, offset,
         anchorElement.parentNode, offset + 1,

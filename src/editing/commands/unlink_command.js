@@ -37,12 +37,12 @@ editing.defineCommand('Unlink', (function() {
     function relocateIfNeeded(anchorElement) {
       if (this.anchorNode_ === anchorElement) {
         this.anchorNode_ = this.anchorNode_.parentNode;
-        this.anchorOffset_ += anchorElement.nodeIndex;
+        this.anchorOffset_ += editing.nodes.nodeIndex(anchorElement);
       }
 
       if (this.focusNode_ === anchorElement) {
         this.focusNode_ = this.focusNode_.parentNode;
-        this.focusOffset_ += anchorElement.nodeIndex;
+        this.focusOffset_ += editing.nodes.nodeIndex(anchorElement);
       }
     };
 
@@ -88,7 +88,7 @@ editing.defineCommand('Unlink', (function() {
     moveChildNodesBeforeParentNode(anchorElement, null);
     var containerNode = nodeAtCaret ? nodeAtCaret.parentNode :
                                       selection.focusNode.parentNode;
-    var offset = nodeAtCaret ? nodeAtCaret.nodeIndex : selection.focusOffset;
+    var offset = nodeAtCaret ? editing.nodes.nodeIndex(nodeAtCaret) : selection.focusOffset;
     anchorElement.parentNode.removeChild(anchorElement);
     context.setEndingSelection(new editing.ReadOnlySelection(
         containerNode, offset, containerNode, offset,

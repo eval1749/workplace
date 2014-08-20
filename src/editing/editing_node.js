@@ -227,21 +227,6 @@ editing.define('EditingNode', (function() {
 
   /**
    * @this {!EditingNode}
-   * @return {number}
-   */
-  function nodeIndex(){
-    var index = 0;
-    var parentNode = this.parentNode;
-    for (var child = parentNode.firstChild; child; child = child.nextSibling) {
-      if (child === this)
-        return index;
-      ++index;
-    }
-    throw 'NOTREACEHD';
-  }
-
-  /**
-   * @this {!EditingNode}
    * @return {string}
    */
   function nodeName() {
@@ -354,7 +339,6 @@ editing.define('EditingNode', (function() {
     lastChild_: {writable: true},
     nextSibling: {get: function() { return this.nextSibling_; }},
     nextSibling_: {writable: true},
-    nodeIndex: {get: nodeIndex }, // for debugging
     nodeName: {get: nodeName},
     nodeType: {get: function() { return this.domNode_.nodeType; }},
     nodeValue: {get: nodeValue},
