@@ -199,6 +199,12 @@ Object.defineProperties(TestRunner.prototype, (function() {
       var testCaseClass = 'pass';
       var overrideResult = testing.TEST_EXPECTATIONS[testCase.name] ||
           {expected: 'pass'};
+      if (overrideResult.reason) {
+        overrideResult.className = 'override';
+        overrideResult.message = overrideResult.reason;
+        delete overrideResult['reason'];
+        this.results_.push(overrideResult);
+      }
       this.results_.forEach(function(result) {
         var className = result.className;
         if (className == overrideResult.expected) {
