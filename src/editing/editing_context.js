@@ -434,7 +434,7 @@ editing.define('EditingContext', (function() {
     for (var runner = refNode.parentNode; runner !== treeNode;
          runner = runner.parentNode) {
       var newNode = this.splitNode(runner, lastNode);
-      runner.parentNode.insertAfter(newNode, runner);
+      this.insertAfter(runner.parentNode, newNode, runner);
       lastNode = newNode;
     }
     var newNode = this.splitNode(treeNode, lastNode);

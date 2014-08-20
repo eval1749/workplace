@@ -175,27 +175,6 @@ editing.define('EditingNode', (function() {
   /**
    * @this {!EditingNode}
    * @param {!EditingNode} newChild
-   * @param {!EditingNode} refChild
-   */
-  function insertAfter(newChild, refChild) {
-    console.assert(newChild instanceof editing.EditingNode);
-    console.assert(refChild instanceof editing.EditingNode);
-    if (newChild === refChild)
-      throw new Error('newChild and refChild must be different');
-    if (refChild.parentNode !== this)
-      throw new Error('refChild ' + refChild + ' must be a child of ' + this);
-
-    var nextSibling = refChild.nextSibling;
-    if (nextSibling) {
-      this.context.insertBefore(this, newChild, nextSibling);
-      return;
-    }
-    this.context.appendChild(this, newChild);
-  }
-
-  /**
-   * @this {!EditingNode}
-   * @param {!EditingNode} newChild
    */
   function internalAppendChild(parentNode, newChild) {
     console.assert(parentNode instanceof editing.EditingNode);
@@ -535,7 +514,6 @@ editing.define('EditingNode', (function() {
     hashCode: {get: function() { return this.hashCode_; }},
     hashCode_: {writable: true},
     inDocument: {value: inDocument },
-    insertAfter: {value: insertAfter},
     isContentEditable: {get: isContentEditable},
     isDescendantOf: {value: isDescendantOf},
     isElement: {get: isElement},

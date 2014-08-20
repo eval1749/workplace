@@ -77,11 +77,11 @@ editing.defineCommand('CreateLink', (function() {
        }, anchorElement);
 
     if (!caretNode) {
-      editable.insertAfter(anchorTree, interactive);
+      context.insertAfter(editable, anchorTree, interactive);
     } else if (selection.focusOffset) {
       var followingTree = context.splitTree(interactive, caretNode);
-      editable.insertAfter(anchorTree, interactive);
-      editable.insertAfter(followingTree, anchorTree);
+      context.insertAfter(editable, anchorTree, interactive);
+      context.insertAfter(editable, followingTree, anchorTree);
     } else {
       context.insertBefore(editable, anchorTree, interactive);
     }
@@ -115,7 +115,7 @@ editing.defineCommand('CreateLink', (function() {
       while (lastChild = anchorElement.lastChild) {
         if (editing.nodes.isVisibleNode(lastChild))
           break;
-        anchorElement.parentNode.insertAfter(lastChild, anchorElement);
+        context.insertAfter(anchorElement.parentNode, lastChild, anchorElement);
       }
     }
 

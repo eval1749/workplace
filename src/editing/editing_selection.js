@@ -215,7 +215,7 @@ editing.define('EditingSelection', (function() {
 
     if (domSelection.collapsed()) {
       if (isNeedSplit(anchorNode, anchorOffset)) {
-        anchorNode = splitTextAndInsert(anchorNode, anchorOffset);
+        anchorNode = splitTextAndInsert(context, anchorNode, anchorOffset);
         anchorOffset = 0;
         focusNode = anchorNode;
         focusOffset = 0;
@@ -230,22 +230,22 @@ editing.define('EditingSelection', (function() {
 
       if (anchorNode === focusNode && splitAnchorNode && splitFocusNode) {
         if (selection.anchorIsStart_) {
-          anchorNode = splitTextAndInsert(anchorNode, anchorOffset);
+          anchorNode = splitTextAndInsert(context, anchorNode, anchorOffset);
           focusNode = anchorNode;
           focusOffset -= anchorOffset;
           anchorOffset = 0;
-          splitTextAndInsert(focusNode, focusOffset);
+          splitTextAndInsert(context, focusNode, focusOffset);
         } else {
-          focusNode = splitTextAndInsert(focusNode, focusOffset);
+          focusNode = splitTextAndInsert(context, focusNode, focusOffset);
           anchorNode = focusNode;
           anchorOffset -= focusOffset;
           focusOffset = 0;
-          splitTextAndInsert(anchorNode, anchorOffset);
+          splitTextAndInsert(context, anchorNode, anchorOffset);
         }
 
       } else {
         if (splitAnchorNode) {
-          var newNode = splitTextAndInsert(anchorNode, anchorOffset);
+          var newNode = splitTextAndInsert(context, anchorNode, anchorOffset);
           if (selection.anchorIsStart_) {
             anchorNode = newNode;
             anchorOffset = 0;
@@ -255,7 +255,7 @@ editing.define('EditingSelection', (function() {
         }
 
         if (splitFocusNode) {
-          var newNode = splitTextAndInsert(focusNode, focusOffset);
+          var newNode = splitTextAndInsert(context, focusNode, focusOffset);
           if (!selection.anchorIsStart_) {
             focusNode = newNode;
             focusOffset = 0;
@@ -300,6 +300,7 @@ editing.define('EditingSelection', (function() {
   }
 
   /**
+   * @param {!EditingContext} context
    * @param {!editing.EditingNode} node
    * @param {number} offset
    * @return {!editing.EditingNode}
@@ -307,14 +308,14 @@ editing.define('EditingSelection', (function() {
    * TODO(yosin) We should remove |splitText| and |insertAfter| instructions
    * if we don't change anchor and focus of selection.
    */
-  function splitTextAndInsert(node, offset) {
+  function splitTextAndInsert(context, node, offset) {
     console.assert(node.parentNode);
     if (!offset || offset >= node.nodeValue.length) {
       throw new Error('Offset ' + offset + ' must be grater than zero and ' +
                       'less than ' + node.nodeValue.length + ' for ' + node);
     }
     var newNode = node.splitText(offset);
-    node.parentNode.insertAfter(newNode, node);
+    context.insertAfter(node.parentNode, newNode, node);
     console.assert(node.nextSibling === newNode);
     console.assert(newNode.previousSibling === node);
     return newNode;

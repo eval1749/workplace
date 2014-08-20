@@ -77,7 +77,7 @@ console.log('removeFormatCommand',
             'anchor=' + anchorNode + ' ' + anchorOffset,
             'focus=' + focusNode + ' ' + focusOffset);
 console.log('removeFormatCommand first newRoot=' + newRoot);
-        root.parentNode.insertAfter(newRoot, root);
+        context.insertAfter(root.parentNode, newRoot, root);
       } else {
         while (ancestors.length) {
           nodes.unshift(ancestors[0]);
@@ -96,7 +96,7 @@ console.log('removeFormatCommand last root=' + root);
       if (root) {
         var newRoot = context.splitTree(root, lastNode.nextSibling);
 console.log('removeFormatCommand splitLast new=' + newRoot);
-        root.parentNode.insertAfter(newRoot, root);
+        context.insertAfter(root.parentNode, newRoot, root);
       }
     }
 
