@@ -6,6 +6,7 @@
 
 editing.define('nodes', (function() {
   /* @const */ var INTERACTIVE = editing.CONTENT_CATEGORY.INTERACTIVE;
+  /* @const */ var PHRASING = editing.CONTENT_CATEGORY.PHRASING;
 
   /**
    * @param {!EditingNode} node1
@@ -125,6 +126,17 @@ editing.define('nodes', (function() {
    * @param {!EditingNode} node
    * @return {boolean}
    */
+  function isPhrasing(node) {
+    if (!editing.nodes.isElement(node))
+      return true;
+    var model = editing.contentModel[node.domNode_.nodeName];
+    return model !== undefined && Boolean(model.categories[PHRASING]);
+  }
+
+  /**
+   * @param {!EditingNode} node
+   * @return {boolean}
+   */
   function isVisibleNode(node) {
     console.assert(node instanceof editing.EditingNode);
     if (isWhitespaceNode(node))
@@ -212,6 +224,7 @@ editing.define('nodes', (function() {
     isEditable: {value: isEditable},
     isElement: {value: isElement},
     isInteractive: {value: isInteractive},
+    isPhrasing: {value: isPhrasing},
     isVisibleNode: {value: isVisibleNode},
     isWhitespaceNode: {value: isWhitespaceNode},
     lastWithIn: {value: lastWithIn},

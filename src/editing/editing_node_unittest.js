@@ -151,10 +151,10 @@ testCase('EditingNode.isPhrasing', function() {
   var elementB = testing.createElement(context, 'b');
   var elementDiv = testing.createElement(context, 'div');
   var elementH1 = testing.createElement(context, 'h1');
-  expectTrue(function () { return elementA.isPhrasing; });
-  expectTrue(function () { return elementB.isPhrasing; });
-  expectFalse(function () { return elementDiv.isPhrasing; });
-  expectFalse(function () { return elementH1.isPhrasing; });
+  expectTrue(function () { return editing.nodes.isPhrasing(elementA); });
+  expectTrue(function () { return editing.nodes.isPhrasing(elementB); });
+  expectFalse(function () { return editing.nodes.isPhrasing(elementDiv); });
+  expectFalse(function () { return editing.nodes.isPhrasing(elementH1); });
 });
 
 //

@@ -5,8 +5,6 @@
 'use strict';
 
 editing.define('EditingNode', (function() {
-  /* @const */ var PHRASING = editing.CONTENT_CATEGORY.PHRASING;
-
   /**
    * @param {!EditingContext} context
    * @param {!Node} node
@@ -231,17 +229,6 @@ editing.define('EditingNode', (function() {
    * @this {!EditingNode}
    * @return {boolean}
    */
-  function isPhrasing() {
-    if (!editing.nodes.isElement(this))
-      return true;
-    var model = editing.contentModel[this.domNode_.nodeName];
-    return model !== undefined && Boolean(model.categories[PHRASING]);
-  }
-
-  /**
-   * @this {!EditingNode}
-   * @return {boolean}
-   */
   function isText() {
     return this.domNode_ instanceof CharacterData;
   }
@@ -379,7 +366,6 @@ editing.define('EditingNode', (function() {
     hasChildNodes: {value: hasChildNodes },
     hashCode: {get: function() { return this.hashCode_; }},
     hashCode_: {writable: true},
-    isPhrasing: {get: isPhrasing},
     isText: {get: isText},
     lastChild: {get: function() { return this.lastChild_; }},
     lastChild_: {writable: true},
