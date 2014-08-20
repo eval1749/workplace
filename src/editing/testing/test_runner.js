@@ -265,7 +265,7 @@ Object.defineProperties(TestRunner.prototype, (function() {
       if (!testCases.length)
         return;
       var h3 = document.createElement('h3');
-      h3.textContent = sectionName;
+      h3.textContent = sectionName + ' (' + testCases.length + ')';
       resultElement.appendChild(h3);
       var p = document.createElement('p');
       resultElement.appendChild(p);
