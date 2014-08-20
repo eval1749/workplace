@@ -314,7 +314,7 @@ editing.define('EditingSelection', (function() {
       throw new Error('Offset ' + offset + ' must be grater than zero and ' +
                       'less than ' + node.nodeValue.length + ' for ' + node);
     }
-    var newNode = node.splitText(offset);
+    var newNode = context.splitText(node, offset);
     context.insertAfter(node.parentNode, newNode, node);
     console.assert(node.nextSibling === newNode);
     console.assert(newNode.previousSibling === node);

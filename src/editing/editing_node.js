@@ -465,28 +465,6 @@ editing.define('EditingNode', (function() {
 
   /**
    * @this {!EditingNode}
-   * @param {!EditingNode} textNode
-   * @param {number} offset
-   * @return {!EditingNode}
-   */
-  function splitText(offset) {
-    if (!this.isText)
-      throw new Error('Expect Text node');
-    var nodeValue = this.domNode_.nodeValue;
-    if (offset <= 0)
-      throw new Error('offset(' + offset + ') must be greater than zero.');
-    if (offset >= nodeValue.length)
-      throw new Error('offset(' + offset + ') must be less than length.');
-    var newNode = new editing.EditingNode(this.context_, this.domNode_);
-    newNode.textStartOffset_ = this.textStartOffset_ + offset;
-    newNode.textEndOffset_ = this.textEndOffset_;
-    this.textEndOffset_ = newNode.textStartOffset_;
-    this.context_.splitText(this, offset, newNode);
-    return newNode;
-  }
-
-  /**
-   * @this {!EditingNode}
    * @return {string}
    */
   function toString() {
@@ -537,7 +515,6 @@ editing.define('EditingNode', (function() {
     removeChild: {value: removeChild},
     replaceChild: {value: replaceChild},
     setAttribute: {value: setAttribute},
-    splitText: {value: splitText},
     styleMap: {get: function() { return this.styleMap_; }},
     styleMap_: {writable: true},
     textEndOffset: {get: function() { return this.textEndOffset_; }},

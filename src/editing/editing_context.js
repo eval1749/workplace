@@ -120,6 +120,29 @@ editing.define('EditingContext', (function() {
     newChild.previousSibling_ = previousSibling;
   }
 
+
+  /**
+   * @this {!EditingNode}
+   * @param {!EditingNode} textNode
+   * @param {number} offset
+   * @return {!EditingNode}
+   */
+  function internalSplitText(textNode, offset) {
+    if (!textNode.isText)
+      throw new Error('Expect Text node');
+    var nodeValue = textNode.domNode_.nodeValue;
+    if (offset <= 0)
+      throw new Error('offset(' + offset + ') must be greater than zero.');
+    if (offset >= nodeValue.length)
+      throw new Error('offset(' + offset + ') must be less than length.');
+    var newNode = new editing.EditingNode(textNode.context_, textNode.domNode_);
+    newNode.textStartOffset_ = textNode.textStartOffset_ + offset;
+    newNode.textEndOffset_ = textNode.textEndOffset_;
+    textNode.textEndOffset_ = newNode.textStartOffset_;
+    textNode.context_.splitText(textNode, offset, newNode);
+    return newNode;
+  }
+
   /**
    * @param {!EditingContext}
    * @param {!EditingNode} parentNode
@@ -418,6 +441,7 @@ editing.define('EditingContext', (function() {
     console.assert(textNode.isText);
     console.assert(newNode instanceof editing.EditingNode);
     console.assert(newNode.isText);
+    internalSplitText(textNode, offset);
     this.instructions_.push({operation: 'splitText', node: textNode,
                              offset: offset, newNode: newNode});
   }
