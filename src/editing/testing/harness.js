@@ -54,10 +54,10 @@ testing.define('serialzieNode', (function() {
    */
   function serialzieNode(node, opt_options) {
     console.assert(node instanceof editing.EditingNode);
-    /** @const */ var option = arguments.length >= 2 ?
+    /** @const */ var options = arguments.length >= 2 ?
         /** @type {Object} */(opt_options) : {};
-    /** @const */ var selection = option.selection || null;
-    /** @const */ var visibleTextNode = Boolean(option.visibleTextNode);
+    /** @const */ var selection = options.selection || null;
+    /** @const */ var visibleTextNode = Boolean(options.visibleTextNode);
 
     function marker(node, offset) {
       if (!selection)

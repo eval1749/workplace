@@ -148,14 +148,14 @@ function testCaseFor(commandName, testCaseId, data) {
     var actualResult2 = testing.serialzieNode(
         context.selection.rootForTesting, {
         selection: context.endingSelection,
-        visbleTestNode: true
+        visibleTextNode: true
     });
 
     var sampleContext = context.sampleContext_;
     var sampleReturnValue = sampleContext.execCommand(
         commandName, Boolean(data.userInferface), data.value || '');
     if (actualReturnValue != sampleReturnValue) {
-      testRunner.record('incompatible', {
+      testRunner.record('incompatible_return', {
           actual: sampleReturnValue,
           expected: actualReturnValue
       });
@@ -167,7 +167,7 @@ function testCaseFor(commandName, testCaseId, data) {
       return;
     }
     if (stripMarker(sampleResult) == stripMarker(actualResult2)) {
-      testRunner.record('selection', {
+      testRunner.record('incompatible_selection', {
         format: 'html',
         before: pretty(data.before),
         actual: pretty(sampleResult),
@@ -175,7 +175,7 @@ function testCaseFor(commandName, testCaseId, data) {
       });
       return;
     }
-    testRunner.record('incompatible', {
+    testRunner.record('incompatible_html', {
         format: 'html',
         before: pretty(data.before),
         actual: pretty(sampleResult),

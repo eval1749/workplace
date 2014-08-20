@@ -10,15 +10,21 @@
 body {
   font-family: Tahoma;
 }
+h3 {
+  margin-top: 10pt;
+  margin-bottom: 0px;
+}
+p { margin: 0px; }
 li { white-space: nowrap; }
-
 ul.fail {
     border: solid 2px red;
     background-color: #e51c23;
     color: white;
 }
-ul.incompatible { background-color: #ffca28; }
-ul.selection { background-color: #80deea; }
+span.incompatible_html { background-color: #ffca28; }
+span.incompatible_selection { background-color: #80deea; }
+ul.incompatible_html { background-color: #ffca28; }
+ul.incompatible_selection { background-color: #80deea; }
 
 .actual { font-family: monospace; }
 .before{ font-family: monospace; }
@@ -51,11 +57,12 @@ ul.selection { background-color: #80deea; }
 <script>
 onerror = function(event) {
   console.log('onerror', event);
-  document.write('Loading error. See console, Ctrl+Shift+J, for details.');
+  var message ='Loading error. See console, Ctrl+Shift+J, for details.';
+  document.body.insertBefore(document.createTextNode(message),
+                             document.body.firstChild);
 };
 
 onload = function() {
-  onerror = null;
   testRunner.runAllTests();
 };
 </script>
@@ -94,5 +101,6 @@ DEPRECATED
 <body>
 <h1>Editing in JavaScript Test Runner</h1>
 <h2>Results</h2>
-<div id="result"></div>
+<div id="results"></div>
+<h2>Details</h2>
 </body>
