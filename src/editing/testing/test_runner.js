@@ -163,9 +163,18 @@ Object.defineProperties(TestRunner.prototype, (function() {
       return CLASS_ORDERS[className] || 9999;
     }
 
+    var testCasesByClass = {};
+    function classifyTestCase(testCase, className) {
+      var testCases = testCasesByClass[className];
+      if (!testCases) {
+        testCases = [];
+        testCasesByClass[className] = testCases;
+      }
+      testCases.push(testCase);
+    }
+
     var runTests = [];
     var startAt = new Date();
-    var testCasesByClass = {};
     this.useTryCatch_ = true;
     this.testCaseList_.forEach(function(testCase) {
       runTests.push(testCase);
@@ -187,16 +196,16 @@ Object.defineProperties(TestRunner.prototype, (function() {
 
       // Parse test results
       var testCaseClass = 'pass';
+      var overrideResult = testing.TEST_EXPECTATIONS[testCase.name] ||
+          {expected: 'pass'};
       this.results_.forEach(function(result) {
         var className = result.className;
-
-        // Collect test case by result class.
-        var testCases = testCasesByClass[className];
-        if (!testCases) {
-          testCases = [];
-          testCasesByClass[className] = testCases;
+        if (className == overrideResult.expected) {
+          if (overrideResult.expected != 'pass')
+            classifyTestCase(testCase, 'override');
+          className = 'pass';
         }
-        testCases.push(testCase);
+        classifyTestCase(testCase, className);
 
         // Total result class
         if (orderOfClass(testCaseClass) > orderOfClass(className))
