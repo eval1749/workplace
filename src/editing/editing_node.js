@@ -250,25 +250,6 @@ editing.define('EditingNode', (function() {
 
   /**
    * @this {!EditingNode}
-   * @param {string} name
-   * @param {string} value
-   */
-  function setAttribute(attrName, attrValue) {
-    console.assert(editing.nodes.isElement(this));
-    attrName = attrName.toLowerCase();
-    this.context_.setAttribute(this, attrName, attrValue);
-    var attributeNode = findAttributeNode(this, attrName);
-    if (attributeNode) {
-      attributeNode.value = attrValue;
-      return;
-    }
-    var newAttributeNode = this.context_.document.createAttribute(attrName);
-    newAttributeNode.value = attrValue;
-    this.attributes_.push(newAttributeNode);
-  }
-
-  /**
-   * @this {!EditingNode}
    * @return {string}
    */
   function toString() {
@@ -305,7 +286,6 @@ editing.define('EditingNode', (function() {
     parentNode_: {writable: true},
     previousSibling: {get: function() { return this.previousSibling_; }},
     previousSibling_: {writable: true},
-    setAttribute: {value: setAttribute},
     styleMap: {get: function() { return this.styleMap_; }},
     styleMap_: {writable: true},
     textEndOffset: {get: function() { return this.textEndOffset_; }},

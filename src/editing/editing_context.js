@@ -390,9 +390,30 @@ editing.define('EditingContext', (function() {
    * @param {string} attrValue
    */
   function setAttribute(element, attrName, attrValue) {
+      /**
+       * @param {!EditingNode} node
+       * @param {string} attrName;
+       * @return {*}
+       */
+      function findAttributeNode(node, attrName) {
+        attrName = attrName.toLowerCase();
+        return node.attributes_.find(function(attributeNode) {
+          return attributeNode.name == attrName;
+        });
+      }
     ASSERT_DOM_TREE_IS_MUTABLE(this);
+    console.assert(editing.nodes.isElement(element));
+    attrName = attrName.toLowerCase();
     this.instructions_.push({operation: 'setAttribute', element: element,
-                            attrName: attrName, attrValue: attrValue});
+                             attrName: attrName, attrValue: attrValue});
+    var attributeNode = findAttributeNode(element, attrName);
+    if (attributeNode) {
+      attributeNode.value = attrValue;
+      return;
+    }
+    var newAttributeNode = this.document.createAttribute(attrName);
+    newAttributeNode.value = attrValue;
+    element.attributes_.push(newAttributeNode);
   }
 
   /**

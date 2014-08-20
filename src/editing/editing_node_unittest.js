@@ -25,8 +25,8 @@ testCase('EditingNode.appendChild', function() {
 testCase('EditingNode.hasAttribute', function() {
   var context = testing.createContext();
   var element1 = testing.createElement(context, 'e1');
-  element1.setAttribute('a1', 'one');
-  element1.setAttribute('a2', 'one');
+  context.setAttribute(element1, 'a1', 'one');
+  context.setAttribute(element1, 'a2', 'one');
   expectTrue(function() { return element1.hasAttribute('a1'); });
   expectTrue(function() { return element1.hasAttribute('A1'); });
   expectFalse(function() { return element1.hasAttribute('notexist'); });
@@ -125,7 +125,7 @@ testCase('EditingNode.isEditable', function() {
 
   var elementB = testing.createElement(context, 'b');
   context.appendChild(elementA, elementB);
-  elementA.setAttribute('contentEditable', 'true');
+  context.setAttribute(elementA, 'contentEditable', 'true');
   expectTrue(function () { return editing.nodes.isContentEditable(elementA); });
   expectFalse(function () { return editing.nodes.isEditable(elementA); });
   expectTrue(function () { return editing.nodes.isEditable(elementB); });
@@ -335,11 +335,11 @@ testCase('EditingNode.replaceChildByChild', function() {
 testCase('EditingNode.setAttribute', function() {
   var context = testing.createContext();
   var element1 = testing.createElement(context, 'e1');
-  element1.setAttribute('a1', 'one');
-  element1.setAttribute('a2', 'two');
+  context.setAttribute(element1, 'a1', 'one');
+  context.setAttribute(element1, 'a2', 'two');
   expectEq('one', function() { return element1.getAttribute('a1'); });
   expectEq('two', function() { return element1.getAttribute('a2'); });
-  element1.setAttribute('a1', 'abc');
+  context.setAttribute(element1, 'a1', 'abc');
   expectEq('abc', function() { return element1.getAttribute('a1'); });
   expectEq(2, function() { return element1.attributes.length; });
 });

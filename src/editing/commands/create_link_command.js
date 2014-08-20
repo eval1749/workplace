@@ -20,7 +20,7 @@ editing.defineCommand('CreateLink', (function() {
     var editor = context.editor;
 
     var anchorElement = context.createElement('a');
-    anchorElement.setAttribute('href', url);
+    context.setAttribute(anchorElement, 'href', url);
     context.appendChild(anchorElement, context.createTextNode(url));
 
     /** @const @type {!editing.EditingSelection} */
@@ -139,7 +139,7 @@ editing.defineCommand('CreateLink', (function() {
       if (editing.nodes.isWhitespaceNode(anchorPhraseNode))
         return null;
       var anchorElement = context.createElement('a');
-      anchorElement.setAttribute('href', url);
+      context.setAttribute(anchorElement, 'href', url);
       context.replaceChild(anchorPhraseNode.parentNode, anchorElement,
                            anchorPhraseNode);
       context.appendChild(anchorElement, anchorPhraseNode);
@@ -246,7 +246,7 @@ editing.defineCommand('CreateLink', (function() {
       if (allNodesInAnchor) {
         // Special case for compatibility with Firefox and IE.
         // See w3c.32, w3c.33
-        outerAnchorElement.setAttribute('href', url);
+        context.setAttribute(outerAnchorElement, 'href', url);
         selectionTracker.setEndingSelection();
         return true;
       }
@@ -284,11 +284,11 @@ editing.defineCommand('CreateLink', (function() {
         if (!anchorElement) {
           processPendingContents();
           anchorElement = currentNode;
-          anchorElement.setAttribute('href', url);
+          context.setAttribute(anchorElement, 'href', url);
           return;
         }
         console.assert(anchorElement.getAttribute('href') == url);
-        currentNode.setAttribute('href', url);
+        context.setAttribute(currentNode, 'href', url);
         if (canMerge(currentNode)) {
           var child = currentNode.firstChild;
           while (child) {
