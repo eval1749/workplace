@@ -339,7 +339,11 @@ editing.define('EditingContext', (function() {
    */
   function removeAttribute(node, name) {
     ASSERT_DOM_TREE_IS_MUTABLE(this);
-    this.instructions_.push({operation: 'removeAttribute', name: name, node: node});
+    console.assert(typeof(name) == 'string',
+        'Attribute name must be string rather than ' + name);
+    delete this.attributes_[name];
+    this.instructions_.push({operation: 'removeAttribute', name: name,
+                             node: node});
   }
 
   /**

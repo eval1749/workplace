@@ -248,18 +248,6 @@ editing.define('EditingNode', (function() {
     return nodeValue.substring(this.textStartOffset_, this.textEndOffset_);
   }
 
-
-  /**
-   * @this {!EditingNode}
-   * @param {string} name
-   */
-  function removeAttribute(name) {
-    console.assert(typeof(name) == 'string',
-        'Attribute name must be string rather than ' + name);
-    delete this.attributes_[name];
-    this.context_.removeAttribute(this, name);
-  }
-
   /**
    * @this {!EditingNode}
    * @param {!EditingNode} oldChild
@@ -346,7 +334,6 @@ editing.define('EditingNode', (function() {
     parentNode_: {writable: true},
     previousSibling: {get: function() { return this.previousSibling_; }},
     previousSibling_: {writable: true},
-    removeAttribute: {value: removeAttribute},
     removeChild: {value: removeChild},
     replaceChild: {value: replaceChild},
     setAttribute: {value: setAttribute},
