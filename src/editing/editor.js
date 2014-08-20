@@ -26,22 +26,10 @@ editing.define('Editor', (function() {
     return new editing.EditingContext(this, domSelection);
   }
 
-  /**
-   * @this {!Editor}
-   * @param {!EditingNode} node
-   * @param {string} propertyName
-   * @param {string} newValue
-   */
-  function setStyle(node, propertyName, newValue) {
-    this.context_.setStyle(node, propertyName, newValue);
-    node.styleMap[propertyName] = newValue;
-  }
-
   Object.defineProperties(Editor.prototype, {
     document: {get: function() { return this.document_; }},
     document_: {writable: true},
     newContext: {value: newContext},
-    setStyle: {value: setStyle},
   });
   return Editor;
 })());

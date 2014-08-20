@@ -40,9 +40,11 @@ editing.defineCommand('removeFormat', (function() {
     var firstNode = nodes.length >= 1 ? nodes[0] : null;
     var lastNode = nodes.length >= 1 ? nodes[nodes.length - 1] : null;
 
+/*
 console.log('\n\nremoveFormatCommand first=' + firstNode + ' last=' + lastNode +
             ' anchor=' + anchorNode + ' ' + anchorOffset +
             ' focus=' + focusNode + ' ' + focusOffset);
+*/
 
     if (firstNode && firstNode.isText) {
       // Collect removal ancestors.
@@ -73,10 +75,12 @@ console.log('\n\nremoveFormatCommand first=' + firstNode + ' last=' + lastNode +
              runner = runner.parentNode) {
           nodes.unshift(runner);
         }
+/*
 console.log('removeFormatCommand',
             'anchor=' + anchorNode + ' ' + anchorOffset,
             'focus=' + focusNode + ' ' + focusOffset);
-console.log('removeFormatCommand first newRoot=' + newRoot);
+*/
+//console.log('removeFormatCommand first newRoot=' + newRoot);
         context.insertAfter(root.parentNode, newRoot, root);
       } else {
         while (ancestors.length) {
@@ -92,10 +96,10 @@ console.log('removeFormatCommand first newRoot=' + newRoot);
            runner = runner.parentNode) {
         root = runner;
       }
-console.log('removeFormatCommand last root=' + root);
+//console.log('removeFormatCommand last root=' + root);
       if (root) {
         var newRoot = context.splitTree(root, lastNode.nextSibling);
-console.log('removeFormatCommand splitLast new=' + newRoot);
+//console.log('removeFormatCommand splitLast new=' + newRoot);
         context.insertAfter(root.parentNode, newRoot, root);
       }
     }
@@ -105,11 +109,11 @@ console.log('removeFormatCommand splitLast new=' + newRoot);
         // TODO(yosin) Insert SPAN with "style" attribute to remove styles
         // if needed, e.g. <span class="bold">foo</span> =>
         // <span class="bold" style="font-weight:normal">foo</span>
-        console.log('removeFormatCommand', 'skip ' + node);
+        //console.log('removeFormatCommand', 'skip ' + node);
         return;
       }
       if (TAG_NAMES_TO_REMOVE.has(node.nodeName)) {
-console.log('removeFormatCommand', 'removeTag ' + node, node.parentNode.isContentEditable);
+//console.log('removeFormatCommand', 'removeTag ' + node, node.parentNode.isContentEditable);
         var parent = node.parentNode;
         if (!parent.isContentEditable)
           return;
@@ -126,16 +130,16 @@ console.log('removeFormatCommand', 'removeTag ' + node, node.parentNode.isConten
         return;
       }
 
-console.log('removeFormatCommand', 'removeStyle' + node);
-      editor.setStyle(node, 'backgroundColor', '');
-      editor.setStyle(node, 'color', '');
-      editor.setStyle(node, 'fontFamily', '');
-      editor.setStyle(node, 'fontSize', '');
-      editor.setStyle(node, 'fontWeight', '');
-      editor.setStyle(node, 'textDecoration', '');
+//console.log('removeFormatCommand', 'removeStyle' + node);
+      context.setStyle(node, 'backgroundColor', '');
+      context.setStyle(node, 'color', '');
+      context.setStyle(node, 'fontFamily', '');
+      context.setStyle(node, 'fontSize', '');
+      context.setStyle(node, 'fontWeight', '');
+      context.setStyle(node, 'textDecoration', '');
     });
 
-console.log('removeFormatCommand anchor=' + anchorNode + ' ' + anchorOffset + ' focusNode=' + focusNode + ' ' + focusOffset);
+//console.log('removeFormatCommand anchor=' + anchorNode + ' ' + anchorOffset + ' focusNode=' + focusNode + ' ' + focusOffset);
     context.setEndingSelection(new editing.ReadOnlySelection(
        anchorNode, anchorOffset, focusNode, focusOffset,
        selection.direction));

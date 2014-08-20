@@ -418,6 +418,7 @@ editing.define('EditingContext', (function() {
    * @param {string} newValue
    */
   function setStyle(node, propertyName, newValue) {
+    node.styleMap[propertyName] = newValue;
     this.instructions_.push({operation: 'setStyle', node: node,
                              propertyName: propertyName, newValue: newValue});
   }
