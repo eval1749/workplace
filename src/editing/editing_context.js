@@ -115,26 +115,38 @@ editing.define('EditingContext', (function() {
 
   /**
    * @this {!EditingContext}
+   * @param {!EditingNode} parent
    * @param {!EditingNode} newChild
    * @param {!EditingNode} refChild
    */
-  function insertAfter(newChild, refChild) {
+  function insertAfter(parent, newChild, refChild) {
     ASSERT_DOM_TREE_IS_MUTABLE(this);
-    if (refChild.nextSibling) {
-      refChild.parentNode.insertBefore(newChild, refChild.nextSibling);
-      return;
-    }
-    refChild.parentNode.appendChild(newChild, refChild);
+    if (!refChild)
+      throw new Error('refChild can not be null for insertAfter.');
+    if (parent !== refChild.parentNode)
+      throw new Error('Parent of refChild ' + refChild + ' must be ' + parent);
+    this.insertBefore(parent, newChild, refChild.nextSibling);
   }
 
   /**
    * @this {!EditingContext}
+   * @param {!EditingNode} parent
    * @param {!EditingNode} newChild
    * @param {!EditingNode} refChild
    */
-  function insertBefore(newChild, refChild) {
+  function insertBefore(parent, newChild, refChild) {
     ASSERT_DOM_TREE_IS_MUTABLE(this);
-    refChild.parentNode.appendChild(newChild, refChild);
+    if (!refChild) {
+      this.appendChild(parent, newChild);
+      return;
+    }
+    if (parent !== refChild.parentNode)
+      throw new Error('Parent of refChild ' + refChild + ' must be ' + parent);
+    if (!refChild) {
+      this.appendChild(parent, newChild);
+      return;
+    }
+    parent.insertBefore(newChild, refChild);
   }
 
   /**
