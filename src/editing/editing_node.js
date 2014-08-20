@@ -250,23 +250,6 @@ editing.define('EditingNode', (function() {
 
   /**
    * @this {!EditingNode}
-   * @param {!EditingNode} newChild
-   * @param {!EditingNode} oldChild
-   */
-  function replaceChild(newChild, oldChild) {
-    console.assert(newChild instanceof editing.EditingNode);
-    console.assert(oldChild instanceof editing.EditingNode);
-    if (newChild === oldChild)
-      throw new Error('newChild and oldChild must be different');
-    if (oldChild.parentNode !== this)
-      throw new Error('oldChild ' + oldChild + ' must be a child of ' + this);
-
-    this.context_.replaceChild(newChild, oldChild);
-    internalReplaceChild(this, newChild, oldChild);
-  }
-
-  /**
-   * @this {!EditingNode}
    * @param {string} name
    * @param {string} value
    */
@@ -322,7 +305,6 @@ editing.define('EditingNode', (function() {
     parentNode_: {writable: true},
     previousSibling: {get: function() { return this.previousSibling_; }},
     previousSibling_: {writable: true},
-    replaceChild: {value: replaceChild},
     setAttribute: {value: setAttribute},
     styleMap: {get: function() { return this.styleMap_; }},
     styleMap_: {writable: true},

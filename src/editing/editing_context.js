@@ -370,6 +370,15 @@ editing.define('EditingContext', (function() {
    */
   function replaceChild(parentNode, newChild, oldChild) {
     ASSERT_DOM_TREE_IS_MUTABLE(this);
+    console.assert(newChild instanceof editing.EditingNode);
+    console.assert(oldChild instanceof editing.EditingNode);
+    if (newChild === oldChild)
+      throw new Error('newChild and oldChild must be different');
+    if (oldChild.parentNode !== parentNode) {
+      throw new Error('oldChild ' + oldChild + ' must be a child of ' +
+                      parentNode);
+    }
+    internalReplaceChild(parentNode, newChild, oldChild);
     this.instructions_.push({operation: 'replaceChild', parentNode: parentNode,
                              newChild: newChild, oldChild: oldChild});
   }

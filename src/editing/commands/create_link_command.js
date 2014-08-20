@@ -140,7 +140,8 @@ editing.defineCommand('CreateLink', (function() {
         return null;
       var anchorElement = context.createElement('a');
       anchorElement.setAttribute('href', url);
-      anchorPhraseNode.parentNode.replaceChild(anchorElement, anchorPhraseNode);
+      context.replaceChild(anchorPhraseNode.parentNode, anchorElement,
+                           anchorPhraseNode);
       context.appendChild(anchorElement, anchorPhraseNode);
       return anchorElement;
     }

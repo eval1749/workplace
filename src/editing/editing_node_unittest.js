@@ -240,7 +240,7 @@ testCase('EditingNode.replaceChildFirstChildByNew', function() {
   var element2 = testing.createElement(context, 'e2');
   var element3 = testing.createElement(context, 'e3');
   context.appendChild(element1, element2);
-  element1.replaceChild(element3, element2);
+  context.replaceChild(element1, element3, element2);
 
   expectEq(element3, function() { return element1.firstChild; });
   expectEq(element3, function() { return element1.lastChild; });
@@ -262,7 +262,7 @@ testCase('EditingNode.replaceChildLastChildByNew', function() {
   var element4 = testing.createElement(context, 'e4');
   context.appendChild(element1, element2);
   context.appendChild(element1, element3);
-  element1.replaceChild(element4, element3);
+  context.replaceChild(element1, element4, element3);
 
   expectEq(element2, function() { return element1.firstChild; });
   expectEq(element4, function() { return element1.lastChild; });
@@ -290,7 +290,7 @@ testCase('EditingNode.replaceChildMiddleChildByNew', function() {
   context.appendChild(element1, element2);
   context.appendChild(element1, element3);
   context.appendChild(element1, element4);
-  element1.replaceChild(element5, element3);
+  context.replaceChild(element1, element5, element3);
 
   expectEq(element2, function() { return element1.firstChild; });
   expectEq(element4, function() { return element1.lastChild; });
@@ -315,7 +315,7 @@ testCase('EditingNode.replaceChildByChild', function() {
   var element3 = testing.createElement(context, 'e3');
   context.appendChild(element1, element2);
   context.appendChild(element1, element3);
-  element1.replaceChild(element2, element3);
+  context.replaceChild(element1, element2, element3);
 
   expectEq(element2, function() { return element1.firstChild; });
   expectEq(element2, function() { return element1.lastChild; });
