@@ -52,8 +52,8 @@ testCase('nodes.isPhrasing', function() {
 testCase('nodes.isWhitespaceNode', function() {
   var context = testing.createContext();
   var elementA = context.createElement('a');
-  var textB = testing.createTextNode(context, 'b');
-  var textC = testing.createTextNode(context, '  ');
+  var textB = context.createTextNode('b');
+  var textC = context.createTextNode('  ');
   expectFalse(function () { return editing.nodes.isWhitespaceNode(elementA); });
   expectFalse(function () { return editing.nodes.isWhitespaceNode(textB); });
   expectTrue(function () { return editing.nodes.isWhitespaceNode(textC); });

@@ -22,14 +22,6 @@ testing.define('createSample', (function() {
   return createSample;
 })());
 
-testing.define('createTextNode', (function() {
-  function createTextNode(context, text) {
-    var domNode = context.document.createTextNode(text);
-    return new editing.EditingNode(context, domNode);
-  }
-  return createTextNode;
-})());
-
 testing.define('createTree', (function() {
   function createTree(htmlText) {
     var testingDocument = document.implementation.createHTMLDocument('title');
