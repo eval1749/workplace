@@ -119,22 +119,6 @@ editing.defineCommand('CreateLink', (function() {
       }
     }
 
-    // TODO(yosin) Once we have ES6 |Map|, we should use it.
-    var isInteractiveCache = {};
-    /**
-     * @param {!EditingNode} node
-     * @return {boolean}
-     */
-    function isInteractive(node) {
-      var value = isInteractiveCache[node.hashCode];
-      if (value !== undefined)
-        return value;
-      var value = node.isInteractive ||
-          (node.parentNode && isInteractive(node.parentNode))
-      isInteractiveCache[node.hasCode] = value;
-      return value;
-    }
-
     function insertNewAnchorElement(anchorPhraseNode) {
       if (editing.nodes.isWhitespaceNode(anchorPhraseNode))
         return null;

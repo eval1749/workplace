@@ -14,7 +14,6 @@ editing.define('EditingNode', (function() {
     this.attributes_ = [];
     this.context_ = context;
     this.domNode_ = domNode;
-    this.hashCode_ = context.nextHashCode();
     this.parentNode_ = null;
     this.firstChild_ = null;
     this.lastChild_ = null;
@@ -255,7 +254,7 @@ editing.define('EditingNode', (function() {
   function toString() {
     var value = this.nodeValue || this.nodeName;
     var position = this.parentNode_ ? '@' + this.nodeIndex : '';
-    return '[EditingNode ' + value + position + ' #' + this.hashCode + ']';
+    return '[EditingNode ' + value + position + ']';
   }
 
   Object.defineProperties(EditingNode.prototype, {
@@ -273,8 +272,6 @@ editing.define('EditingNode', (function() {
     getAttribute: {value: getAttribute},
     hasAttribute: {value: hasAttribute },
     hasChildNodes: {value: hasChildNodes },
-    hashCode: {get: function() { return this.hashCode_; }},
-    hashCode_: {writable: true},
     lastChild: {get: function() { return this.lastChild_; }},
     lastChild_: {writable: true},
     nextSibling: {get: function() { return this.nextSibling_; }},

@@ -178,7 +178,6 @@ editing.define('EditingContext', (function() {
     this.document_ = document;
     this.editor_ = editor;
     this.endingSelection_ = null;
-    this.hashCode_ = 0;
     this.instructions_ = [];
     this.selection_ = new editing.EditingSelection(this, domSelection);
     this.sampleContext_ = '';
@@ -315,14 +314,6 @@ editing.define('EditingContext', (function() {
       this.insertBefore(newParent, child, refNode);
       child = nextSibling;
     }
-  }
-
-  /**
-   * @this {!EditingContext}
-   * @return {number}
-   */
-  function nextHashCode() {
-    return ++this.hashCode_;
   }
 
   /**
@@ -536,12 +527,10 @@ editing.define('EditingContext', (function() {
     endingSelection: {get: endingSelection},
     endingSelection_: {writable: true},
     execCommand: {value: execCommand},
-    hashCode_: {writable: true},
     insertAfter: {value: insertAfter},
     insertBefore: {value: insertBefore},
     insertChildrenBefore: {value: insertChildrenBefore},
     instructions_: {writable: true},
-    nextHashCode: {value: nextHashCode },
     recordAppendChild: {value: recordAppendChild},
     recordCloneNode: {value: recordCloneNode},
     recordInsertBefore: {value: recordInsertBefore},

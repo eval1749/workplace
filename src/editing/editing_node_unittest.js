@@ -104,18 +104,6 @@ testCase('EditingNode.insertBeforeToSecond', function() {
 });
 
 //
-// hashCode
-//
-testCase('EditingNode.hasCode', function() {
-  var context = testing.createContext();
-  var element1 = context.createElement('e1');
-  var element2 = context.createElement('e2');
-  expectEq('number', function() { return typeof(element1.hashCode); });
-  expectEq('number', function() { return typeof(element2.hashCode); });
-  expectTrue(function() { return element1.hashCode != element2.hashCode; });
-});
-
-//
 // removeChild
 //
 testCase('EditingNode.removeChildFirstChild', function() {
