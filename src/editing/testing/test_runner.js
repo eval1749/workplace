@@ -54,7 +54,7 @@ Object.defineProperties(TestRunner.prototype, (function() {
   function toPrettyString(closure){
     var text = closure.toString()
         .replace('"use strict";', '')  // Firefox add "use strict".
-        .replace(/function\s\(\)\s*\{\s*return /, '')
+        .replace(/function\s*\(\)\s*\{\s*return\s*/, '')
         .replace('; }', '');
     return text;
   }
@@ -302,27 +302,30 @@ Object.defineProperties(TestRunner.prototype, (function() {
     var waitingTestCases = this.allTestCases_.slice();
 
     function didBeginFrame(timeStamp) {
-      var testCase = waitingTestCases.shift();
-      if (!testCase) {
-        finish.call(testRunner);
-        return;
-      }
+      /** @const */ var NUM_RUN = 5;
+      for (var count = 0; count < NUM_RUN; ++count) {
+        var testCase = waitingTestCases.shift();
+        if (!testCase) {
+          finish.call(testRunner);
+          return;
+        }
 
-     var numRun = allTestCases.length - waitingTestCases.length;
-     var percent = Math.floor((numRun / allTestCases.length) * 1000) / 10;
-      var status= 'Run ' +
-          numRun + '/' + allTestCases.length + '(' + percent + '%) tests.';
-      document.getElementById('progress').style.width = percent + '%';
+       var numRun = runTests.length;
+       var percent = Math.floor((numRun / allTestCases.length) * 1000) / 10;
+        var status= 'Run ' +
+            numRun + '/' + allTestCases.length + '(' + percent + '%) tests.';
+        document.getElementById('progress').style.width = percent + '%';
 
-      status += ' Elapsed: ' + ((new Date())- startAt) + 'ms';
-      if (lastBeginFrameTimeStamp) {
-        var durationUs = timeStamp - lastBeginFrameTimeStamp;
-        status += ' latency=' + Math.floor(durationUs * 100) / 100 + 'us';
+        status += ' Elapsed: ' + ((new Date())- startAt) + 'ms';
+        if (lastBeginFrameTimeStamp) {
+          var durationUs = timeStamp - lastBeginFrameTimeStamp;
+          status += ' latency=' + Math.floor(durationUs * 100) / 100 + 'us';
+        }
+        document.getElementById('status').textContent = status;
+
+        runTestCase.call(testRunner, testCase);
       }
       lastBeginFrameTimeStamp = timeStamp;
-      document.getElementById('status').textContent = status;
-
-      runTestCase.call(testRunner, testCase);
       window.requestAnimationFrame(didBeginFrame);
     }
 
