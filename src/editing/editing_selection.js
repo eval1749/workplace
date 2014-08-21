@@ -163,65 +163,70 @@ editing.define('EditingSelection', (function() {
 
   /**
    * @param {!EditingSelection} selection
-   * @param {!EditingContext} context
-   * @param {!Object} domSelection
+   * @param {!editing.EditingContext} context
    */
-  function initSelection(selection, context, domSelection) {
-    if (!domSelection || !domSelection.rangeCount)
+  function initSelection(selection, context) {
+    /**
+     * @param {!Node} node
+     * @param {number} offset
+     * @return {boolean}
+     */
+    function isNeedSplit(node, offset) {
+      return editing.nodes.isText(node) && offset &&
+             offset < node.nodeValue.length;
+    }
+
+    if (selection.isEmpty)
       return;
 
-    var anchorNode = domSelection.anchorNode;
-    var anchorOffset = domSelection.anchorOffset;
-    var focusNode = domSelection.focusNode;
-    var focusOffset = domSelection.focusOffset;
+    if (selection.isCaret) {
+      if (isNeedSplit(selection.anchorNode, selection.anchorOffset)) {
+        selection.anchorNode_ = splitTextAndInsert(
+            context, selection.anchorNode, selection.anchorOffset);
+        selection.anchorOffset_ = 0;
+        selection.focusNode_ = selection.anchorNode;
+        selection.focusOffset_ = 0;
+      }
+      return;
+    }
 
-    if (domSelection.collapsed()) {
-      if (isNeedSplit(anchorNode, anchorOffset)) {
+    var anchorNode = selection.anchorNode;
+    var anchorOffset = selection.anchorOffset;
+    var focusNode = selection.focusNode;
+    var focusOffset = selection.focusOffset;
+    var splitAnchorNode = isNeedSplit(anchorNode, anchorOffset);
+    var splitFocusNode = isNeedSplit(focusNode, focusOffset);
+    if (anchorNode === focusNode && splitAnchorNode && splitFocusNode) {
+      if (selection.anchorIsStart_) {
         anchorNode = splitTextAndInsert(context, anchorNode, anchorOffset);
-        anchorOffset = 0;
         focusNode = anchorNode;
+        focusOffset -= anchorOffset;
+        anchorOffset = 0;
+        splitTextAndInsert(context, focusNode, focusOffset);
+      } else {
+        focusNode = splitTextAndInsert(context, focusNode, focusOffset);
+        anchorNode = focusNode;
+        anchorOffset -= focusOffset;
         focusOffset = 0;
+        splitTextAndInsert(context, anchorNode, anchorOffset);
       }
 
     } else {
-      var range = domSelection.getRangeAt(0);
-      selection.anchorIsStart_ = range.startContainer === anchorNode &&
-                            range.startOffset == anchorOffset;
-      var splitAnchorNode = isNeedSplit(anchorNode, anchorOffset);
-      var splitFocusNode = isNeedSplit(focusNode, focusOffset);
-
-      if (anchorNode === focusNode && splitAnchorNode && splitFocusNode) {
+      if (splitAnchorNode) {
+        var newNode = splitTextAndInsert(context, anchorNode, anchorOffset);
         if (selection.anchorIsStart_) {
-          anchorNode = splitTextAndInsert(context, anchorNode, anchorOffset);
-          focusNode = anchorNode;
-          focusOffset -= anchorOffset;
+          anchorNode = newNode;
           anchorOffset = 0;
-          splitTextAndInsert(context, focusNode, focusOffset);
-        } else {
-          focusNode = splitTextAndInsert(context, focusNode, focusOffset);
-          anchorNode = focusNode;
-          anchorOffset -= focusOffset;
+          if (newNode.parentNode == focusNode)
+            ++focusOffset;
+        }
+      }
+
+      if (splitFocusNode) {
+        var newNode = splitTextAndInsert(context, focusNode, focusOffset);
+        if (!selection.anchorIsStart_) {
+          focusNode = newNode;
           focusOffset = 0;
-          splitTextAndInsert(context, anchorNode, anchorOffset);
-        }
-
-      } else {
-        if (splitAnchorNode) {
-          var newNode = splitTextAndInsert(context, anchorNode, anchorOffset);
-          if (selection.anchorIsStart_) {
-            anchorNode = newNode;
-            anchorOffset = 0;
-            if (newNode.parentNode == focusNode)
-              ++focusOffset;
-          }
-        }
-
-        if (splitFocusNode) {
-          var newNode = splitTextAndInsert(context, focusNode, focusOffset);
-          if (!selection.anchorIsStart_) {
-            focusNode = newNode;
-            focusOffset = 0;
-          }
         }
       }
     }
@@ -252,17 +257,6 @@ editing.define('EditingSelection', (function() {
   }
 
   /**
-   * @param {!Node} node
-   * @param {number} offset
-   * @return {boolean}
-   */
-  function isNeedSplit(node, offset) {
-    console.assert(node instanceof Node);
-    return editing.nodes.isText(node) && offset &&
-           offset < node.nodeValue.length;
-  }
-
-  /**
    * @param {!EditingContext} context
    * @param {!Node} node
    * @param {number} offset
@@ -290,15 +284,16 @@ editing.define('EditingSelection', (function() {
    *
    * Construct |EditingSelection| object initialized with DOM selection.
    */
-  function EditingSelection(context, domSelection) {
-    this.anchorIsStart_ = false;
-    this.anchorNode_ = null;
-    this.anchorOffset_ = 0;
+  function EditingSelection(context, selection) {
+    this.anchorIsStart_ =
+        selection.direction == editing.SelectionDirection.ANCHOR_IS_START;
+    this.anchorNode_ = selection.anchorNode;
+    this.anchorOffset_ = selection.anchorOffset;
     this.context_ = context;
-    this.focusNode_ = null;
-    this.focusOffset_ = null;
+    this.focusNode_ = selection.focusNode;
+    this.focusOffset_ = selection.focusOffset;
     this.nodes_ = [];
-    initSelection(this, context, domSelection);
+    initSelection(this, context);
     Object.seal(this);
   }
 

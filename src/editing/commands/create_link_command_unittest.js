@@ -13,9 +13,9 @@ testCase('createLink.NoUrl', function() {
     testRunner.skip('IE shows modal dialog box');
     return;
   }
-  var context = testing.createSample('<p contenteditable>abcd|</p>');
+  var editor = testing.createEditor('<p contenteditable>abcd|</p>');
   expectFalse(function() {
-    return context.execCommand('createLink');
+    return editor.execCommand('createLink');
   });
 });
 

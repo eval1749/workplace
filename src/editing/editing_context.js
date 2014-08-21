@@ -13,22 +13,23 @@ editing.define('EditingContext', (function() {
 
   /**
    * @param {!Editor} editor
-   * @param {?Object} domSelection Once |Selection| keeps passed node and
-   *    offset, *    we don't need to use |selection| parameter.
+   * @param {string} name A name for this context for error message.
+   * @param {!editing.ReadOnlySelection} selection
    */
-  function EditingContext(editor, domSelection) {
+  function EditingContext(editor, name, selection) {
+    console.assert(editor instanceof editing.Editor);
+    console.assert(selection instanceof editing.ReadOnlySelection);
     var document = editor.document;
     this.document_ = document;
     this.editor_ = editor;
     this.endingSelection_ = null;
+    this.name_ = name;
     this.instructions_ = [];
-    this.selection_ = new editing.EditingSelection(this, domSelection);
-    this.sampleContext_ = '';
-    this.sampleHtmlText_ = '';
+    this.selection_ = new editing.EditingSelection(this, selection);
     // We don't make ending selection as starting selection here. Because,
     // |ReadOnlySelection| doesn't track DOM modification during command
     // execution.
-    this.startingSelection_ = this.selection_.value;
+    this.startingSelection_ = selection;
     Object.seal(this);
   }
 
@@ -359,12 +360,13 @@ editing.define('EditingContext', (function() {
     insertAfter: {value: insertAfter},
     insertBefore: {value: insertBefore},
     insertChildrenBefore: {value: insertChildrenBefore},
+    instructions: {value: function() { return this.instructions_; }},
     instructions_: {writable: true},
+    name: {value: function() { return this.name; }},
+    name_: {writable: true},
     removeAttribute: {value: removeAttribute},
     removeChild: {value: removeChild},
     replaceChild: {value: replaceChild},
-    sampleContext_: {writable: true}, // for debugging
-    sampleHtmlText_: {writable: true}, // for debugging
     selection: {get: function() { return this.selection_; }},
     selection_: {writable: true},
     setAttribute: {value: setAttribute},

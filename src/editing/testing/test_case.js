@@ -103,14 +103,16 @@ function testCaseFor(commandName, testCaseId, data) {
 
   var testCaseName = commandName + '.' + testCaseId;
   testCase(testCaseName, function() {
-    var context = testing.createSample(data.before);
+    var sample = new testing.SampleContext(data.before);
+    var editor = editing.getOrCreateEditor(sample.document);
+    editor.setSelection(sample.startingSelection);
 
     // Execute command and check return value
     var expectedReturnValue = data.returnValue === undefined ?
         true : data.returnValue;
-    var actualReturnValue = context.execCommand(commandName,
-                                                Boolean(data.userInferface),
-                                                data.value || '');
+    var actualReturnValue = editor.execCommand(commandName,
+                                               Boolean(data.userInferface),
+                                               data.value || '');
     if (expectedReturnValue == actualReturnValue) {
       testRunner.pass('execCommand return value');
     } else {
@@ -122,8 +124,8 @@ function testCaseFor(commandName, testCaseId, data) {
 
     // Compare result HTML and selection
     var actualResult = testing.serialzieNode(
-        context.document.body.firstChild,
-        {selection: context.endingSelection});
+        editor.document.body.firstChild,
+        {selection: editor.selection});
     var expectedResult = data.after;
     if (stripMarker(expectedResult) == stripMarker(actualResult)) {
       testRunner.pass('Result HTML');
@@ -146,12 +148,12 @@ function testCaseFor(commandName, testCaseId, data) {
 
     // Compare result with browser's result.
     var actualResult2 = testing.serialzieNode(
-        context.document.body.firstChild, {
-        selection: context.endingSelection,
+        editor.document.body.firstChild, {
+        selection: editor.selection,
         visibleTextNode: true
     });
 
-    var sampleContext = context.sampleContext_;
+    var sampleContext = new testing.SampleContext(data.before);
     var sampleReturnValue = sampleContext.execCommand(
         commandName, Boolean(data.userInferface), data.value || '');
     if (actualReturnValue != sampleReturnValue) {
@@ -161,7 +163,7 @@ function testCaseFor(commandName, testCaseId, data) {
       });
     }
 
-    var sampleResult = context.sampleContext_.getResult();
+    var sampleResult = sampleContext.getResult();
     if (sampleResult == actualResult2) {
       testRunner.record('compatible');
       return;
