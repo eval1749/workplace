@@ -87,7 +87,7 @@ editing.define('nodes', (function() {
    * @return {boolean}
    */
   function isEditable(node) {
-    console.assert(node instanceof Node, node + ' must be a Node.');
+    console.assert(node instanceof Node);
     var container = node.parentNode;
     if (!container)
       return false;

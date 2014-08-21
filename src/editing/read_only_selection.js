@@ -49,42 +49,6 @@ editing.define('ReadOnlySelection', (function() {
         direction());
   }
 
-  /**
-   * @this {!ReadOnlySelection}
-   * @return {boolean}
-   */
-  function isCaret() {
-    return !this.isEmpty && !this.isRange;
-  }
-
-  /**
-   * @this {!ReadOnlySelection}
-   * @return {boolean}
-   */
-  function isEmpty() {
-    return !this.anchorNode_;
-  }
-
-  /**
-   * @this {!ReadOnlySelection}
-   * @return {boolean}
-   */
-  function isRange() {
-    if (!this.isEmpty)
-      return false;
-    return this.anchorNode_ !== this.focusNode_ ||
-           this.anchorOffset_ != this.focusOffset_;
-  }
-
-  /**
-   * @this {!ReadOnlySelection}
-   * @param {!Selection} domSelection
-   */
-  function setDomSelection(domSelection) {
-    domSelection.collapse(this.anchorNode, this.anchorOffset);
-    domSelection.extend(this.focusNode, this.focusOffset);
-  }
-
   Object.defineProperties(ReadOnlySelection.prototype, {
     anchorNode: {get: function () { return this.anchorNode_; }},
     anchorNode_: {writable: true},
@@ -96,10 +60,6 @@ editing.define('ReadOnlySelection', (function() {
     focusNode_: {writable: true},
     focusOffset: {get: function () { return this.focusOffset_; }},
     focusOffset_: {writable: true},
-    isCaret: {get: isCaret},
-    isEmpty: {get: isEmpty},
-    isRange: {get: isRange},
-    setDomSelection: {value: setDomSelection}
   });
   return ReadOnlySelection;
 })());

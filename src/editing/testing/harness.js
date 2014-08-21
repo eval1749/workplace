@@ -5,38 +5,34 @@
 'use strict';
 
 testing.define('createContext', (function() {
-  function createContext(htmlText) {
-    var sample = new testing.SampleContext(htmlText || '^foo|');
-    var editor = editing.getOrCreateEditor(sample.document);
-    return editor.createContext('noname', sample.startingSelection);
+  function createContext() {
+    var sampleDocument = document.implementation.createHTMLDocument('title');
+    var editor = editing.getOrCreateEditor(sampleDocument);
+    return editor.createContext();
   }
   return createContext;
 })());
 
-testing.define('createEditor', (function() {
-  function createEditor(htmlText) {
-    var document = window.document.implementation.createHTMLDocument('title');
-    var sample = new testing.SampleContext(htmlText);
-    var editor = editing.getOrCreateEditor(sample.document);
-    editor.setSelection(sample.startingSelection);
-    return editor;
+testing.define('createSample', (function() {
+  function createSample(htmlText){
+    var context = testing.createTree(htmlText);
+    context.sampleContext_ = new testing.SampleContext(htmlText);
+    return context;
   }
-  return createEditor;
+  return createSample;
 })());
 
-testing.define('withSample', (function() {
-  function withSample(htmlText, callback) {
-    var sample = new testing.SampleContext(htmlText);
-    var context = testing.createContext('<p contenteditable>^abcd|</p>');
-    var editor = editing.getOrCreateEditor(sample.document);
-    var context = editor.createContext('noname', sample.startingSelection);
-    try {
-      callback(context.selection);
-    } finally {
-      sample.finish();
-    }
+testing.define('createTree', (function() {
+  function createTree(htmlText) {
+    var testingDocument = document.implementation.createHTMLDocument('title');
+    var testingSelection = new testing.TestingSelection(testingDocument,
+                                                        htmlText);
+    var editor = editing.getOrCreateEditor(testingDocument);
+    var context = editor.createContext(testingSelection);
+    context.sampleHtmlText_ = htmlText;
+    return context;
   }
-  return withSample;
+  return createTree;
 })());
 
 testing.define('serialzieNode', (function() {
@@ -48,7 +44,7 @@ testing.define('serialzieNode', (function() {
    * @return {string}
    */
   function serialzieNode(node, opt_options) {
-    //console.assert(node instanceof Node);
+    console.assert(node instanceof Node);
     /** @const */ var options = arguments.length >= 2 ?
         /** @type {Object} */(opt_options) : {};
     /** @const */ var selection = options.selection || null;

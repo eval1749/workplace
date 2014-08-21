@@ -5,141 +5,6 @@
 'use strict';
 
 testing.define('SampleContext', (function() {
-  function indexOfNode(node) {
-    var parentNode = node.parentNode;
-    var index = 0;
-    for (var child = parentNode.firstChild; child;
-         child = child.nextSibling) {
-      if (child === node)
-        return index;
-      ++index;
-    }
-    NOTREACHED();
-  }
-
-  // If boundary point is between text nodes, we merge them.
-  function fixupAnchorAndFocus(selection, containerNode, offsetInContainer) {
-    function updateAnchorIfNeeded(newNode, newOffset) {
-      if (selection.anchorNode !== node)
-        return;
-      if (selection.anchorOffset != offsetInContainer)
-        return;
-      selection.anchorNode = node;
-      selection.anchorOffset = offsetInContainer;
-    }
-
-    function updateFocusIfNeeded(newNode, newOffset) {
-      if (selection.focusNode !== node)
-        return;
-      if (selection.focusOffset != offsetInContainer)
-        return;
-      selection.focusNode = node;
-      selection.focusOffset = offsetInContainer;
-    }
-
-    var node = containerNode.childNodes[offsetInContainer];
-    if (!node) {
-      // Boundary point is end of node.
-      return;
-    }
-    if (node.nodeType != Node.TEXT_NODE)
-      return;
-    var previousSibling = node.previousSibling;
-    if (!previousSibling || previousSibling.nodeType != Node.TEXT_NODE)
-      return;
-    var beforeText = previousSibling.textContent;
-    node.textContent = beforeText + node.textContent;
-    node.parentNode.removeChild(previousSibling);
-    updateAnchorIfNeeded(node, beforeText.length);
-    updateFocusIfNeeded(node, beforeText.length);
-  }
-
-  function parseAnchorAndFocus(selection, node) {
-    var child = node.firstChild;
-    if (child) {
-      while (child){
-        var nextSibling = child.nextSibling;
-        parseAnchorAndFocus(selection, child);
-        child = nextSibling;
-      }
-      return;
-    }
-
-    if (node.nodeType != Node.COMMENT_NODE)
-      return;
-
-    var marker = node.nodeValue;
-    if (marker != '|' && marker != '^')
-      return;
-
-    // Remove marker node
-    var nextSibling = node.nextSibling;
-    var previousSibling = node.previousSibling;
-    var offsetInContainer = indexOfNode(node);
-    var containerNode = node.parentNode;
-    containerNode.removeChild(node);
-
-    if (previousSibling && previousSibling.nodeType == Node.TEXT_NODE) {
-      containerNode = previousSibling;
-      offsetInContainer = previousSibling.nodeValue.length;
-    }
-
-    if (nextSibling && nextSibling.nodeType == Node.TEXT_NODE) {
-      containerNode = nextSibling;
-      offsetInContainer = 0;
-    }
-
-    if (marker == '^') {
-      selection.anchorNode = containerNode;
-      selection.anchorOffset = offsetInContainer;
-    } else {
-      selection.focusNode = containerNode;
-      selection.focusOffset = offsetInContainer;
-    }
-
-    if (!selection.anchorNode && selection.focusNode) {
-      selection.direction = editing.SelectionDirection.FOCUS_IS_START;
-      selection.anchorNode = selection.focusNode;
-      selection.anchorOffset = selection.focusOffset;
-    }
-  }
-
-  /**
-   * @param {!Document} document
-   * @param {string} htmlText
-   */
-  function parseSample(document, htmlText) {
-    if (htmlText.indexOf('^') != htmlText.lastIndexOf('^'))
-      throw new Error('More than one focus marker in "' + htmlText + '"');
-
-    if (htmlText.indexOf('|') != htmlText.lastIndexOf('|'))
-      throw new Error('More than one focus marker in "' + htmlText + '"');
-
-    if (htmlText.indexOf('|') < 0)
-      throw new Error('You should have at most one | in "' + htmlText + '"');
-
-    document.body.innerHTML = htmlText.replace('|', '<!--|-->')
-        .replace('^', '<!--^-->');
-
-    var selection = {
-      anchorNode: null,
-      anchorOffset: 0,
-      direction: editing.SelectionDirection.ANCHOR_IS_START,
-      focusNode: null,
-      focusOffset: 0,
-    };
-
-    parseAnchorAndFocus(selection, document.body);
-    fixupAnchorAndFocus(selection, selection.anchorNode,
-                        selection.anchorOffset);
-    fixupAnchorAndFocus(selection, selection.focusNode,
-                        selection.focusOffset);
-    return new editing.ReadOnlySelection(
-        selection.anchorNode, selection.anchorOffset,
-        selection.focusNode, selection.focusOffset,
-        selection.direction);
-  }
-
   /**
    * @constructor
    * @param {string} htmlText
@@ -153,10 +18,34 @@ testing.define('SampleContext', (function() {
     this.endingSelection_ = null;
     this.iframe_ = iframe;
     this.document_ = iframe.contentDocument;
-    this.domSelection_ = iframe.contentWindow.getSelection();
-    if (!this.domSelection_)
+    this.selection_ = iframe.contentWindow.getSelection();
+    this.startinggSelection_ = null;
+
+    if (!this.selection_)
       throw new Error('Can not get selection from IFRAME');
-    this.startingSelection_ = parseSample(this.document, htmlText);
+
+    // TODO(yosin) We should factor out TestingSelection.
+    var sample = new testing.TestingSelection(this.document_, htmlText);
+
+    if (!sample.rangeCount) {
+      this.startingSelection_ = new editing.ReadOnlySelection(null, 0, null, 0);
+    } else {
+      // Note: IE doesn't have |Selection.extend()|.
+      if (this.selection_.extend) {
+        this.selection_.collapse(sample.anchorNode, sample.anchorOffset);
+        this.selection_.extend(sample.focusNode, sample.focusOffset);
+      } else {
+        var range = document.createRange();
+        range.setStart(sample.anchorNode, sample.anchorOffset);
+        range.setEnd(sample.focusNode, sample.focusOffset);
+        this.selection_.addRange(range);
+      }
+
+      // Since Blink normalize anchor and focus position, we use normalized
+      // value rather than user specified value.
+      this.startingSelection_ = editing.ReadOnlySelection.createFromDom(
+          this.selection_);
+    }
     Object.seal(this);
   }
 
@@ -170,26 +59,18 @@ testing.define('SampleContext', (function() {
    * Emulation of |Document.execCommand|.
    */
   function execCommand(name, opt_userInterface, opt_value) {
-    this.startingSelection_.setDomSelection(this.domSelection_);
-    var returnValue
+    var result;
     try {
-        returnValue = this.document_.execCommand.apply(this.document_,
-                                                       arguments);
-      this.endingSelection_ = editing.ReadOnlySelection.createFromDom(
-          this.domSelection_);
+        result = this.document_.execCommand.apply(this.document_, arguments);
     } catch (exception) {
       result = exception;
     }
-    return returnValue;
-  }
-
-  /**
-   * @this {!SampleContext}
-   */
-  function finish() {
-    console.assert(this.iframe_);
+    if (this.selection_) {
+      this.endingSelection_ = editing.ReadOnlySelection.createFromDom(
+          this.selection_);
+    }
     this.iframe_.parentNode.removeChild(this.iframe_);
-    this.iframe_ = null;
+    return result;
   }
 
   /**
@@ -289,15 +170,14 @@ testing.define('SampleContext', (function() {
   Object.defineProperties(SampleContext.prototype, {
     document: {get: function() { return this.document_; }},
     document_: {writable: true},
-    domSelection: {get: function() { return this.domSelection_; }},
-    domSelection_: {writable: true},
-    endingSelection: {get: function() { return this.endingSelection_; }},
+    endingSelection: {value: function() { return this.endingSelection_; }},
     endingSelection_: {writable: true},
     execCommand: {value: execCommand},
-    finish: {value: finish},
     getResult: {value: getResult},
     iframe_: {writable: true},
-    startingSelection: {get: function() { return this.startingSelection_; }},
+    selection: {get: function() { return this.selection_; }},
+    selection_: {writable: true},
+    startingSelection: {value: function() { return this.startingSelection_; }},
     startingSelection_: {writable: true}
   });
   return SampleContext;
