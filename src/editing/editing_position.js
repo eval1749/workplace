@@ -19,7 +19,7 @@ editing.define('EditingPosition', (function() {
       console.assert(offsetInContainer <= containerNode.childNodes.length);
     } else {
       console.assert(offsetInContainer <=
-                     containerNode.domNode.nodeValue.length);
+                     containerNode.nodeValue.length);
     }
     this.containerNode_ = containerNode;
     this.offsetInContainer_ = offsetInContainer;

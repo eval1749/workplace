@@ -11,7 +11,7 @@
 // This class represent selection for editing initialized from DOM selection.
 // Unlike DOM selection API, |anchorNode| and |focusNode| are always container
 // node. If DOM selection API holds text node in |anchorNode| or |focusNode|,
-// |EditingSelection| constructor split text node at offset in |EditingNode|
+// |EditingSelection| constructor split text node at offset in |Node|
 // with editing instructions.
 //
 editing.define('EditingSelection', (function() {
@@ -54,7 +54,7 @@ editing.define('EditingSelection', (function() {
 
   /**
    * @param {!EditingSelection} selection
-   * @return {!Array.<!EditingNode>}
+   * @return {!Array.<!Node>}
    *
    * Note: When selection range has no node, e.g. <p><a>foo^</a>|</p>; enclosing
    * end tag, return value is empty array.
@@ -131,15 +131,15 @@ editing.define('EditingSelection', (function() {
   }
 
   /**
-   * @param {!Node} domNode
+   * @param {!Node} node
    * @return {!Node}
-   * |domNode| should be common ancestor of |anchorNode| and |focusNode|.
+   * |node| should be common ancestor of |anchorNode| and |focusNode|.
    */
-  function computeEditingRoot(domNode) {
+  function computeEditingRoot(node) {
     var lastEditable = null;
-    for (var domRunner = domNode; domRunner; domRunner = domRunner.parentNode) {
-      if (editing.isContentEditable(domRunner))
-        lastEditable = domRunner;
+    for (var runner = node; runner; runner = runner.parentNode) {
+      if (editing.isContentEditable(runner))
+        lastEditable = runner;
       else if (lastEditable)
         return lastEditable;
     }
@@ -148,28 +148,7 @@ editing.define('EditingSelection', (function() {
   }
 
   /**
-   * @param {!Object} treeContext
-   * @param {!Node} domNode
-   * @return {!editing.EditingNode}
-   */
-  function createEditingTree(treeContext, domNode) {
-    console.assert(domNode instanceof Node);
-    var node = new editing.EditingNode(treeContext.context, domNode);
-    if (treeContext.domSelection.anchorNode == domNode)
-      treeContext.selection.anchorNode_ = node;
-    if (treeContext.domSelection.focusNode == domNode)
-      treeContext.selection.focusNode_ = node;
-    var domChild = domNode.firstChild;
-    while (domChild) {
-      var child = createEditingTree(treeContext, domChild);
-      treeContext.context.appendChild(node, child);
-      domChild = domChild.nextSibling;
-    }
-    return node;
-  }
-
-  /**
-   * @param {!EditingNode} node
+   * @param {!Node} node
    * @return {number}
    */
   function indexOfNode(node) {
@@ -191,26 +170,9 @@ editing.define('EditingSelection', (function() {
     if (!domSelection || !domSelection.rangeCount)
       return;
 
-    var domCommonAncestor = computeCommonAncestor(domSelection.anchorNode,
-                                                  domSelection.focusNode);
-    console.assert(domCommonAncestor instanceof Node,
-                   'No common ancestor for', domSelection.anchorNode, 'and',
-                   domSelection.focusNode);
-    var treeContext = {
-      context: context,
-      domSelection: domSelection,
-      selection: selection
-    };
-    var domRoot = computeEditingRoot(domCommonAncestor);
-    if (!domRoot) {
-      // There is no editable in selection.
-      return;
-    }
-    selection.rootForTesting_ = createEditingTree(treeContext, domRoot);
-
-    var anchorNode = selection.anchorNode_;
+    var anchorNode = domSelection.anchorNode;
     var anchorOffset = domSelection.anchorOffset;
-    var focusNode = selection.focusNode_;
+    var focusNode = domSelection.focusNode;
     var focusOffset = domSelection.focusOffset;
 
     if (domSelection.collapsed()) {
@@ -223,7 +185,7 @@ editing.define('EditingSelection', (function() {
 
     } else {
       var range = domSelection.getRangeAt(0);
-      selection.anchorIsStart_ = range.startContainer == anchorNode.domNode &&
+      selection.anchorIsStart_ = range.startContainer === anchorNode &&
                             range.startOffset == anchorOffset;
       var splitAnchorNode = isNeedSplit(anchorNode, anchorOffset);
       var splitFocusNode = isNeedSplit(focusNode, focusOffset);
@@ -290,20 +252,21 @@ editing.define('EditingSelection', (function() {
   }
 
   /**
-   * @param {!editing.EditingNode} node
+   * @param {!Node} node
    * @param {number} offset
    * @return {boolean}
    */
   function isNeedSplit(node, offset) {
-    console.assert(node instanceof editing.EditingNode);
-    return editing.nodes.isText(node) && offset && offset < node.nodeValue.length;
+    console.assert(node instanceof Node);
+    return editing.nodes.isText(node) && offset &&
+           offset < node.nodeValue.length;
   }
 
   /**
    * @param {!EditingContext} context
-   * @param {!editing.EditingNode} node
+   * @param {!Node} node
    * @param {number} offset
-   * @return {!editing.EditingNode}
+   * @return {!Node}
    *
    * TODO(yosin) We should remove |splitText| and |insertAfter| instructions
    * if we don't change anchor and focus of selection.
@@ -316,8 +279,6 @@ editing.define('EditingSelection', (function() {
     }
     var newNode = context.splitText(node, offset);
     context.insertAfter(node.parentNode, newNode, node);
-    console.assert(node.nextSibling === newNode);
-    console.assert(newNode.previousSibling === node);
     return newNode;
   }
 
@@ -330,8 +291,6 @@ editing.define('EditingSelection', (function() {
    * Construct |EditingSelection| object initialized with DOM selection.
    */
   function EditingSelection(context, domSelection) {
-    //console.assert(console instanceof editing.EditingContext);
-
     this.anchorIsStart_ = false;
     this.anchorNode_ = null;
     this.anchorOffset_ = 0;
@@ -345,7 +304,7 @@ editing.define('EditingSelection', (function() {
 
   /**
    * @param {!EditingSelection} context
-   * @return {!Array.<EditingNode>}
+   * @return {!Array.<!Node>}
    * Computes effective nodes for inline formatting commands.
    */
   function computeEffectiveNodes() {
@@ -381,7 +340,7 @@ editing.define('EditingSelection', (function() {
 
   /**
    * @this {!editing.EditingSelection}
-   * @return {!EditingNode}
+   * @return {!Node}
    */
   function endContainer() {
     console.assert(this.anchorNode_);
@@ -425,7 +384,7 @@ editing.define('EditingSelection', (function() {
 
   /**
    * @this {!editing.EditingSelection}
-   * @return {!EditingNode}
+   * @return {!Node}
    */
   function startContainer() {
     console.assert(this.anchorNode_);
@@ -475,8 +434,6 @@ editing.define('EditingSelection', (function() {
     isRange: {get: isRange},
     nodes: {get: function() { return this.nodes_; }},
     nodes_: {writable: true},
-    rootForTesting: {get: function() { return this.rootForTesting_; }},
-    rootForTesting_: {writable: true},
     startContainer: {get: startContainer},
     startOffset: {get: startOffset},
     value: {get: value}

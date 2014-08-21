@@ -57,11 +57,11 @@ editing.defineCommand('Unlink', (function() {
   })());
 
  /**
-  * @param {!EditingNode} parentNode
-  * @param {?EditingNode} stopNode
+  * @param {!EditingContext} context
+  * @param {!Node} parentNode
+  * @param {?Node} stopNode
   */
-  function moveChildNodesBeforeParentNode(parentNode, stopNode) {
-    var context = parentNode.context;
+  function moveChildNodesBeforeParentNode(context, parentNode, stopNode) {
      var child = parentNode.firstChild;
      while (child) {
        var nextSibling = child.nextSibling;
@@ -85,7 +85,7 @@ editing.defineCommand('Unlink', (function() {
       return true;
     }
     var nodeAtCaret = selection.focusNode.childNodes[selection.focusOffset];
-    moveChildNodesBeforeParentNode(anchorElement, null);
+    moveChildNodesBeforeParentNode(context, anchorElement, null);
     var containerNode = nodeAtCaret ? nodeAtCaret.parentNode :
                                       selection.focusNode.parentNode;
     var offset = nodeAtCaret ? editing.nodes.nodeIndex(nodeAtCaret) : selection.focusOffset;
@@ -149,12 +149,12 @@ editing.defineCommand('Unlink', (function() {
       if (anchorElement == node)
         return;
 
-      moveChildNodesBeforeParentNode(anchorElement, node.nextSibling);
+      moveChildNodesBeforeParentNode(context, anchorElement, node.nextSibling);
     });
 
     while (anchorElements.length) {
       var anchorElement = anchorElements.pop();
-      moveChildNodesBeforeParentNode(anchorElement, null);
+      moveChildNodesBeforeParentNode(context, anchorElement, null);
       context.removeChild(anchorElement.parentNode, anchorElement);
     }
 

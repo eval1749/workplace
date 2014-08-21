@@ -122,7 +122,7 @@ function testCaseFor(commandName, testCaseId, data) {
 
     // Compare result HTML and selection
     var actualResult = testing.serialzieNode(
-        context.selection.rootForTesting,
+        context.document.body.firstChild,
         {selection: context.endingSelection});
     var expectedResult = data.after;
     if (stripMarker(expectedResult) == stripMarker(actualResult)) {
@@ -146,7 +146,7 @@ function testCaseFor(commandName, testCaseId, data) {
 
     // Compare result with browser's result.
     var actualResult2 = testing.serialzieNode(
-        context.selection.rootForTesting, {
+        context.document.body.firstChild, {
         selection: context.endingSelection,
         visibleTextNode: true
     });

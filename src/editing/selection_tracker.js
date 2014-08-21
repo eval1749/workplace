@@ -26,7 +26,7 @@ editing.define('SelectionTracker', (function() {
   /**
    * @constructor
    * @final
-   * @param {!EditingNode} node
+   * @param {!Node} node
    * @param {number} offset
    */
   function NodeAndOffset(node, offset) {
@@ -43,7 +43,7 @@ editing.define('SelectionTracker', (function() {
   /**
    * @constructor
    * @final
-   * @param {!EditingNode} node
+   * @param {!Node} node
    * @param {number} offset
    * @param {!StartOrEnd} startOrEnd
    */
@@ -158,7 +158,7 @@ editing.define('SelectionTracker', (function() {
 
   /**
    * @this {!SelectionTracker}
-   * @param {!EditingNode} node
+   * @param {!Node} node
    */
   function willRemoveNode(node) {
     this.start_.willRemoveNode(node, StartOrEnd.START);

@@ -37,14 +37,14 @@ testing.define('createTree', (function() {
 
 testing.define('serialzieNode', (function() {
   /**
-   * @param {!EditingNode} node
+   * @param {!Node} node
    * @param {Object=} opt_options
    *    selection: editing.ReadOnlySelection
    *    visibleTextNode: boolean
    * @return {string}
    */
   function serialzieNode(node, opt_options) {
-    console.assert(node instanceof editing.EditingNode);
+    console.assert(node instanceof Node);
     /** @const */ var options = arguments.length >= 2 ?
         /** @type {Object} */(opt_options) : {};
     /** @const */ var selection = options.selection || null;
@@ -73,19 +73,20 @@ testing.define('serialzieNode', (function() {
         }
         return sink.length ? sink : node.nodeValue;
       }
-      var tagName = node.domNode.nodeName.toLowerCase();
+      var tagName = node.nodeName.toLowerCase();
       var sink = '<' + tagName;
-      node.attributes.sort(orderByAttributeName).forEach(function(attrNode) {
-        var attrName = attrNode.name;
-        var attrValue = attrNode.value;
-        if (attrValue){
-          attrValue = attrValue.replace(/&/g, '&amp;')
-              .replace(/\u0022/g, '&quot;')
-          sink += ' ' + attrName + '="' + attrValue + '"';
-        } else {
-          sink += ' ' + attrName;
-        }
-      });
+      [].slice.call(node.attributes).sort(orderByAttributeName).forEach(
+        function(attrNode) {
+          var attrName = attrNode.name;
+          var attrValue = attrNode.value;
+          if (attrValue){
+            attrValue = attrValue.replace(/&/g, '&amp;')
+                .replace(/\u0022/g, '&quot;')
+            sink += ' ' + attrName + '="' + attrValue + '"';
+          } else {
+            sink += ' ' + attrName;
+          }
+        });
       sink += '>';
       var child = node.firstChild;
       var offset = 0;

@@ -12,9 +12,9 @@ editing.define('SelectionDirection', {
 
 editing.define('ReadOnlySelection', (function() {
   /**
-   * @param {!editing.EditingNode} anchorNode
+   * @param {!Node} anchorNode
    * @param {number} anchorOffset
-   * @param {!editing.EditingNode} focusNode
+   * @param {!Node} focusNode
    * @param {number} focusOffset
    * @param {editing.SelectionDirection} direction
    */

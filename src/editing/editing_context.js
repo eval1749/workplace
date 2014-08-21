@@ -12,163 +12,6 @@ editing.define('EditingContext', (function() {
   }
 
   /**
-   * @this {!EditingNode}
-   * @param {!EditingNode} newChild
-   */
-  function internalAppendChild(parentNode, newChild) {
-    console.assert(parentNode instanceof editing.EditingNode);
-    console.assert(newChild instanceof editing.EditingNode);
-    if (!editing.nodes.isElement(parentNode) &&
-         parentNode.domNode.nodeType != Node.DOCUMENT_NODE) {
-        throw 'parentNode must be an Element: ' + parentNode.domNode_;
-    }
-    if (newChild.parentNode_)
-      internalRemoveChild(newChild);
-    if (!parentNode.firstChild_)
-      parentNode.firstChild_ = newChild;
-    var lastChild = parentNode.lastChild_;
-    if (lastChild)
-      lastChild.nextSibling_ = newChild;
-    newChild.parentNode_ = parentNode;
-    newChild.nextSibling_ = null;
-    newChild.previousSibling_ = lastChild;
-    parentNode.lastChild_ = newChild;
-  }
-
-  /**
-   * @param {!EditingNode} parentNode
-   * @param {!EditingNode} newChild
-   * @param {!EditingNode} refChild
-   */
-  function internalInsertBefore(parentNode, newChild, refChild) {
-    console.assert(editing.nodes.isElement(parentNode));
-    if (!refChild) {
-      internalAppendChild(parentNode, newChild);
-      return;
-    }
-    if (refChild.parentNode_ !== parentNode)
-      throw new Error('Bad parent');
-    if (newChild.parentNode_)
-      internalRemoveChild(newChild);
-    console.assert(!newChild.parentNode);
-    console.assert(!newChild.nextSibling);
-    console.assert(!newChild.previousSibling);
-    var previousSibling = refChild.previousSibling;
-    newChild.parentNode_ = parentNode;
-    newChild.nextSibling_ = refChild;
-    newChild.previousSibling_ = previousSibling;
-    refChild.previousSibling_ = newChild;
-    if (previousSibling)
-      previousSibling.nextSibling_ = newChild;
-    else
-      parentNode.firstChild_ = newChild;
-  }
-
-  /**
-   * @param {!EditingNode} parentNode
-   * @param {!EditingNode} oldChild
-   */
-  function internalRemoveChild(oldChild) {
-    var parentNode = oldChild.parentNode_;
-    console.assert(editing.nodes.isElement(parentNode));
-    console.assert(parentNode === oldChild.parentNode_);
-    var nextSibling = oldChild.nextSibling_;
-    var previousSibling = oldChild.previousSibling_;
-    if (nextSibling)
-      nextSibling.previousSibling_ = previousSibling;
-    else
-      parentNode.lastChild_ = previousSibling;
-    if (previousSibling)
-      previousSibling.nextSibling_ = nextSibling;
-    else
-      parentNode.firstChild_ = nextSibling;
-    oldChild.nextSibling_ = null;
-    oldChild.previousSibling_ = null;
-    oldChild.parentNode_ = null;
-  }
-
-  /**
-   * @param {!EditingNode} parentNode
-   * @param {!EditingNode} newChild
-   * @param {!EditingNode} oldChild
-   */
-  function internalReplaceChild(parentNode, newChild, oldChild) {
-    if (oldChild.parentNode_ !== parentNode)
-      throw new Error('Bad parent');
-    if (newChild.parentNode_)
-      internalRemoveChild(newChild);
-
-    var nextSibling = oldChild.nextSibling;
-    var previousSibling = oldChild.previousSibling;
-
-    if (nextSibling)
-      nextSibling.previousSibling_ = newChild;
-    else
-      parentNode.lastChild_ = newChild;
-
-    if (previousSibling)
-      previousSibling.nextSibling_ = newChild;
-    else
-      parentNode.firstChild_ = newChild;
-
-    oldChild.nextSibling_ = null;
-    oldChild.parentNode_ = null;
-    oldChild.previousSibling_ = null;
-
-    newChild.nextSibling_ = nextSibling;
-    newChild.parentNode_ = parentNode;
-    newChild.previousSibling_ = previousSibling;
-  }
-
-
-  /**
-   * @this {!EditingNode}
-   * @param {!EditingNode} textNode
-   * @param {number} offset
-   * @return {!EditingNode}
-   */
-  function internalSplitText(textNode, offset) {
-    if (!editing.nodes.isText(textNode))
-      throw new Error('Expect Text node');
-    var nodeValue = textNode.domNode_.nodeValue;
-    if (offset <= 0)
-      throw new Error('offset(' + offset + ') must be greater than zero.');
-    if (offset >= nodeValue.length)
-      throw new Error('offset(' + offset + ') must be less than length.');
-    var newNode = new editing.EditingNode(textNode.context_, textNode.domNode_);
-    newNode.textStartOffset_ = textNode.textStartOffset_ + offset;
-    newNode.textEndOffset_ = textNode.textEndOffset_;
-    textNode.textEndOffset_ = newNode.textStartOffset_;
-    textNode.context_.splitText(textNode, offset, newNode);
-    return newNode;
-  }
-
-  /**
-   * @param {!EditingContext}
-   * @param {!EditingNode} parentNode
-   * @param {!EditingNode} newChild
-   */
-  function recordAppendChild(context, parentNode, newChild) {
-    ASSERT_DOM_TREE_IS_MUTABLE(context);
-    context.instructions_.push({operation: 'appendChild', parentNode: parentNode,
-                                newChild: newChild});
-  }
-
-
-  /**
-   * @param {!EditingContext}
-   * @param {!EditingNode} parentNode
-   * @param {!EditingNode} newChild
-   * @param {!EditingNode} refChild
-   */
-  function recordInsertBefore(context, parentNode, newChild, refChild) {
-    ASSERT_DOM_TREE_IS_MUTABLE(context);
-    context.instructions_.push({operation: 'insertBefore',
-                                parentNode: parentNode, newChild: newChild,
-                                refChild: refChild});
-  }
-
-  /**
    * @param {!Editor} editor
    * @param {?Object} domSelection Once |Selection| keeps passed node and
    *    offset, *    we don't need to use |selection| parameter.
@@ -191,41 +34,38 @@ editing.define('EditingContext', (function() {
 
   /**
    * @this {!EditingContext}
-   * @param {!EditingNode} parentNode
-   * @param {!EditingNode} newChild
+   * @param {!Node} parentNode
+   * @param {!Node} newChild
    */
   function appendChild(parentNode, newChild) {
     ASSERT_DOM_TREE_IS_MUTABLE(this);
-    recordAppendChild(this, parentNode, newChild);
-    internalAppendChild(parentNode, newChild);
+    this.instructions_.push({operation: 'appendChild', newChild: newChild,
+                             parentNode: parentNode});
+    parentNode.appendChild(newChild);
   }
 
   /**
    * @this {!EditingContext}
    * @param {string} tagName
-   * @return {!EditingNode}
+   * @return {!Node}
    */
   function createElement(tagName) {
-    var domNode = this.document_.createElement(tagName);
-    var node = new editing.EditingNode(this, domNode);
-    return node;
+    return this.document_.createElement(tagName);
   }
 
   /**
    * @this {!EditingContext}
    * @param {string} text
-   * @return {!EditingNode}
+   * @return {!Node}
    */
   function createTextNode(text) {
-    var domNode = this.document_.createTextNode(text);
-    var node = new editing.EditingNode(this, domNode);
-    return node;
+    return this.document_.createTextNode(text);
   }
 
   /**
    * @this {!EditingContext}
-   * @param {!EditingNode} node
-   * @return {!EditingNode}
+   * @param {!Node} node
+   * @return {!Node}
    */
   function cloneNode(node) {
     return node.cloneNode(false);
@@ -266,9 +106,22 @@ editing.define('EditingContext', (function() {
 
   /**
    * @this {!EditingContext}
-   * @param {!EditingNode} parent
-   * @param {!EditingNode} newChild
-   * @param {!EditingNode} refChild
+   * @param {!Node} node
+   * @return {boolean}
+   */
+  function inDocument(node) {
+    for (var runner = node; runner; runner = runner.parentNode) {
+      if (runner === this.document_)
+        return true;
+    }
+    return false;
+  }
+
+  /**
+   * @this {!EditingContext}
+   * @param {!Node} parent
+   * @param {!Node} newChild
+   * @param {!Node} refChild
    */
   function insertAfter(parent, newChild, refChild) {
     ASSERT_DOM_TREE_IS_MUTABLE(this);
@@ -281,30 +134,32 @@ editing.define('EditingContext', (function() {
 
   /**
    * @this {!EditingContext}
-   * @param {!EditingNode} parent
-   * @param {!EditingNode} newChild
-   * @param {!EditingNode} refChild
+   * @param {!Node} parentNode
+   * @param {!Node} newChild
+   * @param {!Node} refChild
    */
-  function insertBefore(parent, newChild, refChild) {
+  function insertBefore(parentNode, newChild, refChild) {
     ASSERT_DOM_TREE_IS_MUTABLE(this);
     if (!refChild) {
-      this.appendChild(parent, newChild);
+      this.appendChild(parentNode, newChild);
       return;
     }
-    if (parent !== refChild.parentNode)
-      throw new Error('Parent of refChild ' + refChild + ' must be ' + parent);
+    if (parentNode !== refChild.parentNode)
+      throw new Error('Parent of refChild ' + refChild + ' must be ' +
+                      parentNode);
     if (!refChild) {
-      this.appendChild(parent, newChild);
+      this.appendChild(parentNode, newChild);
       return;
     }
-    recordInsertBefore(this, newChild, refChild);
-    internalInsertBefore(parent, newChild, refChild);
+    this.instructions_.push({operation: 'insertBefore', newChild: newChild,
+                             parentNode: parentNode, refChild: refChild});
+    parentNode.insertBefore(newChild, refChild);
   }
 
   /**
    * @this {!EditingContext}
-   * @param {!EditingNode} oldParent
-   * @param {!EditingNode} refNode
+   * @param {!Node} oldParent
+   * @param {!Node} refNode
    */
   function insertChildrenBefore(oldParent, refNode) {
     var newParent = refNode.parentNode;
@@ -318,93 +173,67 @@ editing.define('EditingContext', (function() {
 
   /**
    * @this {!EditingContext}
-   * @param {!EditingNode} node
-   */
-  function recordCloneNode(node) {
-    this.instructions_.push({operation: 'cloneNode', node: node});
-  }
-
-  /**
-   * @this {!EditingContext}
+   * @param {!Element} element
    * @param {string} name
    */
-  function removeAttribute(node, name) {
+  function removeAttribute(element, name) {
     ASSERT_DOM_TREE_IS_MUTABLE(this);
     console.assert(typeof(name) == 'string',
         'Attribute name must be string rather than ' + name);
-    delete this.attributes_[name];
+    var attrNode = element.getAttriubteNode(element);
     this.instructions_.push({operation: 'removeAttribute', name: name,
-                             node: node});
+                             element: element,
+                             oldValue: attrNode ? attrNode.value : undefined});
+    element.removeAttribute(name);
   }
 
   /**
    * @this {!EditingContext}
-   * @param {!EditingNode} parentNode
-   * @param {!EditingNode} oldChild
+   * @param {!Node} parentNode
+   * @param {!Node} oldChild
    */
   function removeChild(parentNode, oldChild) {
     ASSERT_DOM_TREE_IS_MUTABLE(this);
-    console.assert(oldChild instanceof editing.EditingNode);
-    if (oldChild.parentNode_ !== parentNode)
+    console.assert(oldChild instanceof Node);
+    if (oldChild.parentNode !== parentNode)
       throw new Error('A parent of oldChild ' + oldChild + ' must be ' +
-                      parentNode);
-    internalRemoveChild(oldChild);
-    this.instructions_.push({operation: 'removeChild', parentNode: parentNode,
-                             oldChild: oldChild});
+                      oldChild.parentNode.outerHTML +
+                      ' instead of ' + parentNode.outerHTML);
+    var previousSibling = oldChild.previousSibling;
+    this.instructions_.push({operation: 'removeChild', oldChild: oldChild,
+                             parentNode: parentNode,
+                             previousSibling: previousSibling});
+    parentNode.removeChild(oldChild);
   }
 
   /**
    * @this {!EditingContext}
-   * @param {!EditingNode} parentNode
-   * @param {!EditingNode} newChild
-   * @param {!EditingNode} oldChild
+   * @param {!Node} parentNode
+   * @param {!Node} newChild
+   * @param {!Node} oldChild
    */
   function replaceChild(parentNode, newChild, oldChild) {
     ASSERT_DOM_TREE_IS_MUTABLE(this);
-    console.assert(newChild instanceof editing.EditingNode);
-    console.assert(oldChild instanceof editing.EditingNode);
-    if (newChild === oldChild)
-      throw new Error('newChild and oldChild must be different');
-    if (oldChild.parentNode !== parentNode) {
-      throw new Error('oldChild ' + oldChild + ' must be a child of ' +
-                      parentNode);
-    }
-    internalReplaceChild(parentNode, newChild, oldChild);
     this.instructions_.push({operation: 'replaceChild', parentNode: parentNode,
                              newChild: newChild, oldChild: oldChild});
+    parentNode.replaceChild(newChild, oldChild);
   }
 
   /**
    * @this {!EditingContext}
-   * @param {!EditingNode} element
-   * @param {string} attrName
-   * @param {string} attrValue
+   * @param {!Node} element
+   * @param {string} name
+   * @param {string} newValue
    */
-  function setAttribute(element, attrName, attrValue) {
-      /**
-       * @param {!EditingNode} node
-       * @param {string} attrName;
-       * @return {*}
-       */
-      function findAttributeNode(node, attrName) {
-        attrName = attrName.toLowerCase();
-        return node.attributes_.find(function(attributeNode) {
-          return attributeNode.name == attrName;
-        });
-      }
+  function setAttribute(element, name, newValue) {
+    console.assert(editing.nodes.isElement(element),
+                   'Node ' + element + ' must be an Element.');
     ASSERT_DOM_TREE_IS_MUTABLE(this);
-    console.assert(editing.nodes.isElement(element));
-    attrName = attrName.toLowerCase();
+    var attrNode = element.getAttributeNode(element);
     this.instructions_.push({operation: 'setAttribute', element: element,
-                             attrName: attrName, attrValue: attrValue});
-    var attributeNode = findAttributeNode(element, attrName);
-    if (attributeNode) {
-      attributeNode.value = attrValue;
-      return;
-    }
-    var newAttributeNode = this.document.createAttribute(attrName);
-    newAttributeNode.value = attrValue;
-    element.attributes_.push(newAttributeNode);
+                             name: name, newValue: newValue,
+                             oldValue: attrNode ? attrNode.value : undefined});
+    element.setAttribute(name, newValue);
   }
 
   /**
@@ -422,7 +251,7 @@ editing.define('EditingContext', (function() {
       throw new Error('Can not set null anchor node to ending ');
     if (!focusNode)
       throw new Error('Can not set null focus node to ending ');
-    if (!editing.nodes.inDocument(anchorNode)) {
+    if (!this.inDocument(anchorNode)) {
       throw new Error('Can not set anchor node not in document ' +
                       anchorNode + ' parent=' + anchorNode.parentNode);
     }
@@ -430,7 +259,7 @@ editing.define('EditingContext', (function() {
       throw new Error('Invalid anchor offset ' + anchorOffset +
                       ' on ' + anchorNode + ' max=' + editing.nodes.maxOffset(anchorNode));
     }
-    if (!editing.nodes.inDocument(focusNode)) {
+    if (!this.inDocument(focusNode)) {
       throw new Error('Can not set focus node not in document ' +
                       focusNode);
     }
@@ -443,21 +272,25 @@ editing.define('EditingContext', (function() {
 
   /**
    * @this {!Editor}
-   * @param {!EditingNode} node
+   * @param {!Element} element
    * @param {string} propertyName
    * @param {string} newValue
    */
-  function setStyle(node, propertyName, newValue) {
-    node.styleMap[propertyName] = newValue;
-    this.instructions_.push({operation: 'setStyle', node: node,
-                             propertyName: propertyName, newValue: newValue});
+  function setStyle(element, propertyName, newValue) {
+    console.assert(editing.nodes.isElement(element));
+    var style = element.style;
+    var oldValue = style[propertyName];
+    style[propertyName] = newValue;
+    this.instructions_.push({operation: 'setStyle', element: element,
+                             propertyName: propertyName, newValue: newValue,
+                             oldValue: oldValue});
   }
 
   /**
    * @this {!EditingContext}
-   * @param {!EditingNode} parent
-   * @param {!EditingNode} child
-   * @return {!EditingNode}
+   * @param {!Node} parent
+   * @param {!Node} child
+   * @return {!Node}
    *
    * Split |parent| at |child|, and returns new node which contains |child|
    * to its sibling nodes.
@@ -476,26 +309,21 @@ editing.define('EditingContext', (function() {
 
   /**
    * @this {!EditingContext}
-   * @param {!EditingNode} textNode
+   * @param {!Text} node
    * @param {number} offset
-   * @param {!EditingNode} newNode
-   * @return {!EditingNode}
+   * @return {!Node}
    */
-  function splitText(textNode, offset, newNode) {
+  function splitText(node, offset) {
     ASSERT_DOM_TREE_IS_MUTABLE(this);
-    console.assert(textNode instanceof editing.EditingNode);
-    console.assert(editing.nodes.isText(textNode));
-    console.assert(newNode instanceof editing.EditingNode);
-    console.assert(editing.nodes.isText(newNode));
-    internalSplitText(textNode, offset);
-    this.instructions_.push({operation: 'splitText', node: textNode,
+    var newNode = node.splitText(node, offset);
+    this.instructions_.push({operation: 'splitText', node: node,
                              offset: offset, newNode: newNode});
   }
 
   /**
    * @this {!EditingContext}
-   * @param {!EditingNode} refNode
-   * @return {!EditingNode}
+   * @param {!Node} refNode
+   * @return {!Node}
    */
   function splitTree(treeNode, refNode) {
     console.assert(editing.nodes.isDescendantOf(refNode, treeNode),
@@ -527,13 +355,11 @@ editing.define('EditingContext', (function() {
     endingSelection: {get: endingSelection},
     endingSelection_: {writable: true},
     execCommand: {value: execCommand},
+    inDocument: {value: inDocument},
     insertAfter: {value: insertAfter},
     insertBefore: {value: insertBefore},
     insertChildrenBefore: {value: insertChildrenBefore},
     instructions_: {writable: true},
-    recordAppendChild: {value: recordAppendChild},
-    recordCloneNode: {value: recordCloneNode},
-    recordInsertBefore: {value: recordInsertBefore},
     removeAttribute: {value: removeAttribute},
     removeChild: {value: removeChild},
     replaceChild: {value: replaceChild},

@@ -74,16 +74,16 @@ var editing = {};
 // TODO(yosin) Once, Node.isContentEditable works for nodes without render
 // object, we dont' need to have |isContentEditablePollyfill|.
 // http://crbug.com/313082
-editing.define('isContentEditable', function(domNode) {
-  if (window.document === domNode.ownerDocument &&
-      domNode.style.display != 'none') {
-    return domNode.isContentEditable;
+editing.define('isContentEditable', function(node) {
+  if (window.document === node.ownerDocument &&
+      node.style.display != 'none') {
+    return node.isContentEditable;
   }
-  if (domNode.isContentEditable)
+  if (node.isContentEditable)
     return true;
-  if (domNode.nodeType != Node.ELEMENT_NODE)
+  if (node.nodeType != Node.ELEMENT_NODE)
     return false;
-  var contentEditable = domNode.getAttribute('contenteditable');
+  var contentEditable = node.getAttribute('contenteditable');
   if (typeof(contentEditable) != 'string')
     return false;
   return contentEditable.toLowerCase() != 'false';

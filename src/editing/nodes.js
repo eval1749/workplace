@@ -9,9 +9,9 @@ editing.define('nodes', (function() {
   /* @const */ var PHRASING = editing.CONTENT_CATEGORY.PHRASING;
 
   /**
-   * @param {!EditingNode} node1
-   * @param {!EditingNode} node2
-   * @return {?EditingNode}
+   * @param {!Node} node1
+   * @param {!Node} node2
+   * @return {?Node}
    */
   function commonAncestor(node1, node2) {
     console.assert(node1.ownerDocument === node2.ownerDocument);
@@ -51,41 +51,30 @@ editing.define('nodes', (function() {
   }
 
   /**
-   * @param {!EditingNode} node
+   * @param {!Element} element
    * @return {boolean}
    */
-  function inDocument(node) {
-    // TODO(yosin) We should have real version of |inDocument|.
-    for (var runner = node; runner; runner = runner.parentNode) {
-      if (!runner.parentNode)
-        return editing.nodes.isContentEditable(runner);
-    }
-    return false;
-  }
-
-  /**
-   * @param {!EditingNode} node
-   * @return {boolean}
-   */
-  function isContentEditable(node) {
-    for (var runner = node; runner; runner = runner.parentNode) {
+  function isContentEditable(element) {
+    console.assert(element instanceof Element);
+    for (var runner = element; runner && editing.nodes.isElement(runner);
+         runner = runner.parentNode) {
       var contentEditable = runner.getAttribute('contenteditable');
       if (typeof(contentEditable) == 'string')
         return contentEditable.toLowerCase() != 'false';
-      if (editing.isContentEditable(runner.domNode_))
+      if (editing.isContentEditable(runner))
         return true;
     }
     return false;
   }
 
   /**
-   * @param {!EditingNode} node
-   * @param {!EditingNode} other
+   * @param {!Node} node
+   * @param {!Node} other
    * Returns true if |other| is an ancestor of |node|, otherwise false.
    */
   function isDescendantOf(node, other) {
-    console.assert(node instanceof editing.EditingNode);
-    console.assert(other instanceof editing.EditingNode);
+    console.assert(node instanceof Node);
+    console.assert(other instanceof Node);
     for (var runner = node.parentNode; runner; runner = runner.parentNode) {
       if (runner == other)
         return true;
@@ -94,11 +83,11 @@ editing.define('nodes', (function() {
   }
 
   /**
-   * @param {!EditingNode} node
+   * @param {!Node} node
    * @return {boolean}
    */
   function isEditable(node) {
-    console.assert(node instanceof editing.EditingNode);
+    console.assert(node instanceof Node);
     var container = node.parentNode;
     if (!container)
       return false;
@@ -106,7 +95,7 @@ editing.define('nodes', (function() {
   }
 
   /**
-   * @param {!EditingNode} node
+   * @param {!Node} node
    * @return {boolean}
    */
   function isElement(node) {
@@ -114,27 +103,27 @@ editing.define('nodes', (function() {
   }
 
   /**
-   * @param {!EditingNode} node
+   * @param {!Node} node
    * @return {boolean}
    */
   function isInteractive(node) {
-    var model = editing.contentModel[node.domNode_.nodeName];
+    var model = editing.contentModel[node.nodeName];
     return model !== undefined && Boolean(model.categories[INTERACTIVE]);
   }
 
   /**
-   * @param {!EditingNode} node
+   * @param {!Node} node
    * @return {boolean}
    */
   function isPhrasing(node) {
     if (!editing.nodes.isElement(node))
       return true;
-    var model = editing.contentModel[node.domNode_.nodeName];
+    var model = editing.contentModel[node.nodeName];
     return model !== undefined && Boolean(model.categories[PHRASING]);
   }
 
   /**
-   * @param {!EditingNode} node
+   * @param {!Node} node
    * @return {boolean}
    */
   function isText(node) {
@@ -142,16 +131,16 @@ editing.define('nodes', (function() {
   }
 
   /**
-   * @param {!EditingNode} node
+   * @param {!Node} node
    * @return {boolean}
    */
   function isVisibleNode(node) {
-    console.assert(node instanceof editing.EditingNode);
+    console.assert(node instanceof Node);
     if (isWhitespaceNode(node))
       return false;
-    if (node.domNode.nodeType != Node.ELEMENT_NODE)
+    if (node.nodeType != Node.ELEMENT_NODE)
       return isVisibleNode(node.parentNode);
-    var style = window.getComputedStyle(node.domNode);
+    var style = window.getComputedStyle(node);
     if (style)
       return style.display != 'none';
     if (!node.parentNode)
@@ -160,11 +149,11 @@ editing.define('nodes', (function() {
   }
 
   /**
-   * @param {!EditingNode} node
+   * @param {!Node} node
    * @return {boolean}
    */
   function isWhitespaceNode(node) {
-    console.assert(node instanceof editing.EditingNode);
+    console.assert(node instanceof Node);
     if (!editing.nodes.isText(node))
       return false;
     var text = node.nodeValue.replace(/[ \t\r\n]/g, '');
@@ -180,7 +169,7 @@ editing.define('nodes', (function() {
   }
 
   /**
-   * @param {!EditingNode} node
+   * @param {!Node} node
    * @return {number}
    */
   function maxOffset(node) {
@@ -213,7 +202,7 @@ editing.define('nodes', (function() {
   }
 
   /**
-   * @param {!EditingNode} node
+   * @param {!Node} node
    * @return {number}
    */
   function nodeIndex(node) {
@@ -250,7 +239,6 @@ editing.define('nodes', (function() {
 
   return Object.defineProperties({}, {
     commonAncestor: {value: commonAncestor},
-    inDocument: {value: inDocument},
     isContentEditable: {value: isContentEditable},
     isDescendantOf: {value: isDescendantOf},
     isEditable: {value: isEditable},

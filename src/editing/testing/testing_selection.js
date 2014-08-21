@@ -168,8 +168,6 @@ testing.define('TestingSelection', (function() {
     getRangeAt: {value: function() { return this.range_; }},
     range_: {writable: true},
     rangeCount: {get: function() { return this.anchorNode ? 1 : 0}},
-    rootForTesting: {get: function() { return this.root_; }},
-    root_: {writable: true},
     anchorIsStart_: {writable: true},
   });
   return TestingSelection;
