@@ -21,15 +21,15 @@ editing.define('Editor', (function() {
    *    offset, we don't need to use |selection| parameter.
    * @return {!EditingContext}
    */
-  function newContext(domSelection) {
+  function createContext(domSelection) {
     console.assert(!arguments.length || this.document === domSelection.document);
     return new editing.EditingContext(this, domSelection);
   }
 
   Object.defineProperties(Editor.prototype, {
+    createContext: {value: createContext},
     document: {get: function() { return this.document_; }},
     document_: {writable: true},
-    newContext: {value: newContext},
   });
   return Editor;
 })());

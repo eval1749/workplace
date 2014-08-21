@@ -8,7 +8,7 @@ testing.define('createContext', (function() {
   function createContext() {
     var sampleDocument = document.implementation.createHTMLDocument('title');
     var editor = editing.getOrCreateEditor(sampleDocument);
-    return editor.newContext();
+    return editor.createContext();
   }
   return createContext;
 })());
@@ -28,7 +28,7 @@ testing.define('createTree', (function() {
     var testingSelection = new testing.TestingSelection(testingDocument,
                                                         htmlText);
     var editor = editing.getOrCreateEditor(testingDocument);
-    var context = editor.newContext(testingSelection);
+    var context = editor.createContext(testingSelection);
     context.sampleHtmlText_ = htmlText;
     return context;
   }
