@@ -7,8 +7,8 @@
 //
 // isEditable
 //
-testCase('nodes.isEditable', function() {
-  var context = testing.createContext();
+testCaseWithSample('nodes.isEditable', '', function(selection) {
+  var context = selection.context;
   var elementA = context.createElement('a');
   expectFalse(function () { return editing.nodes.isEditable(elementA); });
 
@@ -23,8 +23,8 @@ testCase('nodes.isEditable', function() {
 //
 // isInteractive
 //
-testCase('nodes.isInteractive', function() {
-  var context = testing.createContext();
+testCaseWithSample('nodes.isInteractive', '', function(selection) {
+  var context = selection.context;
   var elementA = context.createElement('a');
   var elementB = context.createElement('b');
   expectTrue(function () { return editing.nodes.isInteractive(elementA); });
@@ -34,8 +34,8 @@ testCase('nodes.isInteractive', function() {
 //
 // isPhrasing
 //
-testCase('nodes.isPhrasing', function() {
-  var context = testing.createContext();
+testCaseWithSample('nodes.isPhrasing', '', function(selection) {
+  var context = selection.context;
   var elementA = context.createElement('a');
   var elementB = context.createElement('b');
   var elementDiv = context.createElement('div');
@@ -49,8 +49,8 @@ testCase('nodes.isPhrasing', function() {
 //
 // nodes.isWhitespaceNode
 //
-testCase('nodes.isWhitespaceNode', function() {
-  var context = testing.createContext();
+testCaseWithSample('nodes.isWhitespaceNode', '', function(selection) {
+  var context = selection.context;
   var elementA = context.createElement('a');
   var textB = context.createTextNode('b');
   var textC = context.createTextNode('  ');
@@ -62,28 +62,28 @@ testCase('nodes.isWhitespaceNode', function() {
 //
 // splitTree
 //
-testCase('nodes.splitTree.Shallow', function() {
-  var context = testing.createTree('<p contenteditable><e1>one</e1>|<e2>two</e2><e3>three</e3></p>');
-  var editor = context.editor;
-  var selection = context.selection;
-  var refNode = selection.focusNode.childNodes[selection.focusOffset];
-  var oldTree = refNode.parentNode;
-  var newTree = context.splitTree(oldTree, refNode);
-  expectEq('<p contenteditable><e1>one</e1></p>',
-           function() { return testing.serialzieNode(oldTree); });
-  expectEq('<p contenteditable><e2>two</e2><e3>three</e3></p>',
-          function() { return testing.serialzieNode(newTree); });
-});
+testCaseWithSample('nodes.splitTree.Shallow',
+    '<p contenteditable><e1>one</e1>|<e2>two</e2><e3>three</e3></p>',
+    function(selection) {
+      var context = selection.context;
+      var refNode = selection.focusNode.childNodes[selection.focusOffset];
+      var oldTree = refNode.parentNode;
+      var newTree = context.splitTree(oldTree, refNode);
+      expectEq('<p contenteditable><e1>one</e1></p>',
+               function() { return testing.serialzieNode(oldTree); });
+      expectEq('<p contenteditable><e2>two</e2><e3>three</e3></p>',
+              function() { return testing.serialzieNode(newTree); });
+    });
 
-testCase('nodes.splitTree.Deep', function() {
-  var context = testing.createTree('<p contenteditable><b>bold_1<i>italic_1<s>strike_1|strike_2</s>italic_2</i>bold_2</b></p>');
-  var editor = context.editor;
-  var selection = context.selection;
-  var refNode = selection.focusNode.childNodes[selection.focusOffset];
-  var oldTree = refNode.parentNode.parentNode.parentNode;
-  var newTree = context.splitTree(oldTree, refNode);
-  expectEq('<b>bold_1<i>italic_1<s>strike_1</s></i></b>',
-           function() { return testing.serialzieNode(oldTree); });
-  expectEq('<b><i><s>strike_2</s>italic_2</i>bold_2</b>',
-           function() { return testing.serialzieNode(newTree); });
-});
+testCaseWithSample('nodes.splitTree.Deep',
+    '<p contenteditable><b>bold1<i>italic1<s>strike1|strike2</s>italic2</i>bold2</b></p>',
+    function(selection) {
+      var context = selection.context;
+      var refNode = selection.focusNode.childNodes[selection.focusOffset];
+      var oldTree = refNode.parentNode.parentNode.parentNode;
+      var newTree = context.splitTree(oldTree, refNode);
+      expectEq('<b>bold1<i>italic1<s>strike1</s></i></b>',
+               function() { return testing.serialzieNode(oldTree); });
+      expectEq('<b><i><s>strike2</s>italic2</i>bold2</b>',
+               function() { return testing.serialzieNode(newTree); });
+    });

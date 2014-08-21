@@ -121,3 +121,20 @@ if (!('Set' in this)) {
     return Set;
   })();
 }
+
+// IE11 use |HTMLSelection| instead of|Selection|.
+if (window.HTMLSelection && !window.HTMLSelection.prototype.extend) {
+  HTMLSelection.prototype.extend = function(focusNode, focusOffset) {
+    var anchor = document.createRange();
+    anchor.setStart(this.anchorNode, this.anchorOffset);
+    var focus = document.createRange();
+    focus.setStart(focusNode, focusOffset);
+    this.removeAllRanges();
+    if (anchor.compareBoundaryPoints(Range.START_TOSTART, focus) <= 0) {
+      anchor.setEnd(focusNode, focusOffset);
+    } else {
+      anchor.setStart(focusNode, focusOffset);
+    }
+    this.addRange(anchor);
+  }
+}

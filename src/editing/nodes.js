@@ -55,7 +55,6 @@ editing.define('nodes', (function() {
    * @return {boolean}
    */
   function isContentEditable(element) {
-    console.assert(element instanceof Element);
     for (var runner = element; runner && editing.nodes.isElement(runner);
          runner = runner.parentNode) {
       var contentEditable = runner.getAttribute('contenteditable');
@@ -73,8 +72,6 @@ editing.define('nodes', (function() {
    * Returns true if |other| is an ancestor of |node|, otherwise false.
    */
   function isDescendantOf(node, other) {
-    console.assert(node instanceof Node);
-    console.assert(other instanceof Node);
     for (var runner = node.parentNode; runner; runner = runner.parentNode) {
       if (runner == other)
         return true;
@@ -87,7 +84,6 @@ editing.define('nodes', (function() {
    * @return {boolean}
    */
   function isEditable(node) {
-    console.assert(node instanceof Node);
     var container = node.parentNode;
     if (!container)
       return false;
@@ -135,7 +131,6 @@ editing.define('nodes', (function() {
    * @return {boolean}
    */
   function isVisibleNode(node) {
-    console.assert(node instanceof Node);
     if (isWhitespaceNode(node))
       return false;
     if (node.nodeType != Node.ELEMENT_NODE)
@@ -153,7 +148,6 @@ editing.define('nodes', (function() {
    * @return {boolean}
    */
   function isWhitespaceNode(node) {
-    console.assert(node instanceof Node);
     if (!editing.nodes.isText(node))
       return false;
     var text = node.nodeValue.replace(/[ \t\r\n]/g, '');
