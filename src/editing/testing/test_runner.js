@@ -5,13 +5,9 @@
 'use strict';
 
 function TestRunner() {
-  this.testListElement_ = null;
-  this.name_ = '';
+  this.allTestCases_ = [];
   this.results_ = [];
   this.sectionName_ = '';
-  this.testCaseListElement_ = null;
-  this.testListElement_ = null;
-  this.testCaseList_ = [];
   this.testCaseMap_ = {};
   this.useTryCatch_ = true;
   Object.seal(this);
@@ -49,8 +45,16 @@ Object.defineProperties(TestRunner.prototype, (function() {
     return ol;
   }
 
+  /**
+   * @param {!function} closure
+   * @return {string}
+   *
+   * Note: Firefox inserts "use strict" and inserts spaces.
+   */
   function toPrettyString(closure){
-    var text = closure.toString().replace('function () { return ', '')
+    var text = closure.toString()
+        .replace('"use strict";', '')  // Firefox add "use strict".
+        .replace(/function\s\(\)\s*\{\s*return /, '')
         .replace('; }', '');
     return text;
   }
@@ -64,7 +68,7 @@ Object.defineProperties(TestRunner.prototype, (function() {
     if (name in this.testCaseMap_)
       throw new Error('Test ' + name + ' is already registered.');
     var testCase = {name: name, testFunction: testFunction};
-    this.testCaseList_.push(testCase);
+    this.allTestCases_.push(testCase);
     this.testCaseMap_[name] = testCase;
   }
 
@@ -175,9 +179,12 @@ Object.defineProperties(TestRunner.prototype, (function() {
     }
 
     var runTests = [];
-    var startAt = new Date();
-    this.useTryCatch_ = true;
-    this.testCaseList_.forEach(function(testCase) {
+
+    /**
+     * @this {!TestRunner}
+     */
+    function runTestCase(testCase) {
+      this.useTryCatch_ = true;
       runTests.push(testCase);
       this.results_ = [];
       try {
@@ -243,43 +250,83 @@ Object.defineProperties(TestRunner.prototype, (function() {
         });
       });
       liTestCase.classList.add(testCaseClass);
-    }, this);
+    }
 
-    var endAt = new Date();
-    var resultElement = document.getElementById('results');
-    resultElement.innerHTML =
-      'Run ' + runTests.length + ' tests' +
-      ' in ' + (endAt - startAt) + 'ms' +
-      Object.keys(testCasesByClass).reduce(function(sink, key) {
-        var count = testCasesByClass[key].length;
-        return sink + ', <span class="' + key + '">' + count + ' ' + key +
-               '</span>';
-      }, '');
+    var startAt = new Date();
+    /**
+     * @this {!TestRunner}
+     */
+    function finish() {
+      var endAt = new Date();
+      document.getElementById('statusBar').outerHTML = '';
 
-    Object.keys(testCasesByClass).filter(function(key) {
-      return key != 'pass';
-    }).sort(function(key1, key2) {
-      return orderOfClass(key1) - orderOfClass(key2);
-    }).forEach(function(sectionName) {
-      var testCases = testCasesByClass[sectionName];
-      if (!testCases.length)
-        return;
-      var h3 = document.createElement('h3');
-      h3.textContent = sectionName + ' (' + testCases.length + ')';
-      resultElement.appendChild(h3);
-      var p = document.createElement('p');
-      resultElement.appendChild(p);
-      var MAX_LINKS = 50;
-      testCases.slice(0, MAX_LINKS).forEach(function(testCase, index) {
-        p.appendChild(document.createTextNode(' '));
-        var a = document.createElement('a');
-        a.href = '#' + testCase.name;
-        a.textContent = testCase.name;
-        p.appendChild(a);
-        if (index == MAX_LINKS - 1 && testCases.length >= MAX_LINKS)
-          p.appendChild(document.createTextNode(' AND MORE!'));
+      var resultElement = document.getElementById('results');
+      resultElement.innerHTML =
+        'Run ' + runTests.length + ' tests' +
+        ' in ' + Math.floor((endAt - startAt) * 1000) / 1000 + ' ms' +
+        Object.keys(testCasesByClass).reduce(function(sink, key) {
+          var count = testCasesByClass[key].length;
+          return sink + ', <span class="' + key + '">' + count + ' ' + key +
+                 '</span>';
+        }, '');
+
+      Object.keys(testCasesByClass).filter(function(key) {
+        return key != 'pass';
+      }).sort(function(key1, key2) {
+        return orderOfClass(key1) - orderOfClass(key2);
+      }).forEach(function(sectionName) {
+        var testCases = testCasesByClass[sectionName];
+        if (!testCases.length)
+          return;
+        var h3 = document.createElement('h3');
+        h3.textContent = sectionName + ' (' + testCases.length + ')';
+        resultElement.appendChild(h3);
+        var p = document.createElement('p');
+        resultElement.appendChild(p);
+        var MAX_LINKS = 50;
+        testCases.slice(0, MAX_LINKS).forEach(function(testCase, index) {
+          p.appendChild(document.createTextNode(' '));
+          var a = document.createElement('a');
+          a.href = '#' + testCase.name;
+          a.textContent = testCase.name;
+          p.appendChild(a);
+          if (index == MAX_LINKS - 1 && testCases.length >= MAX_LINKS)
+            p.appendChild(document.createTextNode(' AND MORE!'));
+        });
       });
-    });
+    }
+
+    var allTestCases = this.allTestCases_;
+    var testRunner = this;
+    var lastBeginFrameTimeStamp = 0;
+    var waitingTestCases = this.allTestCases_.slice();
+
+    function didBeginFrame(timeStamp) {
+      var testCase = waitingTestCases.shift();
+      if (!testCase) {
+        finish.call(testRunner);
+        return;
+      }
+
+     var numRun = allTestCases.length - waitingTestCases.length;
+     var percent = Math.floor((numRun / allTestCases.length) * 1000) / 10;
+      var status= 'Run ' +
+          numRun + '/' + allTestCases.length + '(' + percent + '%) tests.';
+      document.getElementById('progress').style.width = percent + '%';
+
+      status += ' Elapsed: ' + ((new Date())- startAt) + 'ms';
+      if (lastBeginFrameTimeStamp) {
+        var durationUs = timeStamp - lastBeginFrameTimeStamp;
+        status += ' latency=' + Math.floor(durationUs * 100) / 100 + 'us';
+      }
+      lastBeginFrameTimeStamp = timeStamp;
+      document.getElementById('status').textContent = status;
+
+      runTestCase.call(testRunner, testCase);
+      window.requestAnimationFrame(didBeginFrame);
+    }
+
+    window.requestAnimationFrame(didBeginFrame);
   }
 
   /**
@@ -295,6 +342,7 @@ Object.defineProperties(TestRunner.prototype, (function() {
 
   return {
     addTest: {value: addTest},
+    allTestCases_: {writable: true},
     constructor: TestRunner,
     fail: {value: fail},
     pass: {value: pass},
@@ -304,7 +352,6 @@ Object.defineProperties(TestRunner.prototype, (function() {
     runTests_: {writable: true},
     sectionName_: {writable: true},
     skip: {value: skip},
-    testsCaseList_: {writable: true},
     testsCaseMap_: {writable: true},
     useTryCatch: {get: function() { return this.useTryCatch_; }},
     useTryCatch_: {writable: true},
