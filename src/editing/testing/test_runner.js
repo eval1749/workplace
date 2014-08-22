@@ -92,16 +92,15 @@ Object.defineProperties(TestRunner.prototype, (function() {
    */
   function getSectionNames() {
     var sectionNames = new Set();
+    var list = [];
     this.allTestCases_.forEach(function(testCase) {
       var name = testCase.name;
-      sectionNames.add(name.substr(0, name.indexOf('.')));
+      var sectionName = name.substr(0, name.indexOf('.'));
+      if (sectionNames.has(sectionName))
+        return;
+      list.push(sectionName);
+      sectionNames.add(sectionName);
     });
-    var list = [];
-    var values = sectionNames.values();
-    var current;
-    while (!(current = values.next()).done) {
-      list.push(current.value);
-    }
     return list.sort();
   }
 
