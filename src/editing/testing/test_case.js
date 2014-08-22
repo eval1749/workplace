@@ -44,6 +44,18 @@ testing.define('serialzieNode', (function() {
     }
 
     function visit(node) {
+      if (editing.nodes.isText(node)) {
+        var text = node.nodeValue;
+        if (selection && selection.focusNode == node) {
+          return text.substr(0, selection.focusOffset) + '|' +
+                 text.substr(selection.focusOffset);
+        }
+        if (selection && selection.anchorNode == node) {
+          return text.substr(0, selection.anchorOffset) + '^' +
+                 text.substr(selection.anchorOffset);
+        }
+        return text;
+      }
       if (!editing.nodes.isElement(node)) {
         // To support |Document| node, we iterate over child nodes.
         var sink = '';
@@ -276,7 +288,7 @@ function testCaseFor(commandName, testCaseId, data) {
 
       var sampleResult = testing.serialzieNode(
         sample2.document.body.firstChild, {
-          selection: sample2.endingSeleciton,
+          selection: sample2.endingSelection,
           visibleTextNode: false
       });
       if (sampleResult == actualResult2) {
