@@ -158,9 +158,10 @@ Object.defineProperties(TestRunner.prototype, (function() {
     var CLASS_ORDERS = {
       exception: 1,
       fail: 2,
-      incompatible_html: 3,
-      incompatible_selection: 4,
-      incompatible_return: 5,
+      warn: 3,
+      incompatible_html: 4,
+      incompatible_selection: 5,
+      incompatible_return: 6,
       pass: 100,
     };
 

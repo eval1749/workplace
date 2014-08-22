@@ -19,9 +19,13 @@ p { margin: 0px; }
 li { white-space: nowrap; }
 li.exception:before { color: red; content: 'EXCEPTION '; }
 li.fail:before { color: red; content: 'FAIL '; }
+li.incompatible_html:before { color: #ffca28; content: 'NOTE '; }
+li.incompatible_return:before { color: #ffca28; content: 'NOTE '; }
+li.incompatible_selection:before { color: #ffca28; content: 'NOTE'; }
 li.pass:before { color: green; content: 'PASS '; }
-li.warn:before { color: red; content: 'WARN '; }
+li.warn:before { color: #80deea; content: 'WARN '; }
 span.incompatible_html { background-color: #ffca28; }
+span.incompatible_return { background-color: #ffca28; }
 span.incompatible_selection { background-color: #80deea; }
 ul.incompatible_html { background-color: #ffca28; }
 ul.incompatible_selection { background-color: #80deea; }
