@@ -70,7 +70,7 @@ testCaseFor('Unlink', 'AnchorElement.Href.Name', {
 });
 
 testCaseFor('Unlink', 'AnchorElement.Href.Style', {
-  before: '<p contenteditable>^<a  href="url1" style="font-weight: bold">bar</a>|</p>',
+  before: '<p contenteditable>^<a href="url1" style="font-weight: bold">bar</a>|</p>',
   after:'<p contenteditable>^bar|</p>',
   firefox: '<p contenteditable><a href="url1" style="font-weight: bold;">bar</a></p>',
 });
