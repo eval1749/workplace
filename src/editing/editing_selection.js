@@ -16,42 +16,6 @@
 //
 editing.define('EditingSelection', (function() {
   /**
-   * @param {!EditingSelection} selection
-   * @return {!Array.<!Node>}
-   *
-   * Note: When selection range has no node, e.g. <p><a>foo^</a>|</p>; enclosing
-   * end tag, return value is empty array.
-   */
-  function collectNodesInSelection(selection) {
-    if (selection.isEmpty)
-      return [];
-
-    var startNode = selection.startContainer.childNodes[selection.startOffset];
-    if (!startNode)
-      startNode = editing.nodes.nextNode(selection.startContainer.lastChild);
-    var endContainer = selection.endContainer;
-    var endNode = endContainer.childNodes[selection.endOffset];
-    if (!endNode)
-      endNode = editing.nodes.nextNodeSkippingChildren(endContainer.lastChild);
-
-    // Both, |startNode| and |endNode| are nullable, e.g. <a><b>abcd|</b></a>
-    if (!startNode)
-      return [];
-
-    var nodes = [];
-    var iterator = editing.nodes.nextNodes(startNode);
-    var current;
-    while (!(current = iterator.next()).done) {
-      if (current.value === endNode)
-        break;
-      if (current.value == endContainer && !selection.endOffset)
-        break;
-      nodes.push(current.value);
-    }
-    return nodes;
-  }
-
-  /**
    * @param {!Node} node
    * @return {!Node}
    * |node| should be common ancestor of |anchorNode| and |focusNode|.
@@ -131,7 +95,7 @@ editing.define('EditingSelection', (function() {
     useContainerIfNeeded(selection.anchorNode, selection.anchorOffset);
     useContainerIfNeeded(selection.focusNode, selection.focusOffset);
 
-    selection.nodes_ = collectNodesInSelection(selection);
+    selection.nodes_ = editing.nodes.computeSelectedRange(selection);
   }
 
   /**

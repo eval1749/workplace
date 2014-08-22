@@ -67,6 +67,42 @@ editing.define('nodes', (function() {
   }
 
   /**
+   * @param {!editing.ReadONlySelection} selection
+   * @return {!Array.<!Node>}
+   *
+   * Note: When selection range has no node, e.g. <p><a>foo^</a>|</p>; enclosing
+   * end tag, return value is empty array.
+   */
+  function computeSelectedRange(selection) {
+    if (selection.isEmpty)
+      return [];
+
+    var startNode = selection.startContainer.childNodes[selection.startOffset];
+    if (!startNode)
+      startNode = nextNode(selection.startContainer.lastChild);
+    var endContainer = selection.endContainer;
+    var endNode = endContainer.childNodes[selection.endOffset];
+    if (!endNode)
+      endNode = nextNodeSkippingChildren(endContainer.lastChild);
+
+    // Both, |startNode| and |endNode| are nullable, e.g. <a><b>abcd|</b></a>
+    if (!startNode)
+      return [];
+
+    var nodes = [];
+    var iterator = nextNodes(startNode);
+    var current;
+    while (!(current = iterator.next()).done) {
+      if (current.value === endNode)
+        break;
+      if (current.value == endContainer && !selection.endOffset)
+        break;
+      nodes.push(current.value);
+    }
+    return nodes;
+  }
+
+  /**
    * @param {!Element} element
    * @return {boolean}
    */
@@ -257,6 +293,7 @@ editing.define('nodes', (function() {
 
   return Object.defineProperties({}, {
     commonAncestor: {value: commonAncestor},
+    computeSelectedRange: {value: computeSelectedRange},
     isContentEditable: {value: isContentEditable},
     isDescendantOf: {value: isDescendantOf},
     isEditable: {value: isEditable},
