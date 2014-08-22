@@ -59,8 +59,11 @@ testing.define('serialzieNode', (function() {
           var attrName = attrNode.name;
           var attrValue = attrNode.value;
           if (attrValue){
+            // IE11 append ";" for end of CSS property list.
+            if (attrName == 'style')
+              attrValue = attrValue.replace(/;$/, '');
             attrValue = attrValue.replace(/&/g, '&amp;')
-                .replace(/\u0022/g, '&quot;')
+                .replace(/\u0022/g, '&quot;');
             sink += ' ' + attrName + '="' + attrValue + '"';
           } else {
             sink += ' ' + attrName;
