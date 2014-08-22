@@ -107,9 +107,9 @@ editing.define('EditingContext', (function() {
    */
   function appendChild(parentNode, newChild) {
     ASSERT_EDITING_IN_PROGRESS(this);
-    this.instructions_.push({operation: 'appendChild', newChild: newChild,
-                             parentNode: parentNode});
-    parentNode.appendChild(newChild);
+    var operation = new editing.AppendChild(parentNode, newChild);
+    this.instructions_.push(operation);
+    operation.execute();
   }
 
   /**
@@ -219,9 +219,9 @@ editing.define('EditingContext', (function() {
       this.appendChild(parentNode, newChild);
       return;
     }
-    this.instructions_.push({operation: 'insertBefore', newChild: newChild,
-                             parentNode: parentNode, refChild: refChild});
-    parentNode.insertBefore(newChild, refChild);
+    var operation = new editing.InsertBefore(parentNode, newChild, refChild);
+    this.instructions_.push(operation);
+    operation.execute();
   }
 
   /**
@@ -249,10 +249,9 @@ editing.define('EditingContext', (function() {
     console.assert(typeof(name) == 'string',
         'Attribute name must be string rather than ' + name);
     var attrNode = element.getAttriubteNode(element);
-    this.instructions_.push({operation: 'removeAttribute', name: name,
-                             element: element,
-                             oldValue: attrNode ? attrNode.value : undefined});
-    element.removeAttribute(name);
+    var operation = new editing.RemoveAttribute(element, name);
+    this.instructions_.push(operation);
+    operation.execute();
   }
 
   /**
@@ -266,11 +265,9 @@ editing.define('EditingContext', (function() {
       throw new Error('A parent of oldChild ' + oldChild + ' must be ' +
                       oldChild.parentNode.outerHTML +
                       ' instead of ' + parentNode.outerHTML);
-    var previousSibling = oldChild.previousSibling;
-    this.instructions_.push({operation: 'removeChild', oldChild: oldChild,
-                             parentNode: parentNode,
-                             previousSibling: previousSibling});
-    parentNode.removeChild(oldChild);
+    var operation = new editing.RemoveChild(parentNode, oldChild);
+    this.instructions_.push(operation);
+    operation.execute();
   }
 
   /**
@@ -281,9 +278,9 @@ editing.define('EditingContext', (function() {
    */
   function replaceChild(parentNode, newChild, oldChild) {
     ASSERT_EDITING_IN_PROGRESS(this);
-    this.instructions_.push({operation: 'replaceChild', parentNode: parentNode,
-                             newChild: newChild, oldChild: oldChild});
-    parentNode.replaceChild(newChild, oldChild);
+    var operation = new editing.ReplaceChild(parentNode, newChild, oldChild);
+    this.instructions_.push(operation);
+    operation.execute();
   }
 
   /**
@@ -296,11 +293,9 @@ editing.define('EditingContext', (function() {
     console.assert(editing.nodes.isElement(element),
                    'Node ' + element + ' must be an Element.');
     ASSERT_EDITING_IN_PROGRESS(this);
-    var oldValue = element.getAttribute(name);
-    this.instructions_.push({operation: 'setAttribute', element: element,
-                             name: name, newValue: newValue,
-                             oldValue: oldValue});
-    element.setAttribute(name, newValue);
+    var operation = new editing.SetAttribute(element, name, newValue);
+    this.instructions_.push(operation);
+    operation.execute();
   }
 
   /**
@@ -385,10 +380,8 @@ editing.define('EditingContext', (function() {
    */
   function splitText(node, offset) {
     ASSERT_EDITING_IN_PROGRESS(this);
-    var newNode = node.splitText(offset);
-    this.instructions_.push({operation: 'splitText', node: node,
-                             offset: offset, newNode: newNode});
-    return newNode;
+    this.instructions_.push(new editing.SplitText(node, offset));
+    return node.splitText(offset);
   }
 
   /**
