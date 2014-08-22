@@ -117,10 +117,13 @@ testCaseWithSample('operations.splitText.1',
     function(context, selection) {
       var parentNode = context.document.body.firstChild;
       var textNode = parentNode.firstChild;
-      var operation = new editing.SplitText(textNode, 3);
+      var newNode = context.createTextNode('bar');
+      var operation = new editing.SplitText(textNode, newNode);
 
       operation.redo();
-      expectEq('<p>foo</p>', createHtmlGetter(parentNode));
+      expectEq('<p>foobar</p>', createHtmlGetter(parentNode));
+      expectEq('foo', function() { return parentNode.firstChild.nodeValue; });
+      expectEq('bar', function() { return parentNode.lastChild.nodeValue; });
 
       operation.undo();
       expectEq('<p>foobar</p>', createHtmlGetter(parentNode));

@@ -285,13 +285,10 @@ editing.define('SetAttribute', (function() {
 // SplitText
 //
 editing.define('SplitText', (function() {
-  function SplitText(textNode, offset) {
+  function SplitText(textNode, newNode) {
     editing.Operation.call(this, 'splitText');
-    this.offset_ = offset;
+    this.newNode_ = newNode;
     this.textNode_ = textNode;
-    var text = textNode.nodeValue;;
-    this.oldValue_ = text;
-    this.newValue_ = text.substr(0, offset);
     Object.seal(this);
   }
 
@@ -299,23 +296,28 @@ editing.define('SplitText', (function() {
    * @this {!SplitText}
    */
   function redo() {
-    this.textNode_.nodeValue = this.newValue_;
+console.log('splitText.redo', this.textNode_.textValue, '-', this.newNode_.nodeValue);
+    var text = this.textNode_.nodeValue;
+    this.textNode_.nodeValue = text.substr(
+        0, text.length - this.newNode_.nodeValue.length);
+    this.textNode_.parentNode.insertBefore(this.newNode_,
+                                           this.textNode_.nextSibling);
   }
 
   /**
    * @this {!SplitText}
    */
   function undo() {
-    this.textNode_.nodeValue = this.oldValue_;
+console.log('splitText.undo', this.textNode_.nodeValue, 'to', this.oldValue_);
+    this.textNode_.nodeValue += this.newNode_.nodeValue;
+    this.newNode_.parentNode.removeChild(this.newNode_);
   }
 
   SplitText.prototype = Object.create(editing.Operation.prototype, {
     constructor: SplitText,
-    attrName_: {writable: true},
-    element_: {writable: true},
-    newValue_: {writable: true},
-    oldValue_: {writable: true},
+    newNode_: {writable: true},
     redo: {value: redo},
+    textNode_: {writable: true},
     undo: {value: undo}
   });
 

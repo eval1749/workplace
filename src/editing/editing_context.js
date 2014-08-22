@@ -312,8 +312,9 @@ editing.define('EditingContext', (function() {
    */
   function splitText(node, offset) {
     ASSERT_EDITING_IN_PROGRESS(this);
-    this.operations_.push(new editing.SplitText(node, offset));
-    return node.splitText(offset);
+    var newNode = node.splitText(offset);
+    this.operations_.push(new editing.SplitText(node, newNode));
+    return newNode;
   }
 
   /**

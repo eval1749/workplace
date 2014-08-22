@@ -329,8 +329,6 @@ editing.define('nodes', (function() {
     /**
      * @param {!Node} node
      * @param {number} offset
-     * TODO(yosin) We should remove |splitText| and |insertAfter| operations
-     * if we don't change anchor and focus of selection.
      */
     function splitIfNeeded(node, offset) {
       if (!editing.nodes.isText(node) || !offset)
@@ -343,7 +341,6 @@ editing.define('nodes', (function() {
                         'less than ' + text.length + ' for ' + node);
       }
       var newNode = context.splitText(node, offset);
-      context.insertAfter(node.parentNode, newNode, node);
       if (anchorNode === node && anchorOffset >= offset) {
         anchorNode = newNode;
         anchorOffset -= offset;
