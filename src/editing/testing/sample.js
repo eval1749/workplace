@@ -200,15 +200,6 @@ testing.define('Sample', (function() {
     this.iframe_ = null;
   }
 
-  /**
-   * @this {!Sample}
-   * @return {string}
-   */
-  function getResult() {
-    return testing.serialzieNode(this.document_.body.firstChild,
-                                 {selection: this.endingSelection_});
-  }
-
   Object.defineProperties(Sample.prototype, {
     document: {get: function() { return this.document_; }},
     document_: {writable: true},
@@ -218,7 +209,6 @@ testing.define('Sample', (function() {
     endingSelection_: {writable: true},
     execCommand: {value: execCommand},
     finish: {value: finish},
-    getResult: {value: getResult},
     iframe_: {writable: true},
     startingSelection: {get: function() { return this.startingSelection_; }},
     startingSelection_: {writable: true}

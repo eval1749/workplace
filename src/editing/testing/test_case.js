@@ -260,9 +260,9 @@ function testCaseFor(commandName, testCaseId, data) {
 
       // Compare result with browser's result.
       var actualResult2 = testing.serialzieNode(
-          editor.document.body.firstChild, {
+        editor.document.body.firstChild, {
           selection: editor.selection,
-          visibleTextNode: true
+          visibleTextNode: false
       });
 
       var sampleReturnValue = sample2.execCommand(
@@ -274,7 +274,11 @@ function testCaseFor(commandName, testCaseId, data) {
         });
       }
 
-      var sampleResult = sample2.getResult();
+      var sampleResult = testing.serialzieNode(
+        sample2.document.body.firstChild, {
+          selection: sample2.endingSeleciton,
+          visibleTextNode: false
+      });
       if (sampleResult == actualResult2) {
         testRunner.record('compatible');
         return;
