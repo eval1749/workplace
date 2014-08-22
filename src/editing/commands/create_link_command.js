@@ -177,8 +177,8 @@ editing.defineCommand('CreateLink', (function() {
       anchorElement = null;
     }
 
-    var selection = context.selection;
-    var effectiveNodes = selection.computeEffectiveNodes();
+    var effectiveNodes = editing.nodes.computeEffectiveNodes(
+        context.startingSelection);
     if (!effectiveNodes.length) {
       if (INSERT_LINK_FOR_CARET)
         return createLinkBeforeCaret(context, url);

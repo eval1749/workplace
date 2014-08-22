@@ -67,6 +67,33 @@ editing.define('nodes', (function() {
   }
 
   /**
+   * @this {!EditingSelection} seleciton
+   * @return {!Array.<!Node>}
+   * Computes effective nodes for inline formatting commands.
+   */
+  function computeEffectiveNodes(selection) {
+    var nodes = editing.nodes.computeSelectedNodes(selection);
+    if (!nodes.length)
+      return nodes;
+    var firstNode = nodes[0];
+    for (var ancestor = firstNode.parentNode; ancestor;
+         ancestor = ancestor.parentNode) {
+      if (!editing.nodes.isEditable(ancestor))
+        break;
+      if (ancestor.firstChild !== firstNode)
+        break;
+      // TODO(yosin) We should use more efficient way to check |ancestor| is
+      // in selection.
+      var lastNode = editing.nodes.lastWithIn(ancestor);
+      if (nodes.findIndex(function(x) { return x == lastNode; }) < 0)
+        break;
+      nodes.unshift(ancestor);
+      firstNode = ancestor;
+    }
+    return nodes;
+  }
+
+  /**
    * @param {!editing.ReadONlySelection} selection
    * @return {!Array.<!Node>}
    *
@@ -293,6 +320,7 @@ editing.define('nodes', (function() {
 
   return Object.defineProperties({}, {
     commonAncestor: {value: commonAncestor},
+    computeEffectiveNodes: {value: computeEffectiveNodes},
     computeSelectedNodes: {value: computeSelectedNodes},
     isContentEditable: {value: isContentEditable},
     isDescendantOf: {value: isDescendantOf},
