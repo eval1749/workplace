@@ -43,6 +43,7 @@ editing.define('Operation', (function() {
 //
 editing.define('AppendChild', (function() {
   function AppendChild(parentNode, newChild) {
+    console.assert(!newChild.parentNode);
     editing.Operation.call(this, 'appendChild');
     this.parentNode_ = parentNode;
     this.newChild_ = newChild;
@@ -80,6 +81,8 @@ editing.define('AppendChild', (function() {
 //
 editing.define('InsertBefore', (function() {
   function InsertBefore(parentNode, newChild, refChild) {
+    console.assert(!newChild.parentNode);
+    console.assert(parentNode === refChild.parentNode);
     editing.Operation.call(this, 'insertBefore');
     this.parentNode_ = parentNode;
     this.newChild_ = newChild;
@@ -91,7 +94,6 @@ editing.define('InsertBefore', (function() {
    * @this {!InsertBefore}
    */
   function redo() {
-console.log('insertBefore.redo', this);
     this.parentNode_.insertBefore(this.newChild_, this.refChild_);
   }
 
@@ -99,7 +101,6 @@ console.log('insertBefore.redo', this);
    * @this {!InsertBefore}
    */
   function undo() {
-console.log('insertBefore.undo', this);
     this.parentNode_.removeChild(this.newChild_);
   }
 
@@ -201,6 +202,8 @@ editing.define('RemoveChild', (function() {
 //
 editing.define('ReplaceChild', (function() {
   function ReplaceChild(parentNode, newChild, oldChild) {
+    console.assert(!newChild.parentNode);
+    console.assert(parentNode === oldChild.parentNode);
     editing.Operation.call(this, 'replaceChild');
     this.parentNode_ = parentNode;
     this.newChild_ = newChild;
@@ -296,7 +299,6 @@ editing.define('SplitText', (function() {
    * @this {!SplitText}
    */
   function redo() {
-console.log('splitText.redo', this.textNode_.textValue, '-', this.newNode_.nodeValue);
     var text = this.textNode_.nodeValue;
     this.textNode_.nodeValue = text.substr(
         0, text.length - this.newNode_.nodeValue.length);
@@ -308,7 +310,6 @@ console.log('splitText.redo', this.textNode_.textValue, '-', this.newNode_.nodeV
    * @this {!SplitText}
    */
   function undo() {
-console.log('splitText.undo', this.textNode_.nodeValue, 'to', this.oldValue_);
     this.textNode_.nodeValue += this.newNode_.nodeValue;
     this.newNode_.parentNode.removeChild(this.newNode_);
   }

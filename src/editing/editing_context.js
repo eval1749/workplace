@@ -39,6 +39,8 @@ editing.define('EditingContext', (function() {
    */
   function appendChild(parentNode, newChild) {
     ASSERT_EDITING_IN_PROGRESS(this);
+    if (newChild.parentNode)
+      this.removeChild(newChild.parentNode, newChild);
     var operation = new editing.AppendChild(parentNode, newChild);
     this.operations_.push(operation);
     operation.execute();
@@ -129,6 +131,8 @@ editing.define('EditingContext', (function() {
       throw new Error('refChild can not be null for insertAfter.');
     if (parent !== refChild.parentNode)
       throw new Error('Parent of refChild ' + refChild + ' must be ' + parent);
+    if (newChild.parentNode)
+      this.removeChild(newChild.parentNode, newChild);
     this.insertBefore(parent, newChild, refChild.nextSibling);
   }
 
@@ -147,10 +151,8 @@ editing.define('EditingContext', (function() {
     if (parentNode !== refChild.parentNode)
       throw new Error('Parent of refChild ' + refChild + ' must be ' +
                       parentNode);
-    if (!refChild) {
-      this.appendChild(parentNode, newChild);
-      return;
-    }
+    if (newChild.parentNode)
+      this.removeChild(newChild.parentNode, newChild);
     var operation = new editing.InsertBefore(parentNode, newChild, refChild);
     this.operations_.push(operation);
     operation.execute();
@@ -210,6 +212,12 @@ editing.define('EditingContext', (function() {
    */
   function replaceChild(parentNode, newChild, oldChild) {
     ASSERT_EDITING_IN_PROGRESS(this);
+    if (oldChild.parentNode !== parentNode)
+      throw new Error('A parent of oldChild ' + oldChild + ' must be ' +
+                      oldChild.parentNode.outerHTML +
+                      ' instead of ' + parentNode.outerHTML);
+    if (newChild.parentNode)
+      this.removeChild(newChild.parentNode, newChild);
     var operation = new editing.ReplaceChild(parentNode, newChild, oldChild);
     this.operations_.push(operation);
     operation.execute();
