@@ -4,16 +4,6 @@
 
 'use strict';
 
-testing.define('createEditor', (function() {
-  function createEditor(htmlText) {
-    var sample = new testing.Sample(htmlText);
-    var editor = editing.getOrCreateEditor(sample.document);
-    editor.setDomSelection(sample.startingSelection);
-    return editor;
-  }
-  return createEditor;
-})());
-
 testing.define('serialzieNode', (function() {
   /**
    * @param {!Node} node

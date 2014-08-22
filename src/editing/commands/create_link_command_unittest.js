@@ -13,10 +13,12 @@ testCase('createLink.NoUrl', function() {
     testRunner.skip('IE shows modal dialog box');
     return;
   }
-  var editor = testing.createEditor('<p contenteditable>abcd|</p>');
-  expectFalse(function() {
-    return editor.execCommand('createLink');
-  });
+
+  var sample = new testing.Sample('<p contenteditable>abcd|</p>');
+  var editor = editing.getOrCreateEditor(sample.document);
+  editor.setDomSelection(sample.startingSelection);
+  expectFalse(function() { return editor.execCommand('createLink'); });
+  sample.finish();
 });
 
 // Simple createLink
