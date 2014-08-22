@@ -296,10 +296,10 @@ editing.define('EditingContext', (function() {
     console.assert(editing.nodes.isElement(element),
                    'Node ' + element + ' must be an Element.');
     ASSERT_EDITING_IN_PROGRESS(this);
-    var attrNode = element.getAttributeNode(element);
+    var oldValue = element.getAttribute(name);
     this.instructions_.push({operation: 'setAttribute', element: element,
                              name: name, newValue: newValue,
-                             oldValue: attrNode ? attrNode.value : undefined});
+                             oldValue: oldValue});
     element.setAttribute(name, newValue);
   }
 
