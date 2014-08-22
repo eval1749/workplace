@@ -8,8 +8,15 @@ testing.define('TEST_EXPECTATIONS', (function() {
   var IE_BACKWARD_SELECTION = 'IE does not work well for backward seleciton.';
   var IE_IGNORES_A_ATTRS = 'IE compatibility.' +
       ' Replace A element even if it has "name" attribute';
+  var W3C_SELECTION_IS_INCORRECT = 'W3C selection range is incorrect.';
   return {
     // createLink command
+    'createLink.w3c.23': {expected: 'warn', reason: W3C_SELECTION_IS_INCORRECT},
+    'createLink.w3c.23r': {expected: 'warn',
+                          reason: W3C_SELECTION_IS_INCORRECT},
+    'createLink.w3c.35': {expected: 'warn', reason: W3C_SELECTION_IS_INCORRECT},
+    'createLink.w3c.35r': {expected: 'warn',
+                           reason: W3C_SELECTION_IS_INCORRECT},
     'createLink.w3c.46': {expected: 'fail', reason: IE_IGNORES_A_ATTRS},
     'createLink.w3c.46r': {expected: 'fail', reason: IE_IGNORES_A_ATTRS},
     'createLink.w3c.47': {expected: 'fail', reason: IE_IGNORES_A_ATTRS},
