@@ -12,6 +12,74 @@ editing.define('EditingContext', (function() {
   }
 
   /**
+   * @param {!EditingContext} context
+   * @param {!editing.ReadOnlySelection} selection
+   */
+  function normalizeSelection(context, selection) {
+    if (selection.isEmpty)
+      return selection;
+
+    var anchorNode = selection.anchorNode;
+    var anchorOffset = selection.anchorOffset;
+    var focusNode = selection.focusNode;
+    var focusOffset = selection.focusOffset;
+
+    /**
+     * @param {!Node} node
+     * @param {number} offset
+     * TODO(yosin) We should remove |splitText| and |insertAfter| instructions
+     * if we don't change anchor and focus of selection.
+     */
+    function splitIfNeeded(node, offset) {
+      if (!editing.nodes.isText(node) || !offset)
+        return;
+      var text = node.nodeValue;
+      if (text.length == offset)
+        return;
+      if (!offset || offset >= text.length) {
+        throw new Error('Offset ' + offset + ' must be grater than zero and ' +
+                        'less than ' + text.length + ' for ' + node);
+      }
+      var newNode = context.splitText(node, offset);
+      context.insertAfter(node.parentNode, newNode, node);
+      if (anchorNode === node && anchorOffset >= offset) {
+        anchorNode = newNode;
+        anchorOffset -= offset;
+      }
+      if (focusNode === node && focusOffset >= offset) {
+        focusNode = newNode;
+        focusOffset -= offset;
+      }
+    }
+
+    function useContainerIfPossible(node, offset) {
+      if (!editing.nodes.isText(node))
+        return;
+      var container = node.parentNode;
+      var offsetInContainer = editing.nodes.nodeIndex(node);
+      if (anchorNode === node && anchorOffset == offset) {
+        anchorNode = container;
+        anchorOffset = offset ? offsetInContainer + 1 : offsetInContainer;
+      }
+      if (focusNode === node && focusOffset == offset) {
+        focusNode = container;
+        focusOffset = offset ? offsetInContainer + 1 : offsetInContainer;
+      }
+    }
+
+    // Split text boundary point
+    splitIfNeeded(anchorNode, anchorOffset);
+    splitIfNeeded(focusNode, focusOffset);
+
+    // Convert text node + offset to container node + offset.
+    useContainerIfPossible(anchorNode, anchorOffset);
+    useContainerIfPossible(focusNode, focusOffset);
+    return new editing.ReadOnlySelection(anchorNode, anchorOffset,
+                                         focusNode, focusOffset,
+                                         selection.direction);
+  }
+
+  /**
    * @param {!Editor} editor
    * @param {string} name A name for this context for error message.
    * @param {!editing.ReadOnlySelection} selection
@@ -25,17 +93,10 @@ editing.define('EditingContext', (function() {
     this.endingSelection_ = null;
     this.name_ = name;
     this.instructions_ = [];
-    this.selection_ = new editing.EditingSelection(this, selection);
     // We don't make ending selection as starting selection here. Because,
     // |ReadOnlySelection| doesn't track DOM modification during command
     // execution.
-    // TODO(yosin) We should get rid of |EditingSelection|.
-    this.startingSelection_ = new editing.ReadOnlySelection(
-        this.selection_.anchorNode, this.selection.anchorOffset,
-        this.selection_.focusNode, this.selection.focusOffset,
-        this.selection.anchorIsStart ?
-            editing.SelectionDirection.ANCHOR_IS_START :
-            editing.SelectionDirection.FOCUS_IS_START);
+    this.startingSelection_ = normalizeSelection(this, selection);
     Object.seal(this);
   }
 
@@ -80,7 +141,7 @@ editing.define('EditingContext', (function() {
 
   /**
    * @this {!EditingContext}
-   * @return {!ReadOnlySelection}
+   * @return {!editing.ReadOnlySelection}
    */
   function endingSelection() {
     console.assert(this.endingSelection_,
@@ -261,9 +322,11 @@ editing.define('EditingContext', (function() {
       throw new Error('Can not set anchor node not in document ' +
                       anchorNode + ' parent=' + anchorNode.parentNode);
     }
-    if (anchorOffset < 0 || anchorOffset > editing.nodes.maxOffset(anchorNode)) {
+    if (anchorOffset < 0 ||
+        anchorOffset > editing.nodes.maxOffset(anchorNode)) {
       throw new Error('Invalid anchor offset ' + anchorOffset +
-                      ' on ' + anchorNode + ' max=' + editing.nodes.maxOffset(anchorNode));
+                      ' on ' + anchorNode +
+                      ' max=' + editing.nodes.maxOffset(anchorNode));
     }
     if (!this.inDocument(focusNode)) {
       throw new Error('Can not set focus node not in document ' +
@@ -271,7 +334,8 @@ editing.define('EditingContext', (function() {
     }
     if (focusOffset < 0 || focusOffset > editing.nodes.maxOffset(focusNode)) {
       throw new Error('Invalid focus offset ' + focusOffset +
-                      ' on ' + focusNode + ' max=' + editing.nodes.maxOffset(focusNode));
+                      ' on ' + focusNode +
+                      ' max=' + editing.nodes.maxOffset(focusNode));
     }
     this.endingSelection_ = selection;
   }
@@ -368,13 +432,11 @@ editing.define('EditingContext', (function() {
     insertChildrenBefore: {value: insertChildrenBefore},
     instructions: {value: function() { return this.instructions_; }},
     instructions_: {writable: true},
-    name: {value: function() { return this.name; }},
+    name: {value: function() { return this.name_; }},
     name_: {writable: true},
     removeAttribute: {value: removeAttribute},
     removeChild: {value: removeChild},
     replaceChild: {value: replaceChild},
-    selection: {get: function() { return this.selection_; }},
-    selection_: {writable: true},
     setAttribute: {value: setAttribute},
     setEndingSelection: {value: setEndingSelection },
     setStyle: {value: setStyle},

@@ -126,7 +126,7 @@ editing.define('SelectionTracker', (function() {
    */
   function SelectionTracker(context) {
     this.context_ = context;
-    var selection = context.selection;
+    var selection = context.startingSelection;
     this.start_ = new TrackablePosition(selection.startContainer,
                                         selection.startOffset,
                                         StartOrEnd.START);
@@ -142,7 +142,7 @@ editing.define('SelectionTracker', (function() {
   function setEndingSelection() {
     var anchorNodeAndOffset;
     var focusNodeAndOffset;
-    var selection = this.context_.selection;
+    var selection = this.context_.startingSelection;
     if (selection.direction == editing.SelectionDirection.ANCHOR_IS_START) {
       anchorNodeAndOffset = this.start_.convertToNodeAndOffset();
       focusNodeAndOffset = this.end_.convertToNodeAndOffset();

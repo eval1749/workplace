@@ -67,24 +67,24 @@ editing.define('nodes', (function() {
   }
 
   /**
-   * @this {!EditingSelection} seleciton
+   * @this {!editing.ReadOnlySelection} selection
    * @return {!Array.<!Node>}
    * Computes effective nodes for inline formatting commands.
    */
   function computeEffectiveNodes(selection) {
-    var nodes = editing.nodes.computeSelectedNodes(selection);
+    var nodes = computeSelectedNodes(selection);
     if (!nodes.length)
       return nodes;
     var firstNode = nodes[0];
     for (var ancestor = firstNode.parentNode; ancestor;
          ancestor = ancestor.parentNode) {
-      if (!editing.nodes.isEditable(ancestor))
+      if (!isEditable(ancestor))
         break;
       if (ancestor.firstChild !== firstNode)
         break;
       // TODO(yosin) We should use more efficient way to check |ancestor| is
       // in selection.
-      var lastNode = editing.nodes.lastWithIn(ancestor);
+      var lastNode = lastWithIn(ancestor);
       if (nodes.findIndex(function(x) { return x == lastNode; }) < 0)
         break;
       nodes.unshift(ancestor);

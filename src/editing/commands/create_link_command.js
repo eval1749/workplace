@@ -23,8 +23,8 @@ editing.defineCommand('CreateLink', (function() {
     context.setAttribute(anchorElement, 'href', url);
     context.appendChild(anchorElement, context.createTextNode(url));
 
-    /** @const @type {!editing.EditingSelection} */
-    var selection = context.selection;
+    /** @const @type {!editing.ReadOnlySelection} */
+    var selection = context.startingSelection;
 
     /** @const @type {!editing.EditableNode} */
     var containerNode = selection.focusNode;
@@ -325,11 +325,15 @@ editing.defineCommand('CreateLink', (function() {
    * @return {boolean}
    */
   function createLinkCommand(context, userInterface, url) {
-    if (url == '' || context.selection.isEmpty) {
+    if (url == '') {
       context.setEndingSelection(context.startingSelection);
       return false;
     }
-    if (context.selection.isCaret) {
+    if (context.startingSelection.isEmpty) {
+      context.setEndingSelection(context.startingSelection);
+      return true;
+    }
+    if (context.startingSelection.isCaret) {
       if (INSERT_LINK_FOR_CARET)
         return createLinkBeforeCaret(context, url);
       context.setEndingSelection(context.startingSelection);

@@ -74,7 +74,10 @@ editing.define('ReadOnlySelection', (function() {
    * @return {boolean}
    */
   function isCaret() {
-    return !this.isEmpty && !this.isRange;
+    if (this.isEmpty)
+      return;
+    return this.anchorNode_ === this.focusNode_ &&
+           this.anchorOffset_ == this.focusOffset_;
   }
 
   /**
@@ -90,10 +93,7 @@ editing.define('ReadOnlySelection', (function() {
    * @return {boolean}
    */
   function isRange() {
-    if (!this.isEmpty)
-      return false;
-    return this.anchorNode_ !== this.focusNode_ ||
-           this.anchorOffset_ != this.focusOffset_;
+    return !this.isEmpty && !this.isCaret;
   }
 
   /**

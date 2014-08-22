@@ -149,9 +149,16 @@ function testCaseWithSample(name, htmlText, testFunction) {
     var sample = new testing.Sample(htmlText || '^foo|');
     var editor = editing.getOrCreateEditor(sample.document);
     var context = editor.createContext('noname', sample.startingSelection);
-    try {
-      testFunction(context.selection);
-    } finally {
+    if (!(context.startingSelection instanceof editing.ReadOnlySelection))
+      throw new Error('No startingSelection');
+    if (testRunner.useTryCatch) {
+      try {
+        testFunction(context, context.startingSelection);
+      } finally {
+        sample.finish();
+      }
+    } else {
+      testFunction(context, context.startingSelection);
       sample.finish();
     }
   });

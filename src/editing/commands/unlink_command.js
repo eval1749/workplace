@@ -8,11 +8,12 @@ editing.defineCommand('Unlink', (function() {
   /**
    * @constructor
    * @final
-   * @param {!EditingSelection} selection
+   * @param {!editing.ReadOnlySelection} selection
    */
-  function SelectionTrackerForUnlink(selection) {
+  function SelectionTrackerForUnlink(context, selection) {
     this.anchorNode_ = selection.anchorNode_;
     this.anchorOffset_ = selection.anchorOffset_;
+    this.context_ = context;
     this.focusNode_ = selection.focusNode_;
     this.focusOffset_ = selection.focusOffset_;
     this.selection_ = selection;
@@ -24,7 +25,7 @@ editing.defineCommand('Unlink', (function() {
      * @this {!SelectionTrackerForUnlink}
      */
     function finish() {
-      this.selection_.context.setEndingSelection(new editing.ReadOnlySelection(
+      this.context_.setEndingSelection(new editing.ReadOnlySelection(
          this.anchorNode_, this.anchorOffset_,
          this.focusNode_, this.focusOffset_,
          this.selection_.direction));
@@ -32,7 +33,7 @@ editing.defineCommand('Unlink', (function() {
 
     /**
      * @this {!SelectionTrackerForUnlink}
-     * @param {!EditingSelection} anchorElement
+     * @param {!editing.ReadOnlySelection} anchorElement
      */
     function relocateIfNeeded(anchorElement) {
       if (this.anchorNode_ === anchorElement) {
@@ -48,10 +49,7 @@ editing.defineCommand('Unlink', (function() {
 
     return {
       anchorNode_: {writable: true},
-      anchorOffset_: {writable: true},
       finish: {value: finish},
-      focusNode_: {writable: true},
-      focusOffset_: {writable: true},
       relocateIfNeeded: {value: relocateIfNeeded},
     };
   })());
@@ -75,13 +73,13 @@ editing.defineCommand('Unlink', (function() {
    * @return {boolean}
    */
   function unlinkForCaret(context) {
-    var selection = context.selection;
+    var selection = context.startingSelection;
     var anchorElement = selection.focusNode;
     while (anchorElement && anchorElement.nodeName != 'A') {
       anchorElement = anchorElement.parentNode;
     }
     if (!anchorElement || !editing.nodes.isEditable(anchorElement)) {
-      context.setEndingSelection(context.startingSelection);
+      context.setEndingSelection(selection);
       return true;
     }
     var nodeAtCaret = selection.focusNode.childNodes[selection.focusOffset];
@@ -103,9 +101,9 @@ editing.defineCommand('Unlink', (function() {
    * @return {boolean}
    */
   function unlinkCommand(context, userInterface, value) {
-    var selection = context.selection;
+    var selection = context.startingSelection;
     if (selection.isEmpty) {
-      context.setEndingSelection(context.startingSelection);
+      context.setEndingSelection(selection);
       return true;
     }
 
@@ -117,7 +115,7 @@ editing.defineCommand('Unlink', (function() {
     // aren't valid HTML5.
     var anchorElements = [];
     var anchorElement = null;
-    var selectionTracker = new SelectionTrackerForUnlink(selection);
+    var selectionTracker = new SelectionTrackerForUnlink(context, selection);
     nodes.forEach(function(node) {
       while (anchorElement) {
         if (editing.nodes.isDescendantOf(node, anchorElement)) {

@@ -26,9 +26,9 @@ editing.defineCommand('removeFormat', (function() {
    * @return {boolean}
    */
   function removeFormatCommand(context, userInterface, value) {
-    var selection = context.selection;
+    var selection = context.startingSelection;
     if (!selection.isRange) {
-      context.setEndingSelection(context.startingSelection);
+      context.setEndingSelection(selection);
       return true;
     }
     var editor = context.editor;
