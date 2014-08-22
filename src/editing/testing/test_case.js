@@ -204,84 +204,89 @@ function testCaseFor(commandName, testCaseId, data) {
   var testCaseName = commandName + '.' + testCaseId;
   testCase(testCaseName, function() {
     var sample = new testing.SampleContext(data.before);
-    var editor = editing.getOrCreateEditor(sample.document);
-    editor.setSelection(sample.startingSelection);
+    var sample2 = new testing.SampleContext(data.before);
+    try {
+      var editor = editing.getOrCreateEditor(sample.document);
+      editor.setSelection(sample.startingSelection);
 
-    // Execute command and check return value
-    var expectedReturnValue = data.returnValue === undefined ?
-        true : data.returnValue;
-    var actualReturnValue = editor.execCommand(commandName,
-                                               Boolean(data.userInferface),
-                                               data.value || '');
-    if (expectedReturnValue == actualReturnValue) {
-      testRunner.pass('execCommand return value');
-    } else {
-      testRunner.fail('execCommand return value', {
-        actual: actualReturnValue,
-        expected: expectedReturnValue,
-      });
-    }
-
-    // Compare result HTML and selection
-    var actualResult = testing.serialzieNode(
-        editor.document.body.firstChild,
-        {selection: editor.selection});
-    var expectedResult = data.after;
-    if (stripMarker(expectedResult) == stripMarker(actualResult)) {
-      testRunner.pass('Result HTML');
-      if (expectedResult != actualResult) {
-        testRunner.warn('Result Selection', {
-            format: 'html',
-            before: pretty(data.before),
-            actual: pretty(actualResult),
-            expected: pretty(expectedResult)
+      // Execute command and check return value
+      var expectedReturnValue = data.returnValue === undefined ?
+          true : data.returnValue;
+      var actualReturnValue = editor.execCommand(commandName,
+                                                 Boolean(data.userInferface),
+                                                 data.value || '');
+      if (expectedReturnValue == actualReturnValue) {
+        testRunner.pass('execCommand return value');
+      } else {
+        testRunner.fail('execCommand return value', {
+          actual: actualReturnValue,
+          expected: expectedReturnValue,
         });
       }
-    } else {
-      testRunner.fail('Result HTML', {
-        format: 'html',
-        before: pretty(data.before),
-        actual: pretty(actualResult),
-        expected: pretty(expectedResult)
-      });
-    }
 
-    // Compare result with browser's result.
-    var actualResult2 = testing.serialzieNode(
-        editor.document.body.firstChild, {
-        selection: editor.selection,
-        visibleTextNode: true
-    });
+      // Compare result HTML and selection
+      var actualResult = testing.serialzieNode(
+          editor.document.body.firstChild,
+          {selection: editor.selection});
+      var expectedResult = data.after;
+      if (stripMarker(expectedResult) == stripMarker(actualResult)) {
+        testRunner.pass('Result HTML');
+        if (expectedResult != actualResult) {
+          testRunner.warn('Result Selection', {
+              format: 'html',
+              before: pretty(data.before),
+              actual: pretty(actualResult),
+              expected: pretty(expectedResult)
+          });
+        }
+      } else {
+        testRunner.fail('Result HTML', {
+          format: 'html',
+          before: pretty(data.before),
+          actual: pretty(actualResult),
+          expected: pretty(expectedResult)
+        });
+      }
 
-    var sampleContext = new testing.SampleContext(data.before);
-    var sampleReturnValue = sampleContext.execCommand(
-        commandName, Boolean(data.userInferface), data.value || '');
-    if (actualReturnValue != sampleReturnValue) {
-      testRunner.record('incompatible_return', {
-          actual: sampleReturnValue,
-          expected: actualReturnValue
+      // Compare result with browser's result.
+      var actualResult2 = testing.serialzieNode(
+          editor.document.body.firstChild, {
+          selection: editor.selection,
+          visibleTextNode: true
       });
-    }
 
-    var sampleResult = sampleContext.getResult();
-    if (sampleResult == actualResult2) {
-      testRunner.record('compatible');
-      return;
-    }
-    if (stripMarker(sampleResult) == stripMarker(actualResult2)) {
-      testRunner.record('incompatible_selection', {
-        format: 'html',
-        before: pretty(data.before),
-        actual: pretty(sampleResult),
-        expected: pretty(actualResult2)
+      var sampleReturnValue = sample2.execCommand(
+          commandName, Boolean(data.userInferface), data.value || '');
+      if (actualReturnValue != sampleReturnValue) {
+        testRunner.record('incompatible_return', {
+            actual: sampleReturnValue,
+            expected: actualReturnValue
+        });
+      }
+
+      var sampleResult = sample2.getResult();
+      if (sampleResult == actualResult2) {
+        testRunner.record('compatible');
+        return;
+      }
+      if (stripMarker(sampleResult) == stripMarker(actualResult2)) {
+        testRunner.record('incompatible_selection', {
+          format: 'html',
+          before: pretty(data.before),
+          actual: pretty(sampleResult),
+          expected: pretty(actualResult2)
+        });
+        return;
+      }
+      testRunner.record('incompatible_html', {
+          format: 'html',
+          before: pretty(data.before),
+          actual: pretty(sampleResult),
+          expected: pretty(actualResult2)
       });
-      return;
+    } finally {
+      sample.finish();
+      sample2.finish();
     }
-    testRunner.record('incompatible_html', {
-        format: 'html',
-        before: pretty(data.before),
-        actual: pretty(sampleResult),
-        expected: pretty(actualResult2)
-    });
   });
 }

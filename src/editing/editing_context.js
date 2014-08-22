@@ -5,7 +5,7 @@
 'use strict';
 
 editing.define('EditingContext', (function() {
-  function ASSERT_DOM_TREE_IS_MUTABLE(context) {
+  function ASSERT_EDITING_IN_PROGRESS(context) {
     if (!context.endingSelection_)
       return;
     throw new Error("You can't mutate DOM tree once you set ending selection.");
@@ -29,7 +29,13 @@ editing.define('EditingContext', (function() {
     // We don't make ending selection as starting selection here. Because,
     // |ReadOnlySelection| doesn't track DOM modification during command
     // execution.
-    this.startingSelection_ = selection;
+    // TODO(yosin) We should get rid of |EditingSelection|.
+    this.startingSelection_ = new editing.ReadOnlySelection(
+        this.selection_.anchorNode, this.selection.anchorOffset,
+        this.selection_.focusNode, this.selection.focusOffset,
+        this.selection.anchorIsStart ?
+            editing.SelectionDirection.ANCHOR_IS_START :
+            editing.SelectionDirection.FOCUS_IS_START);
     Object.seal(this);
   }
 
@@ -39,7 +45,7 @@ editing.define('EditingContext', (function() {
    * @param {!Node} newChild
    */
   function appendChild(parentNode, newChild) {
-    ASSERT_DOM_TREE_IS_MUTABLE(this);
+    ASSERT_EDITING_IN_PROGRESS(this);
     this.instructions_.push({operation: 'appendChild', newChild: newChild,
                              parentNode: parentNode});
     parentNode.appendChild(newChild);
@@ -91,7 +97,7 @@ editing.define('EditingContext', (function() {
    * Emulation of |Document.execCommand|.
    */
   function execCommand(name, opt_userInterface, opt_value) {
-    ASSERT_DOM_TREE_IS_MUTABLE(this);
+    ASSERT_EDITING_IN_PROGRESS(this);
     if (typeof(name) != 'string') {
       console.log('execCommand name', name);
       throw new Error('execCommand takes string: ' + name);
@@ -125,7 +131,7 @@ editing.define('EditingContext', (function() {
    * @param {!Node} refChild
    */
   function insertAfter(parent, newChild, refChild) {
-    ASSERT_DOM_TREE_IS_MUTABLE(this);
+    ASSERT_EDITING_IN_PROGRESS(this);
     if (!refChild)
       throw new Error('refChild can not be null for insertAfter.');
     if (parent !== refChild.parentNode)
@@ -140,7 +146,7 @@ editing.define('EditingContext', (function() {
    * @param {!Node} refChild
    */
   function insertBefore(parentNode, newChild, refChild) {
-    ASSERT_DOM_TREE_IS_MUTABLE(this);
+    ASSERT_EDITING_IN_PROGRESS(this);
     if (!refChild) {
       this.appendChild(parentNode, newChild);
       return;
@@ -178,7 +184,7 @@ editing.define('EditingContext', (function() {
    * @param {string} name
    */
   function removeAttribute(element, name) {
-    ASSERT_DOM_TREE_IS_MUTABLE(this);
+    ASSERT_EDITING_IN_PROGRESS(this);
     console.assert(typeof(name) == 'string',
         'Attribute name must be string rather than ' + name);
     var attrNode = element.getAttriubteNode(element);
@@ -194,8 +200,7 @@ editing.define('EditingContext', (function() {
    * @param {!Node} oldChild
    */
   function removeChild(parentNode, oldChild) {
-    ASSERT_DOM_TREE_IS_MUTABLE(this);
-    console.assert(oldChild instanceof Node);
+    ASSERT_EDITING_IN_PROGRESS(this);
     if (oldChild.parentNode !== parentNode)
       throw new Error('A parent of oldChild ' + oldChild + ' must be ' +
                       oldChild.parentNode.outerHTML +
@@ -214,7 +219,7 @@ editing.define('EditingContext', (function() {
    * @param {!Node} oldChild
    */
   function replaceChild(parentNode, newChild, oldChild) {
-    ASSERT_DOM_TREE_IS_MUTABLE(this);
+    ASSERT_EDITING_IN_PROGRESS(this);
     this.instructions_.push({operation: 'replaceChild', parentNode: parentNode,
                              newChild: newChild, oldChild: oldChild});
     parentNode.replaceChild(newChild, oldChild);
@@ -229,7 +234,7 @@ editing.define('EditingContext', (function() {
   function setAttribute(element, name, newValue) {
     console.assert(editing.nodes.isElement(element),
                    'Node ' + element + ' must be an Element.');
-    ASSERT_DOM_TREE_IS_MUTABLE(this);
+    ASSERT_EDITING_IN_PROGRESS(this);
     var attrNode = element.getAttributeNode(element);
     this.instructions_.push({operation: 'setAttribute', element: element,
                              name: name, newValue: newValue,
@@ -315,7 +320,7 @@ editing.define('EditingContext', (function() {
    * @return {!Node}
    */
   function splitText(node, offset) {
-    ASSERT_DOM_TREE_IS_MUTABLE(this);
+    ASSERT_EDITING_IN_PROGRESS(this);
     var newNode = node.splitText(offset);
     this.instructions_.push({operation: 'splitText', node: node,
                              offset: offset, newNode: newNode});
