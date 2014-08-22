@@ -52,9 +52,9 @@ editing.define('Editor', (function() {
     if (!commandFunction)
       throw new Error('No such command ' + name);
     if (this.currentContext_) {
-      throw new Error("We don't execute document.execCommand(" + name +
-        ") this time, because it is called recursively in" +
-        " document.execCommand('" + this.currentContext_.name + ')');
+      throw new Error("We don't execute document.execCommand('" + name +
+        "') this time, because it is called recursively in" +
+        " document.execCommand('" + this.currentContext_.name + "')");
     }
     var context = this.createContext(name, this.selection_);
     this.currentContext_ = context;
@@ -63,11 +63,12 @@ editing.define('Editor', (function() {
 // TODO(yosin) Once we finish debugging, we should move calling
 // |commandFunction| into try-finally block.
 returnValue = commandFunction(context, userInterface, value);
+this.currentContext_ = null;
 this.setDomSelection(context.endingSelection);
 this.undoStack_.push({commandName: name,
                       endingSelection: context.endingSelection,
-                      instructions: context.instructions,
-                      startingSelection: context.startingSelection});
+                      operations: context.operations,
+                      startingSelection: this.selection_});
 return returnValue;
     try {
       returnValue = commandFunction(context, userInterface, value);
@@ -114,6 +115,24 @@ return returnValue;
 
   /**
    * @this {!Editor}
+   * @return {boolean}
+   */
+  function redo(context) {
+    if (!this.redoStack_.length) {
+      context.setEndingSelection(context.startingSelection);
+      return false;
+    }
+    var commandData = this.redoStack_.pop();
+    commandData.operations.forEach(function(operation) {
+      operation.redo();
+    });
+    this.undoStack_.push(commandData);
+    context.setEndingSelection(commandData.startingSelection);
+    return true;
+  }
+
+  /**
+   * @this {!Editor}
    * @param {!editing.ReadOnlySelection}
    */
   function setDomSelection(selection) {
@@ -128,6 +147,29 @@ return returnValue;
     domSelection.extend(selection.focusNode, selection.focusOffset);
   }
 
+  /**
+   * @this {!Editor}
+   * @param {!EditingContext} context
+   * @return {boolean}
+   */
+  function undo(context) {
+    if (!this.undoStack_.length) {
+      context.setEndingSelection(context.startingSelection);
+      return false;
+    }
+    var commandData = this.undoStack_.pop();
+    // TODO(yosin) We should not use |reverse()| here. We can do this
+    // without copying array.
+    commandData.operations.slice().reverse().forEach(function(operation) {
+      console.log('undo', operation);
+      operation.undo();
+    });
+    this.redoStack_.push(commandData);
+    context.setEndingSelection(commandData.startingSelection);
+console.log('undo set endingSelection', context.endingSelection);
+    return true;
+  }
+
   Object.defineProperties(Editor.prototype, {
     createContext: {value: createContext},
     currentContext: {value: function() { return this.currentContext_; }},
@@ -139,7 +181,9 @@ return returnValue;
     selection: {get: function() { return this.selection_; }},
     selection_: {writable: true},
     setDomSelection: {value: setDomSelection },
+    redo: {value: redo},
     redoStack_: {writable: true},
+    undo: {value: undo},
     undoStack_: {writable: true}
   });
   return Editor;

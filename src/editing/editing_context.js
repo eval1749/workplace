@@ -27,7 +27,7 @@ editing.define('EditingContext', (function() {
     /**
      * @param {!Node} node
      * @param {number} offset
-     * TODO(yosin) We should remove |splitText| and |insertAfter| instructions
+     * TODO(yosin) We should remove |splitText| and |insertAfter| operations
      * if we don't change anchor and focus of selection.
      */
     function splitIfNeeded(node, offset) {
@@ -92,7 +92,7 @@ editing.define('EditingContext', (function() {
     this.editor_ = editor;
     this.endingSelection_ = null;
     this.name_ = name;
-    this.instructions_ = [];
+    this.operations_ = [];
     // We don't make ending selection as starting selection here. Because,
     // |ReadOnlySelection| doesn't track DOM modification during command
     // execution.
@@ -108,7 +108,7 @@ editing.define('EditingContext', (function() {
   function appendChild(parentNode, newChild) {
     ASSERT_EDITING_IN_PROGRESS(this);
     var operation = new editing.AppendChild(parentNode, newChild);
-    this.instructions_.push(operation);
+    this.operations_.push(operation);
     operation.execute();
   }
 
@@ -220,7 +220,7 @@ editing.define('EditingContext', (function() {
       return;
     }
     var operation = new editing.InsertBefore(parentNode, newChild, refChild);
-    this.instructions_.push(operation);
+    this.operations_.push(operation);
     operation.execute();
   }
 
@@ -250,7 +250,7 @@ editing.define('EditingContext', (function() {
         'Attribute name must be string rather than ' + name);
     var attrNode = element.getAttriubteNode(element);
     var operation = new editing.RemoveAttribute(element, name);
-    this.instructions_.push(operation);
+    this.operations_.push(operation);
     operation.execute();
   }
 
@@ -266,7 +266,7 @@ editing.define('EditingContext', (function() {
                       oldChild.parentNode.outerHTML +
                       ' instead of ' + parentNode.outerHTML);
     var operation = new editing.RemoveChild(parentNode, oldChild);
-    this.instructions_.push(operation);
+    this.operations_.push(operation);
     operation.execute();
   }
 
@@ -279,7 +279,7 @@ editing.define('EditingContext', (function() {
   function replaceChild(parentNode, newChild, oldChild) {
     ASSERT_EDITING_IN_PROGRESS(this);
     var operation = new editing.ReplaceChild(parentNode, newChild, oldChild);
-    this.instructions_.push(operation);
+    this.operations_.push(operation);
     operation.execute();
   }
 
@@ -294,7 +294,7 @@ editing.define('EditingContext', (function() {
                    'Node ' + element + ' must be an Element.');
     ASSERT_EDITING_IN_PROGRESS(this);
     var operation = new editing.SetAttribute(element, name, newValue);
-    this.instructions_.push(operation);
+    this.operations_.push(operation);
     operation.execute();
   }
 
@@ -346,7 +346,7 @@ editing.define('EditingContext', (function() {
     var style = element.style;
     var oldValue = style[propertyName];
     style[propertyName] = newValue;
-    this.instructions_.push({operation: 'setStyle', element: element,
+    this.operations_.push({operation: 'setStyle', element: element,
                              propertyName: propertyName, newValue: newValue,
                              oldValue: oldValue});
   }
@@ -380,7 +380,7 @@ editing.define('EditingContext', (function() {
    */
   function splitText(node, offset) {
     ASSERT_EDITING_IN_PROGRESS(this);
-    this.instructions_.push(new editing.SplitText(node, offset));
+    this.operations_.push(new editing.SplitText(node, offset));
     return node.splitText(offset);
   }
 
@@ -423,9 +423,9 @@ editing.define('EditingContext', (function() {
     insertAfter: {value: insertAfter},
     insertBefore: {value: insertBefore},
     insertChildrenBefore: {value: insertChildrenBefore},
-    instructions: {value: function() { return this.instructions_; }},
-    instructions_: {writable: true},
-    name: {value: function() { return this.name_; }},
+    operations: {get: function() { return this.operations_; }},
+    operations_: {writable: true},
+    name: {get: function() { return this.name_; }},
     name_: {writable: true},
     removeAttribute: {value: removeAttribute},
     removeChild: {value: removeChild},

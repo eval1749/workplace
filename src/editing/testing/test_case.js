@@ -271,45 +271,104 @@ function testCaseFor(commandName, testCaseId, data) {
       }
 
       // Compare result with browser's result.
-      var actualResult2 = testing.serialzieNode(
-        editor.document.body.firstChild, {
-          selection: editor.selection,
-          visibleTextNode: false
-      });
+      var checkCompatiblity = function() {
+        var actualResult2 = testing.serialzieNode(
+          editor.document.body.firstChild, {
+            selection: editor.selection,
+            visibleTextNode: false
+        });
 
-      var sampleReturnValue = sample2.execCommand(
-          commandName, Boolean(data.userInferface), data.value || '');
-      if (actualReturnValue != sampleReturnValue) {
-        testRunner.record('incompatible_return', {
-            actual: sampleReturnValue,
-            expected: actualReturnValue
+        var sampleReturnValue = sample2.execCommand(
+            commandName, Boolean(data.userInferface), data.value || '');
+        if (actualReturnValue != sampleReturnValue) {
+          testRunner.record('incompatible_return', {
+              actual: sampleReturnValue,
+              expected: actualReturnValue
+          });
+        }
+
+        var sampleResult = testing.serialzieNode(
+          sample2.document.body.firstChild, {
+            selection: sample2.endingSelection,
+            visibleTextNode: false
+        });
+        if (sampleResult == actualResult2) {
+          testRunner.record('compatible');
+          return;
+        }
+        if (stripMarker(sampleResult) == stripMarker(actualResult2)) {
+          testRunner.record('incompatible_selection', {
+            format: 'html',
+            before: pretty(data.before),
+            current: pretty(sampleResult),
+            new: pretty(actualResult2)
+          });
+          return;
+        }
+        testRunner.record('incompatible_html', {
+            format: 'html',
+            before: pretty(data.before),
+            current: pretty(sampleResult),
+            new: pretty(actualResult2)
         });
       }
+      checkCompatiblity();
 
-      var sampleResult = testing.serialzieNode(
-        sample2.document.body.firstChild, {
-          selection: sample2.endingSelection,
-          visibleTextNode: false
-      });
-      if (sampleResult == actualResult2) {
-        testRunner.record('compatible');
-        return;
+      // Undo
+      var checkUndo = function() {
+        console.log('undo ====================');
+        editor.execCommand('undo');
+        var undoResult = testing.serialzieNode(
+            editor.document.body.firstChild,
+            {selection: editor.selection});
+        if (undoResult == data.before) {
+          testRunner.pass('undo');
+        } else {
+          testRunner.fail('undo', {
+            format: 'html',
+            before: pretty(actualResult),
+            actual: pretty(undoResult),
+            expected: pretty(data.before)
+          });
+        }
+      };
+      if (testRunner.useTryCatch) {
+        try {
+          checkUndo();
+        } catch (exception) {
+          testRunner.fail('undo', {exception: exception})
+        }
+      } else {
+        checkUndo();
       }
-      if (stripMarker(sampleResult) == stripMarker(actualResult2)) {
-        testRunner.record('incompatible_selection', {
-          format: 'html',
-          before: pretty(data.before),
-          current: pretty(sampleResult),
-          new: pretty(actualResult2)
-        });
-        return;
+
+      // Redo
+      var checkRedo = function() {
+        console.log('redo ====================');
+        editor.execCommand('redo');
+        var redoResult = testing.serialzieNode(
+            editor.document.body.firstChild,
+            {selection: editor.selection});
+        if (redoResult == data.after) {
+          testRunner.pass('redo');
+        } else {
+          testRunner.fail('redo', {
+            format: 'html',
+            before: pretty(undoResult),
+            actual: pretty(redoResult),
+            expected: pretty(data.after)
+          });
+        }
+      };
+      if (testRunner.useTryCatch) {
+        try {
+          checkRedo();
+        } catch (exception) {
+          testRunner.fail('redo', {exception: exception})
+        }
+      } else {
+        checkRedo();
       }
-      testRunner.record('incompatible_html', {
-          format: 'html',
-          before: pretty(data.before),
-          current: pretty(sampleResult),
-          new: pretty(actualResult2)
-      });
     } finally {
       sample.finish();
       sample2.finish();

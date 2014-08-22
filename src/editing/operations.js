@@ -91,6 +91,7 @@ editing.define('InsertBefore', (function() {
    * @this {!InsertBefore}
    */
   function redo() {
+console.log('insertBefore.redo', this);
     this.parentNode_.insertBefore(this.newChild_, this.refChild_);
   }
 
@@ -98,6 +99,7 @@ editing.define('InsertBefore', (function() {
    * @this {!InsertBefore}
    */
   function undo() {
+console.log('insertBefore.undo', this);
     this.parentNode_.removeChild(this.newChild_);
   }
 
