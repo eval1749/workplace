@@ -153,7 +153,7 @@ testCaseWithSample('nodes.isPhrasing', '', function(context, selection) {
 });
 
 //
-// nodes.isWhitespaceNode
+// isWhitespaceNode
 //
 testCaseWithSample('nodes.isWhitespaceNode', '', function(context, selection) {
   var elementA = context.createElement('a');
@@ -163,6 +163,59 @@ testCaseWithSample('nodes.isWhitespaceNode', '', function(context, selection) {
   expectFalse(function () { return editing.nodes.isWhitespaceNode(textB); });
   expectTrue(function () { return editing.nodes.isWhitespaceNode(textC); });
 });
+
+
+//
+// constructor splitText
+//
+testCaseWithSample('nodes.normalizeSelection.splitTextCaret',
+  '<p contenteditable>ab|cd</p>', function(context, selectionIn) {
+  var selection = editing.nodes.normalizeSelection(context, selectionIn);
+  expectTrue(function() { return selection.isCaret; });
+  expectFalse(function() { return selection.isEmpty; });
+  expectFalse(function() { return selection.isRange; });
+  expectEq('P', function() { return selection.anchorNode.nodeName; });
+  expectEq(1, function() { return selection.anchorOffset; });
+  expectEq('P', function() { return selection.focusNode.nodeName; });
+  expectEq(1, function() { return selection.focusOffset; });
+});
+
+testCaseWithSample('nodes.normalizeSelection.splitTextCaretInTree',
+  '<p contenteditable><b>bold_1<i>italic_1<s>strike_1|strike_2</s>italic_2</i>bold_2</b></p>',
+  function(context, selectionIn) {
+    var selection = editing.nodes.normalizeSelection(context, selectionIn);
+    expectTrue(function() { return selection.isCaret; });
+    expectFalse(function() { return selection.isEmpty; });
+    expectFalse(function() { return selection.isRange; });
+    expectEq('S', function() { return selection.anchorNode.nodeName; });
+    expectEq(1, function() { return selection.anchorOffset; });
+    expectEq('S', function() { return selection.focusNode.nodeName; });
+    expectEq(1, function() { return selection.focusOffset; });
+  });
+
+testCaseWithSample('nodes.normalizeSelection.splitTextAnchorFocus',
+  '<p contenteditable>a^bc|d</p>', function(context, selectionIn) {
+    var selection = editing.nodes.normalizeSelection(context, selectionIn);
+    expectFalse(function() { return selection.isCaret; });
+    expectFalse(function() { return selection.isEmpty; });
+    expectTrue(function() { return selection.isRange; });
+    expectEq('P', function() { return selection.anchorNode.nodeName; });
+    expectEq(1, function() { return selection.anchorOffset; });
+    expectEq('P', function() { return selection.focusNode.nodeName; });
+    expectEq(2, function() { return selection.focusOffset; });
+  });
+
+testCaseWithSample('nodes.normalizeSelection.splitTextFocusAnchor',
+  '<p contenteditable>a|bc^d</p>', function(context, selectionIn) {
+    var selection = editing.nodes.normalizeSelection(context, selectionIn);
+    expectFalse(function() { return selection.isCaret; });
+    expectFalse(function() { return selection.isEmpty; });
+    expectTrue(function() { return selection.isRange; });
+    expectEq('P', function() { return selection.anchorNode.nodeName; });
+    expectEq(2, function() { return selection.anchorOffset; });
+    expectEq('P', function() { return selection.focusNode.nodeName; });
+    expectEq(1, function() { return selection.focusOffset; });
+  });
 
 //
 // splitTree
