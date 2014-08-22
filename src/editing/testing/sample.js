@@ -137,6 +137,23 @@ testing.define('Sample', (function() {
     this.domSelection_ = iframe.contentWindow.getSelection();
     if (!this.domSelection_)
       throw new Error('Can not get selection from IFRAME');
+
+    // IE11 |Selection| doesn't have |extend| function.
+    if (!this.domSelection_.extend) {
+      this.domSelection_.extend = function(focusNode, focusOffset) {
+        var anchor = document.createRange();
+        anchor.setStart(this.anchorNode, this.anchorOffset);
+        var focus = document.createRange();
+        focus.setStart(focusNode, focusOffset);
+        this.removeAllRanges();
+        if (anchor.compareBoundaryPoints(Range.START_TOSTART, focus) <= 0) {
+          anchor.setEnd(focusNode, focusOffset);
+        } else {
+          anchor.setStart(focusNode, focusOffset);
+        }
+        this.addRange(anchor);
+      }
+    }
     this.startingSelection_ = parseSample(this.document, htmlText);
     Object.seal(this);
   }
@@ -188,93 +205,8 @@ testing.define('Sample', (function() {
    * @return {string}
    */
   function getResult() {
-    var selection = this.endingSelection_;
-
-    function insertMarker(text, offset, marker) {
-      return text.substr(0, offset) + marker + text.substr(offset);
-    }
-
-    function marker(node, offset) {
-      if (!selection)
-        return '';
-      if (selection.focusNode === node && selection.focusOffset == offset)
-        return '|';
-      if (selection.anchorNode === node && selection.anchorOffset == offset)
-        return '^';
-      return '';
-    }
-
-    /**
-     * @param {!Node} node
-     * @return {string}
-     */
-    function visit(node) {
-      if (node.nodeType == Node.TEXT_NODE) {
-        var text = node.nodeValue;
-        if (selection) {
-          if (selection.focusNode == node)
-            return insertMarker(text, selection.focusOffset, '|');
-          if (selection.anchorNode == node)
-            return insertMarker(text, selection.anchorOffset, '^');
-        }
-        return text;
-      }
-      if (node.nodeType != Node.ELEMENT_NODE) {
-        // To support |Document| node, we iterate over child nodes.
-        var sink = '';
-        for (var child = node.firstChild; child; child = child.nextSibling) {
-          sink += visit(child);
-        }
-        return sink.length ? sink : node.nodeValue;
-      }
-      var tagName = node.nodeName.toLowerCase();
-      var sink = '<' + tagName;
-      var attributes = node.attributes;
-      var attrs = [];
-      for (var index = 0; index < attributes.length; ++index) {
-        attrs.push(attributes[index]);
-      }
-      attrs.sort(function(a, b) {
-        return a.name <= b.name ? -1 : 0;
-      }).forEach(function(attr) {
-        var attrName = attr.name;
-        // We ignore Firefox speicfic attributes inserted by |execCommand|.
-        if (attrName.startsWith('_moz'))
-          return;
-        var attrValue = attr.value;
-        if (attrValue){
-          // Remove last ";" since IE put ";" for "style" attribute, but
-          // other browsers don't.
-          if (attrName == 'style')
-            attrValue = attrValue.replace(/;$/, '');
-          attrValue = String(attrValue).replace(/&/g, '&amp;')
-              .replace(/\u0022/g, '&quot;')
-          sink += ' ' + attrName + '="' + attrValue + '"';
-        } else {
-          sink += ' ' + attrName;
-        }
-      });
-      sink += '>';
-      var child = node.firstChild;
-      var offset = 0;
-      while (child) {
-        sink += marker(node, offset);
-        sink += visit(child);
-        var nextSibling = child.nextSibling;
-        if (child.nodeType == Node.TEXT_NODE && nextSibling &&
-            nextSibling.nodeType == Node.TEXT_NODE) {
-          sink += '_';
-        }
-        child = nextSibling;
-        ++offset;
-      }
-      sink += marker(node, offset);
-      if (!testing.END_TAG_OMISSIBLE.has(tagName))
-        sink += '</' + tagName + '>';
-      return sink;
-    };
-    var body = this.document_.body;
-    return body ? visit(this.document_.body.firstChild) : '';
+    return testing.serialzieNode(this.document_.body.firstChild,
+                                 {selection: this.endingSelection_});
   }
 
   Object.defineProperties(Sample.prototype, {
