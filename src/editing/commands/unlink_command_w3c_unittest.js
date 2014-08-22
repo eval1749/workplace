@@ -118,205 +118,205 @@ testCaseFor('unlink', 'w3c.11r', {
 
 testCaseFor('unlink', 'w3c.12', {
   after: '<div contenteditable>^<p></p><p> </p><p>foo</p>|</div>',
-  before: '<div contenteditable>^<p><p> <p>foo</p>|</div>',
+  before: '<div contenteditable>^<p></p><p> </p><p>foo</p>|</div>',
   sampleId: 12
 });
 
 testCaseFor('unlink', 'w3c.12r', {
   after: '<div contenteditable>|<p></p><p> </p><p>foo</p>^</div>',
-  before: '<div contenteditable>|<p><p> <p>foo</p>^</div>',
+  before: '<div contenteditable>|<p></p><p> </p><p>foo</p>^</div>',
   sampleId: '12r'
 });
 
 testCaseFor('unlink', 'w3c.13', {
   after: '<div contenteditable>foo^bar|baz</div>',
-  before: '<div contenteditable><a href=http://www.google.com/>foo^bar|baz</a></div>',
+  before: '<div contenteditable><a href="http://www.google.com/">foo^bar|baz</a></div>',
   sampleId: 13
 });
 
 testCaseFor('unlink', 'w3c.13r', {
   after: '<div contenteditable>foo|bar^baz</div>',
-  before: '<div contenteditable><a href=http://www.google.com/>foo|bar^baz</a></div>',
+  before: '<div contenteditable><a href="http://www.google.com/">foo|bar^baz</a></div>',
   sampleId: '13r'
 });
 
 testCaseFor('unlink', 'w3c.14', {
   after: '<div contenteditable>foo^barbaz|</div>',
-  before: '<div contenteditable><a href=http://www.google.com/>foo^barbaz</a>|</div>',
+  before: '<div contenteditable><a href="http://www.google.com/">foo^barbaz</a>|</div>',
   sampleId: 14
 });
 
 testCaseFor('unlink', 'w3c.14r', {
   after: '<div contenteditable>foo|barbaz^</div>',
-  before: '<div contenteditable><a href=http://www.google.com/>foo|barbaz</a>^</div>',
+  before: '<div contenteditable><a href="http://www.google.com/">foo|barbaz</a>^</div>',
   sampleId: '14r'
 });
 
 testCaseFor('unlink', 'w3c.15', {
   after: '<div contenteditable>^foobar|baz</div>',
-  before: '<div contenteditable>^<a href=http://www.google.com/>foobar|baz</a></div>',
+  before: '<div contenteditable>^<a href="http://www.google.com/">foobar|baz</a></div>',
   sampleId: 15
 });
 
 testCaseFor('unlink', 'w3c.15r', {
   after: '<div contenteditable>|foobar^baz</div>',
-  before: '<div contenteditable>|<a href=http://www.google.com/>foobar^baz</a></div>',
+  before: '<div contenteditable>|<a href="http://www.google.com/">foobar^baz</a></div>',
   sampleId: '15r'
 });
 
 testCaseFor('unlink', 'w3c.16', {
   after: '<div contenteditable>^foobarbaz|</div>',
-  before: '<div contenteditable>^<a href=http://www.google.com/>foobarbaz</a>|</div>',
+  before: '<div contenteditable>^<a href="http://www.google.com/">foobarbaz</a>|</div>',
   sampleId: 16
 });
 
 testCaseFor('unlink', 'w3c.16r', {
   after: '<div contenteditable>|foobarbaz^</div>',
-  before: '<div contenteditable>|<a href=http://www.google.com/>foobarbaz</a>^</div>',
+  before: '<div contenteditable>|<a href="http://www.google.com/">foobarbaz</a>^</div>',
   sampleId: '16r'
 });
 
 testCaseFor('unlink', 'w3c.17', {
   after: '<div contenteditable>^foobarbaz|</div>',
-  before: '<div contenteditable><a href=http://www.google.com/>^foobarbaz|</a></div>',
+  before: '<div contenteditable><a href="http://www.google.com/">^foobarbaz|</a></div>',
   sampleId: 17
 });
 
 testCaseFor('unlink', 'w3c.17r', {
   after: '<div contenteditable>|foobarbaz^</div>',
-  before: '<div contenteditable><a href=http://www.google.com/>|foobarbaz^</a></div>',
+  before: '<div contenteditable><a href="http://www.google.com/">|foobarbaz^</a></div>',
   sampleId: '17r'
 });
 
 testCaseFor('unlink', 'w3c.18', {
   after: '<div contenteditable>foob|arbaz</div>',
-  before: '<div contenteditable>foo<a href=http://www.google.com/>b|ar</a>baz</div>',
+  before: '<div contenteditable>foo<a href="http://www.google.com/">b|ar</a>baz</div>',
   sampleId: 18
 });
 
 testCaseFor('unlink', 'w3c.19', {
   after: '<div contenteditable>foo^bar|baz</div>',
-  before: '<div contenteditable>foo<a href=http://www.google.com/>^bar|</a>baz</div>',
+  before: '<div contenteditable>foo<a href="http://www.google.com/">^bar|</a>baz</div>',
   sampleId: 19
 });
 
 testCaseFor('unlink', 'w3c.19r', {
   after: '<div contenteditable>foo|bar^baz</div>',
-  before: '<div contenteditable>foo<a href=http://www.google.com/>|bar^</a>baz</div>',
+  before: '<div contenteditable>foo<a href="http://www.google.com/">|bar^</a>baz</div>',
   sampleId: '19r'
 });
 
 testCaseFor('unlink', 'w3c.20', {
   after: '<div contenteditable>foo^bar|baz</div>',
-  before: '<div contenteditable>foo^<a href=http://www.google.com/>bar</a>|baz</div>',
+  before: '<div contenteditable>foo^<a href="http://www.google.com/">bar</a>|baz</div>',
   sampleId: 20
 });
 
 testCaseFor('unlink', 'w3c.20r', {
   after: '<div contenteditable>foo|bar^baz</div>',
-  before: '<div contenteditable>foo|<a href=http://www.google.com/>bar</a>^baz</div>',
+  before: '<div contenteditable>foo|<a href="http://www.google.com/">bar</a>^baz</div>',
   sampleId: '20r'
 });
 
 testCaseFor('unlink', 'w3c.21', {
   after: '<div contenteditable>foo^barbaz|</div>',
-  before: '<div contenteditable>foo<a href=http://www.google.com/>^bar</a>baz|</div>',
+  before: '<div contenteditable>foo<a href="http://www.google.com/">^bar</a>baz|</div>',
   sampleId: 21
 });
 
 testCaseFor('unlink', 'w3c.21r', {
   after: '<div contenteditable>foo|barbaz^</div>',
-  before: '<div contenteditable>foo<a href=http://www.google.com/>|bar</a>baz^</div>',
+  before: '<div contenteditable>foo<a href="http://www.google.com/">|bar</a>baz^</div>',
   sampleId: '21r'
 });
 
 testCaseFor('unlink', 'w3c.22', {
   after: '<div contenteditable>^foobar|baz</div>',
-  before: '<div contenteditable>^foo<a href=http://www.google.com/>bar|</a>baz</div>',
+  before: '<div contenteditable>^foo<a href="http://www.google.com/">bar|</a>baz</div>',
   sampleId: 22
 });
 
 testCaseFor('unlink', 'w3c.22r', {
   after: '<div contenteditable>|foobar^baz</div>',
-  before: '<div contenteditable>|foo<a href=http://www.google.com/>bar^</a>baz</div>',
+  before: '<div contenteditable>|foo<a href="http://www.google.com/">bar^</a>baz</div>',
   sampleId: '22r'
 });
 
 testCaseFor('unlink', 'w3c.23', {
   after: '<div contenteditable>^foobarbaz|</div>',
-  before: '<div contenteditable>^foo<a href=http://www.google.com/>bar</a>baz|</div>',
+  before: '<div contenteditable>^foo<a href="http://www.google.com/">bar</a>baz|</div>',
   sampleId: 23
 });
 
 testCaseFor('unlink', 'w3c.23r', {
   after: '<div contenteditable>|foobarbaz^</div>',
-  before: '<div contenteditable>|foo<a href=http://www.google.com/>bar</a>baz^</div>',
+  before: '<div contenteditable>|foo<a href="http://www.google.com/">bar</a>baz^</div>',
   sampleId: '23r'
 });
 
 testCaseFor('unlink', 'w3c.24', {
   after: '<div contenteditable><a id="foo">foobar|baz</a></div>',
-  before: '<div contenteditable><a id=foo href=http://www.google.com/>foobar|baz</a></div>',
+  before: '<div contenteditable><a id="foo" href="http://www.google.com/">foobar|baz</a></div>',
   sampleId: 24
 });
 
 testCaseFor('unlink', 'w3c.25', {
   after: '<div contenteditable><a id="foo">foo^bar|baz</a></div>',
-  before: '<div contenteditable><a id=foo href=http://www.google.com/>foo^bar|baz</a></div>',
+  before: '<div contenteditable><a id="foo" href="http://www.google.com/">foo^bar|baz</a></div>',
   sampleId: 25
 });
 
 testCaseFor('unlink', 'w3c.25r', {
   after: '<div contenteditable><a id="foo">foo|bar^baz</a></div>',
-  before: '<div contenteditable><a id=foo href=http://www.google.com/>foo|bar^baz</a></div>',
+  before: '<div contenteditable><a id="foo" href="http://www.google.com/">foo|bar^baz</a></div>',
   sampleId: '25r'
 });
 
 testCaseFor('unlink', 'w3c.26', {
   after: '<div contenteditable><a id="foo">^foobarbaz|</a></div>',
-  before: '<div contenteditable><a id=foo href=http://www.google.com/>^foobarbaz|</a></div>',
+  before: '<div contenteditable><a id="foo" href="http://www.google.com/">^foobarbaz|</a></div>',
   sampleId: 26
 });
 
 testCaseFor('unlink', 'w3c.26r', {
   after: '<div contenteditable><a id="foo">|foobarbaz^</a></div>',
-  before: '<div contenteditable><a id=foo href=http://www.google.com/>|foobarbaz^</a></div>',
+  before: '<div contenteditable><a id="foo" href="http://www.google.com/">|foobarbaz^</a></div>',
   sampleId: '26r'
 });
 
 testCaseFor('unlink', 'w3c.27', {
   after: '<div contenteditable>foo<a id="foo">^bar|</a>baz</div>',
-  before: '<div contenteditable>foo<a id=foo href=http://www.google.com/>^bar|</a>baz</div>',
+  before: '<div contenteditable>foo<a id="foo" href="http://www.google.com/">^bar|</a>baz</div>',
   sampleId: 27
 });
 
 testCaseFor('unlink', 'w3c.27r', {
   after: '<div contenteditable>foo<a id="foo">|bar^</a>baz</div>',
-  before: '<div contenteditable>foo<a id=foo href=http://www.google.com/>|bar^</a>baz</div>',
+  before: '<div contenteditable>foo<a id="foo" href="http://www.google.com/">|bar^</a>baz</div>',
   sampleId: '27r'
 });
 
 testCaseFor('unlink', 'w3c.28', {
   after: '<div contenteditable>foo^<a id="foo">bar</a>|baz</div>',
-  before: '<div contenteditable>foo^<a id=foo href=http://www.google.com/>bar</a>|baz</div>',
+  before: '<div contenteditable>foo^<a id="foo" href="http://www.google.com/">bar</a>|baz</div>',
   sampleId: 28
 });
 
 testCaseFor('unlink', 'w3c.28r', {
   after: '<div contenteditable>foo|<a id="foo">bar</a>^baz</div>',
-  before: '<div contenteditable>foo|<a id=foo href=http://www.google.com/>bar</a>^baz</div>',
+  before: '<div contenteditable>foo|<a id="foo" href="http://www.google.com/">bar</a>^baz</div>',
   sampleId: '28r'
 });
 
 testCaseFor('unlink', 'w3c.29', {
   after: '<div contenteditable>^foo<a id="foo">bar</a>baz|</div>',
-  before: '<div contenteditable>^foo<a id=foo href=http://www.google.com/>bar</a>baz|</div>',
+  before: '<div contenteditable>^foo<a id="foo" href="http://www.google.com/">bar</a>baz|</div>',
   sampleId: 29
 });
 
 testCaseFor('unlink', 'w3c.29r', {
   after: '<div contenteditable>|foo<a id="foo">bar</a>baz^</div>',
-  before: '<div contenteditable>|foo<a id=foo href=http://www.google.com/>bar</a>baz^</div>',
+  before: '<div contenteditable>|foo<a id="foo" href="http://www.google.com/">bar</a>baz^</div>',
   sampleId: '29r'
 });
 
