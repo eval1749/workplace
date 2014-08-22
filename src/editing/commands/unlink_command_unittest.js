@@ -59,18 +59,18 @@ testCaseFor('Unlink', 'AnchorElement.Href.Class', {
 });
 
 testCaseFor('Unlink', 'AnchorElement.Href.Id', {
-  before: '<p contenteditable>^<a  href="url1" id="id1">bar</a>|</p>',
+  before: '<p contenteditable>^<a href="url1" id="id1">bar</a>|</p>',
   after:'<p contenteditable>^bar|</p>',
   ie: '<p contenteditable>^<a href="url1" id="id1">bar</a></p>'
 });
 
 testCaseFor('Unlink', 'AnchorElement.Href.Name', {
-  before: '<p contenteditable>^<a  href="url1" name="id1">bar</a>|</p>',
+  before: '<p contenteditable>^<a href="url1" name="id1">bar</a>|</p>',
   after:'<p contenteditable>^bar|</p>',
 });
 
 testCaseFor('Unlink', 'AnchorElement.Href.Style', {
-  before: '<p contenteditable>^<a  href="url1" style="font-weight: bold;">bar</a>|</p>',
+  before: '<p contenteditable>^<a  href="url1" style="font-weight: bold">bar</a>|</p>',
   after:'<p contenteditable>^bar|</p>',
   firefox: '<p contenteditable><a href="url1" style="font-weight: bold;">bar</a></p>',
 });
@@ -147,7 +147,10 @@ testCaseFor('Unlink', 'Multiple.Partial.Focus.Anchor', {
 // Nested anchor elements
 //
 testCaseFor('Unlink', 'Multiple.Nested', {
-  before: '<p contenteditable>^<a href="foo">abc<a>def</a></a>|</p>',
+  // TODO(yosi) Since the parser automatically insert "</a>" to avoid nested
+  // A elements, we should make nested A elements by script.
+  x_before: '<p contenteditable>^<a href="foo">abc<a>def</a></a>|</p>',
+  before: '<p contenteditable>^<a href="foo">abc</a><a>def</a>|</p>',
   after:'<p contenteditable>^abcdef|</p>',
 });
 
