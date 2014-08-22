@@ -7,8 +7,8 @@
 // Operation
 //
 editing.define('Operation', (function() {
-  function Operation(name) {
-    this.name_ = name;
+  function Operation(operationName) {
+    this.operationName_ = operationName;
   }
 
   /**
@@ -27,8 +27,8 @@ editing.define('Operation', (function() {
 
   Object.defineProperties(Operation.prototype, {
     constructor: Operation,
-    name: {get: function() { return this.name_; }},
-    name_: {writable: true},
+    operationName: {get: function() { return this.operationName_; }},
+    operationName_: {writable: true},
     redo: {value: redo },
     undo: {value: undo }
   });
@@ -114,6 +114,47 @@ editing.define('InsertBefore', (function() {
 
 //////////////////////////////////////////////////////////////////////
 //
+// RemoveAttribute
+//
+editing.define('RemoveAttribute', (function() {
+  function RemoveAttribute(element, attrName, attrValue) {
+    editing.Operation.call(this, 'removeAttribute');
+    this.element_ = element;
+    this.attrName_ = attrName;
+    this.oldValue_ = element.getAttribute(attrName);
+    if (this.oldValue_ === null)
+      throw new Error('You can not remove non-existing attribute ' + attrName);
+    Object.seal(this);
+  }
+
+  /**
+   * @this {!RemoveAttribute}
+   */
+  function redo() {
+    this.element_.removeAttribute(this.attrName_);
+  }
+
+  /**
+   * @this {!RemoveAttribute}
+   */
+  function undo() {
+    this.element_.setAttribute(this.attrName_, this.oldValue_);
+  }
+
+  RemoveAttribute.prototype = Object.create(editing.Operation.prototype, {
+    constructor: RemoveAttribute,
+    attrName_: {writable: true},
+    element_: {writable: true},
+    oldValue_: {writable: true},
+    redo: {value: redo},
+    undo: {value: undo}
+  });
+
+  return RemoveAttribute;
+})());
+
+//////////////////////////////////////////////////////////////////////
+//
 // RemoveChild
 //
 editing.define('RemoveChild', (function() {
@@ -188,4 +229,50 @@ editing.define('ReplaceChild', (function() {
   });
 
   return ReplaceChild;
+})());
+
+//////////////////////////////////////////////////////////////////////
+//
+// SetAttribute
+//
+editing.define('SetAttribute', (function() {
+  function SetAttribute(element, attrName, attrValue) {
+    if (attrValue === null)
+      throw new Error('You can not use null for attribute ' + attrName);
+    editing.Operation.call(this, 'setAttribute');
+    this.element_ = element;
+    this.attrName_ = attrName;
+    this.newValue_ = attrValue;
+    this.oldValue_ = element.getAttribute(attrName);
+    Object.seal(this);
+  }
+
+  /**
+   * @this {!SetAttribute}
+   */
+  function redo() {
+    this.element_.setAttribute(this.attrName_, this.newValue_);
+  }
+
+  /**
+   * @this {!SetAttribute}
+   */
+  function undo() {
+    if (this.oldValue_ === null)
+      this.element_.removeAttribute(this.attrName_);
+    else
+      this.element_.setAttribute(this.attrName_, this.oldValue_);
+  }
+
+  SetAttribute.prototype = Object.create(editing.Operation.prototype, {
+    constructor: SetAttribute,
+    attrName_: {writable: true},
+    element_: {writable: true},
+    newValue_: {writable: true},
+    oldValue_: {writable: true},
+    redo: {value: redo},
+    undo: {value: undo}
+  });
+
+  return SetAttribute;
 })());

@@ -43,6 +43,23 @@ testCaseWithSample('operations.insertBefore.1',
     });
 
 //
+// RemoveAttribute
+//
+testCaseWithSample('operations.removeAttribute.1',
+    '|<p><foo x="1"></p>',
+    function(context, selection) {
+      var parentNode = context.document.body.firstChild;
+      var element = parentNode.firstChild;
+      var operation = new editing.RemoveAttribute(element, 'x');
+
+      operation.redo();
+      expectEq('<p><foo></foo></p>', createHtmlGetter(parentNode));
+
+      operation.undo();
+      expectEq('<p><foo x="1"></foo></p>', createHtmlGetter(parentNode));
+    });
+
+//
 // RemoveChild
 //
 testCaseWithSample('operations.removeChild.1',
@@ -73,4 +90,21 @@ testCaseWithSample('operations.replceChild.1',
 
       operation.undo();
       expectEq('<p>foo</p>', createHtmlGetter(parentNode));
+    });
+
+//
+// SetAttribute
+//
+testCaseWithSample('operations.setAttribute.1',
+    '|<p><foo x="1"></p>',
+    function(context, selection) {
+      var parentNode = context.document.body.firstChild;
+      var element = parentNode.firstChild;
+      var operation = new editing.SetAttribute(element, 'x', 'baz');
+
+      operation.redo();
+      expectEq('<p><foo x="baz"></foo></p>', createHtmlGetter(parentNode));
+
+      operation.undo();
+      expectEq('<p><foo x="1"></foo></p>', createHtmlGetter(parentNode));
     });
