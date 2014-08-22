@@ -73,7 +73,8 @@ editing.defineCommand('Unlink', (function() {
    * @return {boolean}
    */
   function unlinkForCaret(context) {
-    var selection = context.startingSelection;
+    /** @const */ var selection = editing.nodes.normalizeSelection(
+        context, context.startingSelection);
     var anchorElement = selection.focusNode;
     while (anchorElement && anchorElement.nodeName != 'A') {
       anchorElement = anchorElement.parentNode;
@@ -86,7 +87,8 @@ editing.defineCommand('Unlink', (function() {
     moveChildNodesBeforeParentNode(context, anchorElement, null);
     var containerNode = nodeAtCaret ? nodeAtCaret.parentNode :
                                       selection.focusNode.parentNode;
-    var offset = nodeAtCaret ? editing.nodes.nodeIndex(nodeAtCaret) : selection.focusOffset;
+    var offset = nodeAtCaret ? editing.nodes.nodeIndex(nodeAtCaret) :
+                               selection.focusOffset;
     context.removeChild(anchorElement.parentNode, anchorElement);
     context.setEndingSelection(new editing.ReadOnlySelection(
         containerNode, offset, containerNode, offset,
@@ -101,12 +103,13 @@ editing.defineCommand('Unlink', (function() {
    * @return {boolean}
    */
   function unlinkCommand(context, userInterface, value) {
-    var selection = context.startingSelection;
-    if (selection.isEmpty) {
-      context.setEndingSelection(selection);
+    if (context.startingSelection.isEmpty) {
+      context.setEndingSelection(context.startingSelection);
       return true;
     }
 
+    /** @const */ var selection = editing.nodes.normalizeSelection(
+        context, context.startingSelection);
     var nodes = editing.nodes.computeSelectedNodes(selection);
     if (selection.isCaret || !nodes.length)
       return unlinkForCaret(context);

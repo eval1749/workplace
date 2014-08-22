@@ -12,74 +12,6 @@ editing.define('EditingContext', (function() {
   }
 
   /**
-   * @param {!EditingContext} context
-   * @param {!editing.ReadOnlySelection} selection
-   */
-  function normalizeSelection(context, selection) {
-    if (selection.isEmpty)
-      return selection;
-
-    var anchorNode = selection.anchorNode;
-    var anchorOffset = selection.anchorOffset;
-    var focusNode = selection.focusNode;
-    var focusOffset = selection.focusOffset;
-
-    /**
-     * @param {!Node} node
-     * @param {number} offset
-     * TODO(yosin) We should remove |splitText| and |insertAfter| operations
-     * if we don't change anchor and focus of selection.
-     */
-    function splitIfNeeded(node, offset) {
-      if (!editing.nodes.isText(node) || !offset)
-        return;
-      var text = node.nodeValue;
-      if (text.length == offset)
-        return;
-      if (!offset || offset >= text.length) {
-        throw new Error('Offset ' + offset + ' must be grater than zero and ' +
-                        'less than ' + text.length + ' for ' + node);
-      }
-      var newNode = context.splitText(node, offset);
-      context.insertAfter(node.parentNode, newNode, node);
-      if (anchorNode === node && anchorOffset >= offset) {
-        anchorNode = newNode;
-        anchorOffset -= offset;
-      }
-      if (focusNode === node && focusOffset >= offset) {
-        focusNode = newNode;
-        focusOffset -= offset;
-      }
-    }
-
-    function useContainerIfPossible(node, offset) {
-      if (!editing.nodes.isText(node))
-        return;
-      var container = node.parentNode;
-      var offsetInContainer = editing.nodes.nodeIndex(node);
-      if (anchorNode === node && anchorOffset == offset) {
-        anchorNode = container;
-        anchorOffset = offset ? offsetInContainer + 1 : offsetInContainer;
-      }
-      if (focusNode === node && focusOffset == offset) {
-        focusNode = container;
-        focusOffset = offset ? offsetInContainer + 1 : offsetInContainer;
-      }
-    }
-
-    // Split text boundary point
-    splitIfNeeded(anchorNode, anchorOffset);
-    splitIfNeeded(focusNode, focusOffset);
-
-    // Convert text node + offset to container node + offset.
-    useContainerIfPossible(anchorNode, anchorOffset);
-    useContainerIfPossible(focusNode, focusOffset);
-    return new editing.ReadOnlySelection(anchorNode, anchorOffset,
-                                         focusNode, focusOffset,
-                                         selection.direction);
-  }
-
-  /**
    * @param {!Editor} editor
    * @param {string} name A name for this context for error message.
    * @param {!editing.ReadOnlySelection} selection
@@ -96,7 +28,7 @@ editing.define('EditingContext', (function() {
     // We don't make ending selection as starting selection here. Because,
     // |ReadOnlySelection| doesn't track DOM modification during command
     // execution.
-    this.startingSelection_ = normalizeSelection(this, selection);
+    this.startingSelection_ = selection
     Object.seal(this);
   }
 

@@ -23,14 +23,18 @@ function dumpNodes(nodes) {
 testCaseWithSample('nodes.computeEffectiveNodes.1',
     '<p contenteditable>foo<b>^bar<i>baz</i></b>|quux</p>',
     function(context, selection) {
-      var nodes = editing.nodes.computeEffectiveNodes(selection);
+      var normalizedSelection = editing.nodes.normalizeSelection(
+        context, selection);
+      var nodes = editing.nodes.computeEffectiveNodes(normalizedSelection);
       expectEq('B,bar,I,baz', function() { return dumpNodes(nodes) });
     });
 
 testCaseWithSample('nodes.computeEffectiveNodes.2',
     '<p contenteditable><span style="font-weight: bold">^foo</span> <span>bar|</span></p>',
     function(context, selection) {
-      var nodes = editing.nodes.computeEffectiveNodes(selection);
+      var normalizedSelection = editing.nodes.normalizeSelection(
+        context, selection);
+      var nodes = editing.nodes.computeEffectiveNodes(normalizedSelection);
       expectEq('SPAN,foo, ,SPAN,bar', function() { return dumpNodes(nodes) });
     });
 
@@ -38,54 +42,74 @@ testCaseWithSample('nodes.computeEffectiveNodes.2',
 // ReadOnlySelection.nodes
 //
 testCaseWithSample('nodes.computeSelectedNodes.NodesText',
-  '<p contenteditable>^abcd|</p>', function(context, selection) {
-  var nodes = editing.nodes.computeSelectedNodes(selection);
-  expectEq('abcd', function() { return dumpNodes(nodes); });
+  '<p contenteditable>^abcd|</p>',
+  function(context, selection) {
+    var normalizedSelection = editing.nodes.normalizeSelection(
+      context, selection);
+    var nodes = editing.nodes.computeSelectedNodes(normalizedSelection);
+    expectEq('abcd', function() { return dumpNodes(nodes); });
 });
 
 testCaseWithSample('nodes.computeSelectedNodes.NodesTextPartial',
-  '<p contenteditable>ab^c|d</p>', function(context, selection) {
-  var nodes = editing.nodes.computeSelectedNodes(selection);
-  expectEq('c', function() { return dumpNodes(nodes); });
-});
+  '<p contenteditable>ab^c|d</p>',
+  function(context, selection) {
+    var normalizedSelection = editing.nodes.normalizeSelection(
+      context, selection);
+    var nodes = editing.nodes.computeSelectedNodes(normalizedSelection);
+    expectEq('c', function() { return dumpNodes(nodes); });
+  });
 
 testCaseWithSample('nodes.computeSelectedNodes.NodesTree',
   '<p contenteditable><e1><e2>e2Before<e3>^e3</e3>e2After</e2>e1After|</e1></p>',
   function(context, selection) {
-    var nodes = editing.nodes.computeSelectedNodes(selection);
+    var normalizedSelection = editing.nodes.normalizeSelection(
+      context, selection);
+    var nodes = editing.nodes.computeSelectedNodes(normalizedSelection);
     expectEq('e3,e2After,e1After', function() { return dumpNodes(nodes); });
   });
 
 testCaseWithSample('nodes.computeSelectedNodes.NodesTree2',
-  '<p contenteditable>^abcd<b>efg</b>|</p>', function(context, selection) {
-  var nodes = editing.nodes.computeSelectedNodes(selection);
-  expectEq('abcd,B,efg', function() { return dumpNodes(nodes); });
-});
+  '<p contenteditable>^abcd<b>efg</b>|</p>',
+  function(context, selection) {
+    var normalizedSelection = editing.nodes.normalizeSelection(
+      context, selection);
+    var nodes = editing.nodes.computeSelectedNodes(normalizedSelection);
+    expectEq('abcd,B,efg', function() { return dumpNodes(nodes); });
+  });
 
 testCaseWithSample('nodes.computeSelectedNodes.NodesTree3',
-  '<p contenteditable>ab^cd<b>efg</b>|</p>', function(context, selection) {
-  var nodes = editing.nodes.computeSelectedNodes(selection);
-  expectEq('cd,B,efg', function() { return dumpNodes(nodes); });
-});
+  '<p contenteditable>ab^cd<b>efg</b>|</p>',
+  function(context, selection) {
+    var normalizedSelection = editing.nodes.normalizeSelection(
+      context, selection);
+    var nodes = editing.nodes.computeSelectedNodes(normalizedSelection);
+    expectEq('cd,B,efg', function() { return dumpNodes(nodes); });
+  });
 
 testCaseWithSample('nodes.computeSelectedNodes.NodesTree4',
   '<p contenteditable><e1><e2>e2Before<e3>^e3</e3>e2After</e2><e4>e4|</e4></e1></p>',
   function(context, selection) {
-    var nodes = editing.nodes.computeSelectedNodes(selection);
+    var normalizedSelection = editing.nodes.normalizeSelection(
+      context, selection);
+    var nodes = editing.nodes.computeSelectedNodes(normalizedSelection);
     expectEq('e3,e2After,E4,e4', function() { return dumpNodes(nodes); });
   });
 
 testCaseWithSample('nodes.computeSelectedNodes.Nodes.Tree.Empty',
   '<div contenteditable><span>foo^</span><span>|bar</span></div>',
   function(context, selection) {
-    var nodes = editing.nodes.computeSelectedNodes(selection);
+    var normalizedSelection = editing.nodes.normalizeSelection(
+      context, selection);
+    var nodes = editing.nodes.computeSelectedNodes(normalizedSelection);
     expectEq('', function() { return dumpNodes(nodes); });
   });
 
 testCaseWithSample('nodes.computeSelectedNodes.NodesTreeUL',
   '<div contenteditable>^<ul><li>one</li><li>two</li></ul>|</div>',
   function(context, selection) {
-    var nodes = editing.nodes.computeSelectedNodes(selection);
+    var normalizedSelection = editing.nodes.normalizeSelection(
+      context, selection);
+    var nodes = editing.nodes.computeSelectedNodes(normalizedSelection);
     expectEq('UL,LI,one,LI,two', function() { return dumpNodes(nodes); });
   });
 
@@ -145,8 +169,9 @@ testCaseWithSample('nodes.isWhitespaceNode', '', function(context, selection) {
 //
 testCaseWithSample('nodes.splitTree.Shallow',
     '<p contenteditable><e1>one</e1>|<e2>two</e2><e3>three</e3></p>',
-    function(context, selection) {
-          var refNode = selection.focusNode.childNodes[selection.focusOffset];
+    function(context, selectionIn) {
+      var selection = editing.nodes.normalizeSelection(context, selectionIn);
+      var refNode = selection.focusNode.childNodes[selection.focusOffset];
       var oldTree = refNode.parentNode;
       var newTree = context.splitTree(oldTree, refNode);
       expectEq('<p contenteditable><e1>one</e1></p>',
@@ -157,8 +182,9 @@ testCaseWithSample('nodes.splitTree.Shallow',
 
 testCaseWithSample('nodes.splitTree.Deep',
     '<p contenteditable><b>bold1<i>italic1<s>strike1|strike2</s>italic2</i>bold2</b></p>',
-    function(context, selection) {
-          var refNode = selection.focusNode.childNodes[selection.focusOffset];
+    function(context, selectionIn) {
+      var selection = editing.nodes.normalizeSelection(context, selectionIn);
+      var refNode = selection.focusNode.childNodes[selection.focusOffset];
       var oldTree = refNode.parentNode.parentNode.parentNode;
       var newTree = context.splitTree(oldTree, refNode);
       expectEq('<b>bold1<i>italic1<s>strike1</s></i></b>',

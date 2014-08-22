@@ -123,10 +123,10 @@ editing.define('SelectionTracker', (function() {
    * @constructor
    * @final
    * @param {!EditingContext} context
+   * @param {!ReadOnlySelection} selection
    */
-  function SelectionTracker(context) {
+  function SelectionTracker(context, selection) {
     this.context_ = context;
-    var selection = context.startingSelection;
     this.start_ = new TrackablePosition(selection.startContainer,
                                         selection.startOffset,
                                         StartOrEnd.START);

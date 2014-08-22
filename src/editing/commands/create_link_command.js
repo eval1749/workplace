@@ -24,7 +24,8 @@ editing.defineCommand('CreateLink', (function() {
     context.appendChild(anchorElement, context.createTextNode(url));
 
     /** @const @type {!editing.ReadOnlySelection} */
-    var selection = context.startingSelection;
+    var selection = editing.nodes.normalizeSelection(
+        context, context.startingSelection);
 
     /** @const @type {!editing.EditableNode} */
     var containerNode = selection.focusNode;
@@ -177,8 +178,9 @@ editing.defineCommand('CreateLink', (function() {
       anchorElement = null;
     }
 
-    var effectiveNodes = editing.nodes.computeEffectiveNodes(
-        context.startingSelection);
+    /** @const */ var selection = editing.nodes.normalizeSelection(
+        context, context.startingSelection);
+    var effectiveNodes = editing.nodes.computeEffectiveNodes(selection);
     if (!effectiveNodes.length) {
       if (INSERT_LINK_FOR_CARET)
         return createLinkBeforeCaret(context, url);
@@ -211,7 +213,7 @@ editing.defineCommand('CreateLink', (function() {
       pendingContents = [];
     }
 
-    var selectionTracker = new editing.SelectionTracker(context);
+    var selectionTracker = new editing.SelectionTracker(context, selection);
 
     // Special handling of start node, see w3c.30, w3c.40.
     var startNode = effectiveNodes[0];

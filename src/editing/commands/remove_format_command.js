@@ -26,11 +26,13 @@ editing.defineCommand('removeFormat', (function() {
    * @return {boolean}
    */
   function removeFormatCommand(context, userInterface, value) {
-    var selection = context.startingSelection;
-    if (!selection.isRange) {
-      context.setEndingSelection(selection);
+    if (!context.startingSelection.isRange) {
+      context.setEndingSelection(context.startingSelection);
       return true;
     }
+
+    /** @const */ var selection = editing.nodes.normalizeSelection(
+        context, context.startingSelection);
     var editor = context.editor;
     var anchorNode = selection.anchorNode;
     var anchorOffset = selection.anchorOffset;
