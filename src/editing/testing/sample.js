@@ -4,7 +4,7 @@
 
 'use strict';
 
-testing.define('SampleContext', (function() {
+testing.define('Sample', (function() {
   function indexOfNode(node) {
     var parentNode = node.parentNode;
     var index = 0;
@@ -125,7 +125,7 @@ testing.define('SampleContext', (function() {
    * @constructor
    * @param {string} htmlText
    */
-  function SampleContext(htmlText) {
+  function Sample(htmlText) {
     var iframe = document.createElement('iframe');
     document.body.appendChild(iframe);
     // Note: Firefox requires focus to retrieve selection from IFRAME.
@@ -143,7 +143,7 @@ testing.define('SampleContext', (function() {
 
   
   /**
-   * @this {!SampleContext}
+   * @this {!Sample}
    * @param {string} name
    * @param {boolean=} opt_userInterface
    * @param {string=} opt_value
@@ -165,7 +165,7 @@ testing.define('SampleContext', (function() {
   }
 
   /**
-   * @this {!SampleContext}
+   * @this {!Sample}
    */
   function finish() {
     console.assert(this.iframe_);
@@ -174,7 +174,7 @@ testing.define('SampleContext', (function() {
   }
 
   /**
-   * @this {!SampleContext}
+   * @this {!Sample}
    * @return {string}
    */
   function getResult() {
@@ -267,7 +267,7 @@ testing.define('SampleContext', (function() {
     return body ? visit(this.document_.body.firstChild) : '';
   }
 
-  Object.defineProperties(SampleContext.prototype, {
+  Object.defineProperties(Sample.prototype, {
     document: {get: function() { return this.document_; }},
     document_: {writable: true},
     domSelection: {get: function() { return this.domSelection_; }},
@@ -281,5 +281,5 @@ testing.define('SampleContext', (function() {
     startingSelection: {get: function() { return this.startingSelection_; }},
     startingSelection_: {writable: true}
   });
-  return SampleContext;
+  return Sample;
 })());

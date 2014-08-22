@@ -6,7 +6,7 @@
 
 testing.define('createEditor', (function() {
   function createEditor(htmlText) {
-    var sample = new testing.SampleContext(htmlText);
+    var sample = new testing.Sample(htmlText);
     var editor = editing.getOrCreateEditor(sample.document);
     editor.setSelection(sample.startingSelection);
     return editor;
@@ -146,7 +146,7 @@ function testCase(name, testFunction) {
 
 function testCaseWithSample(name, htmlText, testFunction) {
   testCase(name, function() {
-    var sample = new testing.SampleContext(htmlText || '^foo|');
+    var sample = new testing.Sample(htmlText || '^foo|');
     var editor = editing.getOrCreateEditor(sample.document);
     var context = editor.createContext('noname', sample.startingSelection);
     try {
@@ -203,8 +203,8 @@ function testCaseFor(commandName, testCaseId, data) {
 
   var testCaseName = commandName + '.' + testCaseId;
   testCase(testCaseName, function() {
-    var sample = new testing.SampleContext(data.before);
-    var sample2 = new testing.SampleContext(data.before);
+    var sample = new testing.Sample(data.before);
+    var sample2 = new testing.Sample(data.before);
     try {
       var editor = editing.getOrCreateEditor(sample.document);
       editor.setSelection(sample.startingSelection);
