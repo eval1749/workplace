@@ -37,53 +37,53 @@ testCaseWithSample('ReadOnlySelection.directionFocusIsStart',
 //
 testCaseWithSample('ReadOnlySelection.NodesText',
   '<p contenteditable>^abcd|</p>', function(selection) {
-  var nodes = selection.nodes;
+  var nodes = editing.nodes.computeSelectedNodes(selection);
   expectEq('abcd', function() { return dumpNodes(nodes); });
 });
 
 testCaseWithSample('ReadOnlySelection.NodesTextPartial',
   '<p contenteditable>ab^c|d</p>', function(selection) {
-  var nodes = selection.nodes;
+  var nodes = editing.nodes.computeSelectedNodes(selection);
   expectEq('c', function() { return dumpNodes(nodes); });
 });
 
 testCaseWithSample('ReadOnlySelection.NodesTree',
   '<p contenteditable><e1><e2>e2Before<e3>^e3</e3>e2After</e2>e1After|</e1></p>',
   function(selection) {
-    var nodes = selection.nodes;
+    var nodes = editing.nodes.computeSelectedNodes(selection);
     expectEq('e3,e2After,e1After', function() { return dumpNodes(nodes); });
   });
 
 testCaseWithSample('ReadOnlySelection.NodesTree2',
   '<p contenteditable>^abcd<b>efg</b>|</p>', function(selection) {
-  var nodes = selection.nodes;
+  var nodes = editing.nodes.computeSelectedNodes(selection);
   expectEq('abcd,B,efg', function() { return dumpNodes(nodes); });
 });
 
 testCaseWithSample('ReadOnlySelection.NodesTree3',
   '<p contenteditable>ab^cd<b>efg</b>|</p>', function(selection) {
-  var nodes = selection.nodes;
+  var nodes = editing.nodes.computeSelectedNodes(selection);
   expectEq('cd,B,efg', function() { return dumpNodes(nodes); });
 });
 
 testCaseWithSample('ReadOnlySelection.NodesTree4',
   '<p contenteditable><e1><e2>e2Before<e3>^e3</e3>e2After</e2><e4>e4|</e4></e1></p>',
   function(selection) {
-    var nodes = selection.nodes;
+    var nodes = editing.nodes.computeSelectedNodes(selection);
     expectEq('e3,e2After,E4,e4', function() { return dumpNodes(nodes); });
   });
 
 testCaseWithSample('ReadOnlySelection.Nodes.Tree.Empty',
   '<div contenteditable><span>foo^</span><span>|bar</span></div>',
   function(selection) {
-    var nodes = selection.nodes;
+    var nodes = editing.nodes.computeSelectedNodes(selection);
     expectEq('', function() { return dumpNodes(nodes); });
   });
 
 testCaseWithSample('ReadOnlySelection.NodesTreeUL',
   '<div contenteditable>^<ul><li>one</li><li>two</li></ul>|</div>',
   function(selection) {
-    var nodes = selection.nodes;
+    var nodes = editing.nodes.computeSelectedNodes(selection);
     expectEq('UL,LI,one,LI,two', function() { return dumpNodes(nodes); });
   });
 

@@ -109,7 +109,7 @@ editing.defineCommand('Unlink', (function() {
       return true;
     }
 
-    var nodes = selection.nodes;
+    var nodes = editing.nodes.computeSelectedNodes(selection);
     if (selection.isCaret || !nodes.length)
       return unlinkForCaret(context);
 

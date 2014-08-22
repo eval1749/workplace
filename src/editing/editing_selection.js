@@ -94,8 +94,6 @@ editing.define('EditingSelection', (function() {
     // Convert text node + offset to container node + offset.
     useContainerIfNeeded(selection.anchorNode, selection.anchorOffset);
     useContainerIfNeeded(selection.focusNode, selection.focusOffset);
-
-    selection.nodes_ = editing.nodes.computeSelectedRange(selection);
   }
 
   /**
@@ -114,18 +112,17 @@ editing.define('EditingSelection', (function() {
     this.context_ = context;
     this.focusNode_ = selection.focusNode;
     this.focusOffset_ = selection.focusOffset;
-    this.nodes_ = [];
     normalizeSelection(this);
     Object.seal(this);
   }
 
   /**
-   * @param {!EditingSelection} context
+   * @this {!EditingSelection}
    * @return {!Array.<!Node>}
    * Computes effective nodes for inline formatting commands.
    */
   function computeEffectiveNodes() {
-    var nodesInRange = this.nodes;
+    var nodesInRange = editing.nodes.computeSelectedNodes(this);
     if (!nodesInRange.length)
       return nodesInRange;
     var firstNode = nodesInRange[0];
@@ -249,8 +246,6 @@ editing.define('EditingSelection', (function() {
     isCaret: {get: isCaret},
     isEmpty: {get: isEmpty},
     isRange: {get: isRange},
-    nodes: {get: function() { return this.nodes_; }},
-    nodes_: {writable: true},
     startContainer: {get: startContainer},
     startOffset: {get: startOffset},
     value: {get: value}

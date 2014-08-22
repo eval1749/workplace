@@ -73,7 +73,7 @@ editing.define('nodes', (function() {
    * Note: When selection range has no node, e.g. <p><a>foo^</a>|</p>; enclosing
    * end tag, return value is empty array.
    */
-  function computeSelectedRange(selection) {
+  function computeSelectedNodes(selection) {
     if (selection.isEmpty)
       return [];
 
@@ -293,7 +293,7 @@ editing.define('nodes', (function() {
 
   return Object.defineProperties({}, {
     commonAncestor: {value: commonAncestor},
-    computeSelectedRange: {value: computeSelectedRange},
+    computeSelectedNodes: {value: computeSelectedNodes},
     isContentEditable: {value: isContentEditable},
     isDescendantOf: {value: isDescendantOf},
     isEditable: {value: isEditable},

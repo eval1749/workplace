@@ -60,6 +60,15 @@ editing.define('Editor', (function() {
     this.currentContext_ = context;
     var succeeded = false;
     var returnValue;
+// TODO(yosin) Once we finish debugging, we should move calling
+// |commandFunction| into try-finally block.
+returnValue = commandFunction(context, userInterface, value);
+this.setSelection(context.endingSelection);
+this.undoStack_.push({commandName: name,
+                      endingSelection: context.endingSelection,
+                      instructions: context.instructions,
+                      startingSelection: context.startingSelection});
+return returnValue;
     try {
       returnValue = commandFunction(context, userInterface, value);
       succeeded = true;

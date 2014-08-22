@@ -36,7 +36,7 @@ editing.defineCommand('removeFormat', (function() {
     var anchorOffset = selection.anchorOffset;
     var focusNode = selection.focusNode;
     var focusOffset = selection.focusOffset;
-    var nodes = selection.nodes;
+    var nodes = editing.nodes.computeSelectedNodes(selection);
     var firstNode = nodes.length >= 1 ? nodes[0] : null;
     var lastNode = nodes.length >= 1 ? nodes[nodes.length - 1] : null;
 
