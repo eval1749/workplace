@@ -59,14 +59,14 @@ testCaseFor('createLink', 'w3c.4r', {
 
 testCaseFor('createLink', 'w3c.5', {
   after: '<div contenteditable><p><a href="http://www.google.com/">^foo</a></p><p><a href="http://www.google.com/"><br></a></p><p><a href="http://www.google.com/">bar|</a></p></div>',
-  before: '<div contenteditable><p>^foo<p><br><p>bar|</div>',
+  before: '<div contenteditable><p>^foo</p><p><br></p><p>bar|</p></div>',
   sampleId: 5,
   value: 'http://www.google.com/'
 });
 
 testCaseFor('createLink', 'w3c.5r', {
   after: '<div contenteditable><p><a href="http://www.google.com/">|foo</a></p><p><a href="http://www.google.com/"><br></a></p><p><a href="http://www.google.com/">bar^</a></p></div>',
-  before: '<div contenteditable><p>|foo<p><br><p>bar^</div>',
+  before: '<div contenteditable><p>|foo</p><p><br></p><p>bar^</p></div>',
   sampleId: '5r',
   value: 'http://www.google.com/'
 });
