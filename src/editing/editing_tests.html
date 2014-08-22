@@ -62,8 +62,12 @@ ul.fail {
 onerror = function(event) {
   console.log('onerror', event);
   var message ='Loading error. See console, Ctrl+Shift+J, for details.';
-  document.body.insertBefore(document.createTextNode(message),
-                             document.body.firstChild);
+  if (document.body) {
+    document.body.insertBefore(document.createTextNode(message),
+                               document.body.firstChild);
+  } else {
+    document.write(message);
+  }
 };
 
 onload = function() {
@@ -91,7 +95,6 @@ onload = function() {
 <script src="testing/test_runner.js"></script>
 
 <!-- Test Cases -->
-<script src="editing_selection_unittest.js"></script>
 <script src="editor_unittest.js"></script>
 <script src="nodes_unittest.js"></script>
 <script src="read_only_selection_unittest.js"></script>
