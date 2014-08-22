@@ -8,6 +8,22 @@ editing.define('nodes', (function() {
   /* @const */ var INTERACTIVE = editing.CONTENT_CATEGORY.INTERACTIVE;
   /* @const */ var PHRASING = editing.CONTENT_CATEGORY.PHRASING;
 
+  // NextNodes iterator
+  function NextNodes(startNode) {
+    this.currentNode_ = startNode;
+    Object.seal(this);
+  }
+
+  Object.defineProperty(NextNodes.prototype, 'next', {
+    value: function() {
+      var resultNode = this.currentNode_;
+      if (!resultNode)
+        return {done: true};
+      this.currentNode_ = nextNode(this.currentNode_);
+      return {done: false, value: resultNode};
+    }
+  });
+
   /**
    * @param {!Node} node1
    * @param {!Node} node2
@@ -180,6 +196,14 @@ editing.define('nodes', (function() {
     return nextAncestorOrSibling(current);
   }
 
+  /**
+   * @param {!Node} node
+   * @return {!NextNodes}
+   */
+  function nextNodes(node) {
+    return new NextNodes(node);
+  }
+
   function nextAncestorOrSibling(current) {
     console.assert(!current.nextSibling);
     for (var parent = current.parentNode; parent; parent = parent.parentNode) {
@@ -245,6 +269,8 @@ editing.define('nodes', (function() {
     lastWithIn: {value: lastWithIn},
     maxOffset: {value: maxOffset},
     nextNode: {value: nextNode},
+    nextNodes: {value: nextNodes},
+    nextAncestorOrSibling: {value: nextAncestorOrSibling},
     nextNodeSkippingChildren: {value: nextNodeSkippingChildren},
     nodeIndex: {value: nodeIndex},
     previousNode: {value: previousNode},

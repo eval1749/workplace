@@ -15,43 +15,6 @@
 // with editing instructions.
 //
 editing.define('EditingSelection', (function() {
-  // NextNodes iterator
-  function NextNodes(startNode) {
-    this.currentNode_ = startNode;
-  }
-
-  NextNodes.prototype.next = function() {
-    var resultNode = this.currentNode_;
-    if (!resultNode)
-      return {done: true};
-    this.currentNode_ = nextNode(this.currentNode_);
-    return {done: false, value: resultNode};
-  };
-
-  // nextNode(<a><b>foo|</b><a>bar) = bar
-  function nextNode(current) {
-    if (current.firstChild)
-      return current.firstChild;
-    if (current.nextSibling)
-      return current.nextSibling;
-    return nextAncestorOrSibling(current);
-  }
-
-  function nextAncestorOrSibling(current) {
-    console.assert(!current.nextSibling);
-    for (var parent = current.parentNode; parent; parent = parent.parentNode) {
-      if (parent.nextSibling)
-        return parent.nextSibling;
-    }
-    return null;
-  }
-
-  function nextNodeSkippingChildren(current) {
-    if (current.nextSibling)
-      return current.nextSibling;
-    return nextAncestorOrSibling(current);
-  }
-
   /**
    * @param {!EditingSelection} selection
    * @return {!Array.<!Node>}
@@ -65,18 +28,18 @@ editing.define('EditingSelection', (function() {
 
     var startNode = selection.startContainer.childNodes[selection.startOffset];
     if (!startNode)
-      startNode = nextNode(selection.startContainer.lastChild);
+      startNode = editing.nodes.nextNode(selection.startContainer.lastChild);
     var endContainer = selection.endContainer;
     var endNode = endContainer.childNodes[selection.endOffset];
     if (!endNode)
-      endNode = nextNodeSkippingChildren(endContainer.lastChild);
+      endNode = editing.nodes.nextNodeSkippingChildren(endContainer.lastChild);
 
     // Both, |startNode| and |endNode| are nullable, e.g. <a><b>abcd|</b></a>
     if (!startNode)
       return [];
 
     var nodes = [];
-    var iterator = new NextNodes(startNode);
+    var iterator = editing.nodes.nextNodes(startNode);
     var current;
     while (!(current = iterator.next()).done) {
       if (current.value === endNode)
