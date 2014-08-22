@@ -65,7 +65,10 @@ onerror = function(event) {
 };
 
 onload = function() {
-  testRunner.runAllTests();
+  document.getElementById('runAllTests').onclick = function(event) {
+    event.target.outerHTML = '';
+    testRunner.runAllTests();
+  };
 };
 </script>
 <script src="polyfill.js"></script>
@@ -104,6 +107,7 @@ TODO(yosin) We should review failures of "removeFormat" commands.
 </head>
 <body>
 <h1>Editing in JavaScript Test Runner</h1>
+<button id="runAllTests">Run All Tests</button>
 <h2>Results</h2>
 <div id="statusBar">
 <div id="status"></div>
