@@ -8,7 +8,7 @@ testing.define('createEditor', (function() {
   function createEditor(htmlText) {
     var sample = new testing.Sample(htmlText);
     var editor = editing.getOrCreateEditor(sample.document);
-    editor.setSelection(sample.startingSelection);
+    editor.setDomSelection(sample.startingSelection);
     return editor;
   }
   return createEditor;
@@ -214,7 +214,7 @@ function testCaseFor(commandName, testCaseId, data) {
     var sample2 = new testing.Sample(data.before);
     try {
       var editor = editing.getOrCreateEditor(sample.document);
-      editor.setSelection(sample.startingSelection);
+      editor.setDomSelection(sample.startingSelection);
 
       // Execute command and check return value
       var expectedReturnValue = data.returnValue === undefined ?

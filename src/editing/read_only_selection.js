@@ -98,15 +98,6 @@ editing.define('ReadOnlySelection', (function() {
 
   /**
    * @this {!ReadOnlySelection}
-   * @param {!Selection} domSelection
-   */
-  function setDomSelection(domSelection) {
-    domSelection.collapse(this.anchorNode, this.anchorOffset);
-    domSelection.extend(this.focusNode, this.focusOffset);
-  }
-
-  /**
-   * @this {!ReadOnlySelection}
    * @return {!Node}
    */
   function startContainer() {
@@ -141,7 +132,6 @@ editing.define('ReadOnlySelection', (function() {
     isCaret: {get: isCaret},
     isEmpty: {get: isEmpty},
     isRange: {get: isRange},
-    setDomSelection: {value: setDomSelection},
     startContainer: {get: startContainer},
     startOffset: {get: startOffset},
   });

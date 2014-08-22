@@ -151,7 +151,8 @@ testing.define('Sample', (function() {
    * Emulation of |Document.execCommand|.
    */
   function execCommand(name, opt_userInterface, opt_value) {
-    this.startingSelection_.setDomSelection(this.domSelection_);
+    var editor = editing.getOrCreateEditor(this.document_);
+    editor.setDomSelection(this.startingSelection_);
     if (testRunner.useTryCatch) {
       var returnValue = 'UNKNOWN';
       try {
@@ -169,8 +170,7 @@ testing.define('Sample', (function() {
     } else {
       returnValue = this.document_.execCommand.apply(
           this.document_, arguments);
-      this.endingSelection_ = editing.ReadOnlySelection.createFromDom(
-        this.document_.getSelection());
+      editor.setDomSelection(this.endingSelection_);
     }
     return returnValue;
   }

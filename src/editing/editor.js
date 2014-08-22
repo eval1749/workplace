@@ -63,7 +63,7 @@ editing.define('Editor', (function() {
 // TODO(yosin) Once we finish debugging, we should move calling
 // |commandFunction| into try-finally block.
 returnValue = commandFunction(context, userInterface, value);
-this.setSelection(context.endingSelection);
+this.setDomSelection(context.endingSelection);
 this.undoStack_.push({commandName: name,
                       endingSelection: context.endingSelection,
                       instructions: context.instructions,
@@ -82,7 +82,7 @@ return returnValue;
                      editing.ReadOnlySelection);
       console.assert(context.startingSelection instanceof
                      editing.ReadOnlySelection);
-      this.setSelection(context.endingSelection);
+      this.setDomSelection(context.endingSelection);
       this.undoStack_.push({commandName: name,
                             endingSelection: context.endingSelection,
                             instructions: context.instructions,
@@ -95,10 +95,16 @@ return returnValue;
    * @this {!Editor}
    * @param {!editing.ReadOnlySelection}
    */
-  function setSelection(selection) {
+  function setDomSelection(selection) {
     console.assert(selection instanceof editing.ReadOnlySelection, selection);
     this.selection_ = selection;
-    selection.setDomSelection(this.document_.getSelection());
+    var domSelection = this.document_.getSelection();
+    if (selection.isEmpty) {
+      domSelection.removeAllRanges();
+      return;
+    }
+    domSelection.collapse(selection.anchorNode, selection.anchorOffset);
+    domSelection.extend(selection.focusNode, selection.focusOffset);
   }
 
   Object.defineProperties(Editor.prototype, {
@@ -110,7 +116,7 @@ return returnValue;
     execCommand: {value: execCommand},
     selection: {get: function() { return this.selection_; }},
     selection_: {writable: true},
-    setSelection: {value: setSelection },
+    setDomSelection: {value: setDomSelection },
     redoStack_: {writable: true},
     undoStack_: {writable: true}
   });
