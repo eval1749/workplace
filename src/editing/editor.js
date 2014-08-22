@@ -127,7 +127,7 @@ return returnValue;
       operation.redo();
     });
     this.undoStack_.push(commandData);
-    context.setEndingSelection(commandData.enddingSelection);
+    context.setEndingSelection(commandData.endingSelection);
     return true;
   }
 
@@ -158,17 +158,13 @@ return returnValue;
       return false;
     }
     var commandData = this.undoStack_.pop();
-console.log('undo START', commandData);
     // TODO(yosin) We should not use |reverse()| here. We can do this
     // without copying array.
     commandData.operations.slice().reverse().forEach(function(operation) {
-      console.log('undo', operation);
       operation.undo();
     });
     this.redoStack_.push(commandData);
-console.log('undo set commandData', commandData);
     context.setEndingSelection(commandData.startingSelection);
-console.log('undo set endingSelection', context.endingSelection);
     return true;
   }
 

@@ -334,7 +334,6 @@ function testCaseFor(commandName, testCaseId, data) {
 
       // Undo
       var checkUndo = function() {
-        console.log('undo ====================');
         editor.execCommand('undo');
         var undoResult = testing.serialzieNode(
             editor.document.body.firstChild,
@@ -370,7 +369,6 @@ function testCaseFor(commandName, testCaseId, data) {
 
       // Redo
       var checkRedo = function() {
-        console.log('redo ====================');
         editor.execCommand('redo');
         var redoResult = testing.serialzieNode(
             editor.document.body.firstChild,
