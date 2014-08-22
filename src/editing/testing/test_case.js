@@ -46,11 +46,29 @@ testing.define('serialzieNode', (function() {
     function visit(node) {
       if (editing.nodes.isText(node)) {
         var text = node.nodeValue;
-        if (selection && selection.focusNode == node) {
+        if (!selection)
+          return text;
+        if (selection.anchorNode === node && selection.focusNode === node) {
+          var anchorIsStart = selection.anchorOffset < selection.focusOffset;
+          var start = anchorIsStart ? selection.anchorOffset :
+                                      selection.focusOffset;
+          var end = anchorIsStart ? selection.focusOffset :
+                                    selection.anchorOffset;
+          console.assert(start <= text.length);
+          console.assert(end <= text.length);
+          console.assert(start <= end);
+          var startMarker = anchorIsStart ? '^' : '|';
+          var endMarker = anchorIsStart ? '|' : '^';
+          if (start == end)
+            return text.substr(0, start) + '|' + text.substr(start);
+          return text.substr(0, start) + startMarker +
+                 text.substring(start, end) + endMarker + text.substr(end);
+        }
+        if (selection.focusNode === node) {
           return text.substr(0, selection.focusOffset) + '|' +
                  text.substr(selection.focusOffset);
         }
-        if (selection && selection.anchorNode == node) {
+        if (selection.anchorNode === node) {
           return text.substr(0, selection.anchorOffset) + '^' +
                  text.substr(selection.anchorOffset);
         }
@@ -323,6 +341,14 @@ function testCaseFor(commandName, testCaseId, data) {
             {selection: editor.selection});
         if (undoResult == data.before) {
           testRunner.pass('undo');
+        } else if (stripMarker(undoResult) == stripMarker(data.before)) {
+          testRunner.warn('undo_selection', {
+            format: 'html',
+            before: pretty(data.before),
+            current: pretty(sampleResult),
+            new: pretty(actualResult2)
+          });
+          return;
         } else {
           testRunner.fail('undo', {
             format: 'html',
@@ -349,14 +375,21 @@ function testCaseFor(commandName, testCaseId, data) {
         var redoResult = testing.serialzieNode(
             editor.document.body.firstChild,
             {selection: editor.selection});
-        if (redoResult == data.after) {
+        if (redoResult == actualResult) {
           testRunner.pass('redo');
+        } else if (stripMarker(redoResult) == stripMarker(actualResult)) {
+          testRunner.warn('redo_selection', {
+            format: 'html',
+            before: pretty(data.before),
+            actual: pretty(redoResult),
+            expected: pretty(actualResult)
+          });
         } else {
           testRunner.fail('redo', {
             format: 'html',
-            before: pretty(undoResult),
+            before: pretty(data.before),
             actual: pretty(redoResult),
-            expected: pretty(data.after)
+            expected: pretty(actualResult)
           });
         }
       };
