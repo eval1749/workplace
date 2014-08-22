@@ -287,16 +287,16 @@ function testCaseFor(commandName, testCaseId, data) {
         testRunner.record('incompatible_selection', {
           format: 'html',
           before: pretty(data.before),
-          actual: pretty(sampleResult),
-          expected: pretty(actualResult2)
+          current: pretty(sampleResult),
+          new: pretty(actualResult2)
         });
         return;
       }
       testRunner.record('incompatible_html', {
           format: 'html',
           before: pretty(data.before),
-          actual: pretty(sampleResult),
-          expected: pretty(actualResult2)
+          current: pretty(sampleResult),
+          new: pretty(actualResult2)
       });
     } finally {
       sample.finish();
