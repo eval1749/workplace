@@ -168,7 +168,13 @@ Object.defineProperties(TestRunner.prototype, (function() {
       return CLASS_ORDERS[className] || 9999;
     }
 
+    // To report number of test cases in progress report, we populate
+    // |testCasesByClass| here.
     var testCasesByClass = {};
+    Object.keys(CLASS_ORDERS).forEach(function(key) {
+      testCasesByClass[key] = [];
+    });
+
     function classifyTestCase(testCase, className) {
       var testCases = testCasesByClass[className];
       if (!testCases) {
@@ -315,6 +321,8 @@ Object.defineProperties(TestRunner.prototype, (function() {
         var status= 'Run ' +
             numRun + '/' + allTestCases.length + '(' + percent + '%) tests.';
         document.getElementById('progress').style.width = percent + '%';
+
+        status += ' ' + testCasesByClass['fail'].length + ' failed.';
 
         status += ' Elapsed: ' + ((new Date())- startAt) + 'ms';
         if (lastBeginFrameTimeStamp) {
