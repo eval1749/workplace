@@ -71,10 +71,21 @@ onerror = function(event) {
 };
 
 onload = function() {
+  var buttons = document.getElementById('buttons');
   document.getElementById('runAllTests').onclick = function(event) {
-    event.target.outerHTML = '';
+    buttons.outerHTML = '';
     testRunner.runAllTests();
   };
+
+  testRunner.getSectionNames().forEach(function(sectionName) {
+    var button = document.createElement('button');
+    button.textContent = 'Run ' + sectionName;
+    button.addEventListener('click', function() {
+      testRunner.runAllTests(sectionName);
+    });
+    buttons.appendChild(document.createTextNode(' '));
+    buttons.appendChild(button);
+  });
 };
 </script>
 <script src="polyfill.js"></script>
@@ -83,6 +94,7 @@ onload = function() {
 <script src="editing_context.js"></script>
 <script src="editor.js"></script>
 <script src="nodes.js"></script>
+<script src="operations.js"></script>
 <script src="read_only_selection.js"></script>
 <script src="selection_tracker.js"></script>
 <script src="commands/create_link_command.js"></script>
@@ -97,6 +109,7 @@ onload = function() {
 <!-- Test Cases -->
 <script src="editor_unittest.js"></script>
 <script src="nodes_unittest.js"></script>
+<script src="operations_unittest.js"></script>
 <script src="read_only_selection_unittest.js"></script>
 <script src="commands/create_link_command_unittest.js"></script>
 <script src="commands/create_link_command_w3c_unittest.js"></script>
@@ -112,7 +125,9 @@ TODO(yosin) We should review failures of "removeFormat" commands.
 </head>
 <body>
 <h1>Editing in JavaScript Test Runner</h1>
+<div id="buttons">
 <button id="runAllTests">Run All Tests</button>
+</div>
 <h2>Results</h2>
 <div id="statusBar">
 <div id="status"></div>

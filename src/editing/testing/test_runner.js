@@ -55,7 +55,7 @@ Object.defineProperties(TestRunner.prototype, (function() {
     var text = closure.toString()
         .replace('"use strict";', '')  // Firefox add "use strict".
         .replace(/function\s*\(\)\s*\{\s*return\s*/, '')
-        .replace('; }', '');
+        .replace(/;\s*}/g, '');
     return text;
   }
 
@@ -84,6 +84,25 @@ Object.defineProperties(TestRunner.prototype, (function() {
     if (result.exception)
       result.className = 'exception';
     this.results_.push(mergeResult(result, opt_result));
+  }
+
+  /**
+   * @this {!TestRunner}
+   * @return {!Array.<string>}
+   */
+  function getSectionNames() {
+    var sectionNames = new Set();
+    this.allTestCases_.forEach(function(testCase) {
+      var name = testCase.name;
+      sectionNames.add(name.substr(0, name.indexOf('.')));
+    });
+    var list = [];
+    var values = sectionNames.values();
+    var current;
+    while (!(current = values.next()).done) {
+      list.push(current.value);
+    }
+    return list.sort();
   }
 
   /**
@@ -132,8 +151,9 @@ Object.defineProperties(TestRunner.prototype, (function() {
 
   /**
    * @this {!TestRunner}
+   * @param {string=} opt_sectionName
    */
-  function runAllTests() {
+  function runAllTests(opt_sectionNameToRun) {
     /** @const */
     var CLASS_ORDERS = {
       exception: 1,
@@ -264,7 +284,7 @@ Object.defineProperties(TestRunner.prototype, (function() {
      */
     function finish() {
       var endAt = new Date();
-      document.getElementById('statusBar').outerHTML = '';
+      //document.getElementById('statusBar').outerHTML = '';
 
       var resultElement = document.getElementById('results');
       resultElement.innerHTML =
@@ -302,10 +322,13 @@ Object.defineProperties(TestRunner.prototype, (function() {
       });
     }
 
-    var allTestCases = this.allTestCases_;
+    var allTestCases = opt_sectionNameToRun ?
+        this.allTestCases_.filter(function(testCase) {
+          return testCase.name.startsWith(opt_sectionNameToRun);
+        }) : this.allTestCases_;
     var testRunner = this;
     var lastBeginFrameTimeStamp = 0;
-    var waitingTestCases = this.allTestCases_.slice();
+    var waitingTestCases = allTestCases.slice();
 
     function didBeginFrame(timeStamp) {
       /** @const */ var NUM_RUN = 5;
@@ -360,6 +383,7 @@ Object.defineProperties(TestRunner.prototype, (function() {
     allTestCases_: {writable: true},
     constructor: TestRunner,
     fail: {value: fail},
+    getSectionNames: {value: getSectionNames},
     pass: {value: pass},
     record: {value: record},
     results_: {writable: true},
