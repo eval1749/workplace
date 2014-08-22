@@ -51,6 +51,26 @@ editing.define('ReadOnlySelection', (function() {
 
   /**
    * @this {!ReadOnlySelection}
+   * @return {!Node}
+   */
+  function endContainer() {
+    console.assert(this.anchorNode_);
+    return this.direction_ == editing.SelectionDirection.FOCUS_IS_START ?
+        this.anchorNode_ : this.focusNode_;
+  }
+
+  /**
+   * @this {!ReadOnlySelection}
+   * @return {number}
+   */
+  function endOffset() {
+    console.assert(this.anchorNode_);
+    return this.direction_ == editing.SelectionDirection.FOCUS_IS_START ?
+        this.anchorOffset_ : this.focusOffset_;
+  }
+
+  /**
+   * @this {!ReadOnlySelection}
    * @return {boolean}
    */
   function isCaret() {
@@ -85,6 +105,26 @@ editing.define('ReadOnlySelection', (function() {
     domSelection.extend(this.focusNode, this.focusOffset);
   }
 
+  /**
+   * @this {!ReadOnlySelection}
+   * @return {!Node}
+   */
+  function startContainer() {
+    console.assert(this.anchorNode_);
+    return this.direction_ == editing.SelectionDirection.ANCHOR_IS_START ?
+        this.anchorNode_ : this.focusNode_;
+  }
+
+  /**
+   * @this {!ReadOnlySelection}
+   * @return {number}
+   */
+  function startOffset() {
+    console.assert(this.anchorNode_);
+    return this.direction_ == editing.SelectionDirection.ANCHOR_IS_START ?
+        this.anchorOffset_ : this.focusOffset_;
+  }
+
   Object.defineProperties(ReadOnlySelection.prototype, {
     anchorNode: {get: function () { return this.anchorNode_; }},
     anchorNode_: {writable: true},
@@ -92,6 +132,8 @@ editing.define('ReadOnlySelection', (function() {
     anchorOffset_: {writable: true},
     direction: {get: function() { return this.direction_; }},
     direction_: {writable: true},
+    endContainer: {get: endContainer},
+    endOffset: {get: endOffset},
     focusNode: {get: function () { return this.focusNode_; }},
     focusNode_: {writable: true},
     focusOffset: {get: function () { return this.focusOffset_; }},
@@ -99,7 +141,9 @@ editing.define('ReadOnlySelection', (function() {
     isCaret: {get: isCaret},
     isEmpty: {get: isEmpty},
     isRange: {get: isRange},
-    setDomSelection: {value: setDomSelection}
+    setDomSelection: {value: setDomSelection},
+    startContainer: {get: startContainer},
+    startOffset: {get: startOffset},
   });
   return ReadOnlySelection;
 })());
