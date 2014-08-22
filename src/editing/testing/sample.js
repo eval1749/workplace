@@ -152,14 +152,25 @@ testing.define('Sample', (function() {
    */
   function execCommand(name, opt_userInterface, opt_value) {
     this.startingSelection_.setDomSelection(this.domSelection_);
-    var returnValue
-    try {
-        returnValue = this.document_.execCommand.apply(this.document_,
-                                                       arguments);
+    if (testRunner.useTryCatch) {
+      var returnValue = 'UNKNOWN';
+      try {
+        returnValue = this.document_.execCommand.apply(
+            this.document_, arguments);
+      } catch (exception) {
+        throw new Error('execCommand ' + exception);
+      }
+      try {
+        this.endingSelection_ = editing.ReadOnlySelection.createFromDom(
+            this.document_.getSelection());
+      } catch (exception){
+        throw new Error('setSelection ' + exception);
+      }
+    } else {
+      returnValue = this.document_.execCommand.apply(
+          this.document_, arguments);
       this.endingSelection_ = editing.ReadOnlySelection.createFromDom(
-          this.domSelection_);
-    } catch (exception) {
-      result = exception;
+        this.document_.getSelection());
     }
     return returnValue;
   }
