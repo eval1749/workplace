@@ -147,8 +147,8 @@ editing.define('SelectionTracker', (function() {
       anchorNodeAndOffset = this.start_.convertToNodeAndOffset();
       focusNodeAndOffset = this.end_.convertToNodeAndOffset();
     } else {
-      anchorNodeAndOffset = this.start_.convertToNodeAndOffset();
-      focusNodeAndOffset = this.end_.convertToNodeAndOffset();
+      focusNodeAndOffset = this.start_.convertToNodeAndOffset();
+      anchorNodeAndOffset = this.end_.convertToNodeAndOffset();
     }
     this.context_.setEndingSelection(new editing.ReadOnlySelection(
         anchorNodeAndOffset.node, anchorNodeAndOffset.offset,
