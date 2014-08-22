@@ -108,3 +108,20 @@ testCaseWithSample('operations.setAttribute.1',
       operation.undo();
       expectEq('<p><foo x="1"></foo></p>', createHtmlGetter(parentNode));
     });
+
+//
+// SplitText
+//
+testCaseWithSample('operations.splitText.1',
+    '|<p>foobar</p>',
+    function(context, selection) {
+      var parentNode = context.document.body.firstChild;
+      var textNode = parentNode.firstChild;
+      var operation = new editing.SplitText(textNode, 3);
+
+      operation.redo();
+      expectEq('<p>foo</p>', createHtmlGetter(parentNode));
+
+      operation.undo();
+      expectEq('<p>foobar</p>', createHtmlGetter(parentNode));
+    });

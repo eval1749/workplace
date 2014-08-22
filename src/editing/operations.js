@@ -27,6 +27,7 @@ editing.define('Operation', (function() {
 
   Object.defineProperties(Operation.prototype, {
     constructor: Operation,
+    execute: {value: function() { this.redo(); }},
     operationName: {get: function() { return this.operationName_; }},
     operationName_: {writable: true},
     redo: {value: redo },
@@ -275,4 +276,46 @@ editing.define('SetAttribute', (function() {
   });
 
   return SetAttribute;
+})());
+
+//////////////////////////////////////////////////////////////////////
+//
+// SplitText
+//
+editing.define('SplitText', (function() {
+  function SplitText(textNode, offset) {
+    editing.Operation.call(this, 'splitText');
+    this.offset_ = offset;
+    this.textNode_ = textNode;
+    var text = textNode.nodeValue;;
+    this.oldValue_ = text;
+    this.newValue_ = text.substr(0, offset);
+    Object.seal(this);
+  }
+
+  /**
+   * @this {!SplitText}
+   */
+  function redo() {
+    this.textNode_.nodeValue = this.newValue_;
+  }
+
+  /**
+   * @this {!SplitText}
+   */
+  function undo() {
+    this.textNode_.nodeValue = this.oldValue_;
+  }
+
+  SplitText.prototype = Object.create(editing.Operation.prototype, {
+    constructor: SplitText,
+    attrName_: {writable: true},
+    element_: {writable: true},
+    newValue_: {writable: true},
+    oldValue_: {writable: true},
+    redo: {value: redo},
+    undo: {value: undo}
+  });
+
+  return SplitText;
 })());
