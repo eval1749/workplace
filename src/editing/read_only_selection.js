@@ -29,27 +29,6 @@ editing.define('ReadOnlySelection', (function() {
   }
 
   /**
-   * @param {!Selection} selection
-   * @return {!ReadOnlySelection}
-   */
-  ReadOnlySelection.createFromDom = function(domSeleciton) {
-    function direction() {
-      if (!domSeleciton.rangeCount)
-        return editing.SelectionDirection.ANCHOR_IS_START;
-      var range = domSeleciton.getRangeAt(0);
-      if (range.startContainer === domSeleciton.anchorNode &&
-          range.startOffset == domSeleciton.anchorOffset) {
-        return editing.SelectionDirection.ANCHOR_IS_START;
-      }
-      return editing.SelectionDirection.FOCUS_IS_START;
-    }
-    return new ReadOnlySelection(
-        domSeleciton.anchorNode, domSeleciton.anchorOffset,
-        domSeleciton.focusNode, domSeleciton.focusOffset,
-        direction());
-  }
-
-  /**
    * @this {!ReadOnlySelection}
    * @return {!Node}
    */

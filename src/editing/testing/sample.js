@@ -162,15 +162,14 @@ testing.define('Sample', (function() {
         throw new Error('execCommand ' + exception);
       }
       try {
-        this.endingSelection_ = editing.ReadOnlySelection.createFromDom(
-            this.document_.getSelection());
+        this.endingSelection_ = editor.getDomSelection();
       } catch (exception){
         throw new Error('setSelection ' + exception);
       }
     } else {
       returnValue = this.document_.execCommand.apply(
           this.document_, arguments);
-      editor.setDomSelection(this.endingSelection_);
+      this.endingSelection_ = editor.getDomSelection();
     }
     return returnValue;
   }

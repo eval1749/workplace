@@ -92,6 +92,27 @@ return returnValue;
   }
 
   /**
+   * @return {!ReadOnlySelection}
+   */
+  function getDomSelection() {
+    var domSeleciton = this.document_.getSelection();
+    function direction() {
+      if (!domSeleciton.rangeCount)
+        return editing.SelectionDirection.ANCHOR_IS_START;
+      var range = domSeleciton.getRangeAt(0);
+      if (range.startContainer === domSeleciton.anchorNode &&
+          range.startOffset == domSeleciton.anchorOffset) {
+        return editing.SelectionDirection.ANCHOR_IS_START;
+      }
+      return editing.SelectionDirection.FOCUS_IS_START;
+    }
+    return new editing.ReadOnlySelection(
+        domSeleciton.anchorNode, domSeleciton.anchorOffset,
+        domSeleciton.focusNode, domSeleciton.focusOffset,
+        direction());
+  }
+
+  /**
    * @this {!Editor}
    * @param {!editing.ReadOnlySelection}
    */
@@ -114,6 +135,7 @@ return returnValue;
     document: {get: function() { return this.document_; }},
     document_: {writable: true},
     execCommand: {value: execCommand},
+    getDomSelection: {value: getDomSelection },
     selection: {get: function() { return this.selection_; }},
     selection_: {writable: true},
     setDomSelection: {value: setDomSelection },
