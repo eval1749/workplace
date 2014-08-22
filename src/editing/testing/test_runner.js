@@ -322,7 +322,11 @@ Object.defineProperties(TestRunner.prototype, (function() {
             numRun + '/' + allTestCases.length + '(' + percent + '%) tests.';
         document.getElementById('progress').style.width = percent + '%';
 
-        status += ' ' + testCasesByClass['fail'].length + ' failed.';
+        ['exception', 'fail'].forEach(function(key) {
+          if (!testCasesByClass[key].length)
+            return;
+          status += ' ' + testCasesByClass[key].length + ' ' + key + '.';
+        });
 
         status += ' Elapsed: ' + ((new Date())- startAt) + 'ms';
         if (lastBeginFrameTimeStamp) {
