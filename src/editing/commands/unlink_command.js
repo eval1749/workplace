@@ -44,8 +44,7 @@ editing.defineCommand('Unlink', (function() {
 
  /**
   * @param {!EditingContext} context
-  * @param {!Node} parentNode
-  * @param {?Node} stopNode
+  * @param {!Node} parent
   */
   function unwrapElement(context, parent) {
      var child = parent.firstChild;
