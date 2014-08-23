@@ -309,13 +309,10 @@ editing.defineCommand('CreateLink', (function() {
       wrapByAnchor(currentNode);
     });
 
-    if (pendingContents.length) {
-      // The last effective node is descendant of pending container.
-      // Example: foo<b>^bar<i>baz quux</i></b>|mox
-      // where the last effective node is "baz quux".
-      processPendingContents();
-    }
-
+    // The last effective node is descendant of pending container.
+    // Example: foo<b>^bar<i>baz quux</i></b>|mox
+    // where the last effective node is "baz quux".
+    processPendingContents();
     selectionTracker.finish();
     return true;
   }
