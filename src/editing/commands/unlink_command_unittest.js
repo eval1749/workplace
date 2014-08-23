@@ -153,5 +153,3 @@ testCaseFor('Unlink', 'Multiple.Nested', {
   before: '<p contenteditable>^<a href="foo">abc</a><a>def</a>|</p>',
   after:'<p contenteditable>^abcdef|</p>',
 });
-
-
