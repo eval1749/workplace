@@ -147,7 +147,7 @@ editing.define('SelectionTracker', (function() {
   /**
    * @this {!SelectionTracker}
    */
-  function setEndingSelection() {
+  function finish() {
     var anchorNodeAndOffset;
     var focusNodeAndOffset;
     var selection = this.context_.startingSelection;
@@ -177,7 +177,7 @@ editing.define('SelectionTracker', (function() {
     constructor: {value: SelectionTracker},
     context_: {writable: true},
     end_:{writable: true},
-    setEndingSelection: {value: setEndingSelection},
+    finish: {value: finish},
     start_: {writable: true},
     willRemoveNode: {value: willRemoveNode}
   });

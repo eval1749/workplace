@@ -233,7 +233,7 @@ editing.defineCommand('CreateLink', (function() {
         // Special case for compatibility with Firefox and IE.
         // See w3c.32, w3c.33
         context.setAttribute(outerAnchorElement, 'href', url);
-        selectionTracker.setEndingSelection();
+        selectionTracker.finish();
         return true;
       }
 
@@ -316,7 +316,7 @@ editing.defineCommand('CreateLink', (function() {
       processPendingContents();
     }
 
-    selectionTracker.setEndingSelection();
+    selectionTracker.finish();
     return true;
   }
 
