@@ -31,7 +31,7 @@ var testing = {};
 /// TODO(yosin) We should add more end tag omissible tag names.
 testing.define('END_TAG_OMISSIBLE', (function() {
   var omissibleTagNames = new Set();
-  ['br', 'hr', 'img'].forEach(function(tagName) {
+  ['br', 'hr', 'img', 'wbr'].forEach(function(tagName) {
     omissibleTagNames.add(tagName.toUpperCase());
     omissibleTagNames.add(tagName);
   });
