@@ -42,21 +42,6 @@ editing.defineCommand('Unlink', (function() {
     return array.length ? array[array.length - 1] : null;
   }
 
- /**
-  * @param {!EditingContext} context
-  * @param {!Node} parent
-  */
-  function unwrapElement(context, parent) {
-     var child = parent.firstChild;
-     var ancestor = parent.parentNode;
-     while (child) {
-       var nextSibling = child.nextSibling;
-       context.insertBefore(ancestor, child, parent);
-       child = nextSibling;
-     }
-     context.removeChild(ancestor, parent);
-  }
-
   /**
    * @param {!EditingContext} context
    * @param {boolean} userInterface Not used.
@@ -81,7 +66,7 @@ editing.defineCommand('Unlink', (function() {
       if (lastAnchorElement &&
           lastAnchorElement === currentNode.previousSibling) {
         selectionTracker.willUnwrapElement(lastAnchorElement);
-        unwrapElement(context, lastAnchorElement);
+        context.unwrapElement(lastAnchorElement, null);
         anchorElements.pop();
       }
 
@@ -100,7 +85,7 @@ editing.defineCommand('Unlink', (function() {
     while (anchorElements.length) {
       var anchorElement = anchorElements.pop();
       selectionTracker.willUnwrapElement(anchorElement);
-      unwrapElement(context, anchorElement);
+      context.unwrapElement(anchorElement, null);
     }
 
     selectionTracker.finish();

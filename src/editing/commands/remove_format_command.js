@@ -92,26 +92,6 @@ editing.defineCommand('removeFormat', (function() {
     return element.hasAttribute('style');
   }
 
- /**
-  * @param {!EditingContext} context
-  * @param {!Node} parent
-  * @param {?Node} stopChild
-  */
-  function unwrapElement(context, parent, stopChild) {
-     console.assert(!stopChild || stopChild.parentNode == parent,
-                    'unwrapElement', parent, stopChild);
-     var child = parent.firstChild;
-     var ancestor = parent.parentNode;
-     while (child != stopChild) {
-       var nextSibling = child.nextSibling;
-       context.insertBefore(ancestor, child, parent);
-       child = nextSibling;
-     }
-     if (parent.firstChild)
-       return;
-     context.removeChild(ancestor, parent);
-  }
-
   /**
    * @param {!EditingContext} context
    * @param {boolean} userInterface Not used.
@@ -139,7 +119,7 @@ editing.defineCommand('removeFormat', (function() {
       var styleElement = lastOf(styleElements);
       if (styleElement && styleElement == currentNode.previousSibling) {
         selectionTracker.willUnwrapElement(styleElement, null);
-        unwrapElement(context, styleElement, null);
+        context.unwrapElement(styleElement, null);
         styleElements.pop();
       }
 
@@ -161,7 +141,7 @@ editing.defineCommand('removeFormat', (function() {
       var stopChild = lastNode.parent == styleElement ? lastNode.nextSibling :
                                                         null;
       selectionTracker.willUnwrapElement(styleElement, stopChild);
-      unwrapElement(context, styleElement, stopChild);
+      context.unwrapElement(styleElement, stopChild);
     }
 
     selectionTracker.finish();
