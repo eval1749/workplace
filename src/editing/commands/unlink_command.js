@@ -110,8 +110,8 @@ editing.defineCommand('Unlink', (function() {
 
     /** @const */ var selection = editing.nodes.normalizeSelection(
         context, context.startingSelection);
-    var nodes = editing.nodes.computeSelectedNodes(selection);
-    if (selection.isCaret || !nodes.length)
+    var selectedNodes = editing.nodes.computeSelectedNodes(selection);
+    if (selection.isCaret || !selectedNodes.length)
       return unlinkForCaret(context);
 
     // We'll remove nested anchor elements event if nested anchor elements
@@ -119,7 +119,7 @@ editing.defineCommand('Unlink', (function() {
     var anchorElements = [];
     var anchorElement = null;
     var selectionTracker = new SelectionTrackerForUnlink(context, selection);
-    nodes.forEach(function(node) {
+    selectedNodes.forEach(function(node) {
       while (anchorElement) {
         if (editing.nodes.isDescendantOf(node, anchorElement)) {
           if (anchorElement != node.parentNode)
