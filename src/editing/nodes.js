@@ -170,6 +170,7 @@ editing.define('nodes', (function() {
    * Returns true if |other| is an ancestor of |node|, otherwise false.
    */
   function isDescendantOf(node, other) {
+    console.assert(other);
     for (var runner = node.parentNode; runner; runner = runner.parentNode) {
       if (runner == other)
         return true;
