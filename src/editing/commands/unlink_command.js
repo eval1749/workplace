@@ -6,94 +6,56 @@
 
 editing.defineCommand('Unlink', (function() {
   /**
-   * @constructor
-   * @final
    * @param {!editing.ReadOnlySelection} selection
+   * @return {!Array.<!Node>}
    */
-  function SelectionTrackerForUnlink(context, selection) {
-    this.anchorNode_ = selection.anchorNode_;
-    this.anchorOffset_ = selection.anchorOffset_;
-    this.context_ = context;
-    this.focusNode_ = selection.focusNode_;
-    this.focusOffset_ = selection.focusOffset_;
-    this.selection_ = selection;
-    Object.seal(this);
+  function computeEffectiveNodes(selection) {
+    if (selection.isEmpty)
+      return [];
+    var selectedNodes = selection.isCaret ? [selection.anchorNode] :
+        editing.nodes.computeSelectedNodes(selection);
+    if (!selectedNodes.length)
+      return [];
+
+    // Add enclosing A element into effective nodes.
+    var firstNode = selectedNodes[0];
+    var runner = firstNode;
+    while (runner && runner.nodeName != 'A') {
+      runner = runner.parentNode;
+    }
+    if (!runner)
+      return selectedNodes;
+    if (!editing.nodes.isEditable(runner))
+      return [];
+    var effectiveNodes = [];
+    while (runner != firstNode) {
+      effectiveNodes.push(runner);
+      runner = editing.nodes.nextNode(runner);
+    }
+    selectedNodes.forEach(function(node) {
+      effectiveNodes.push(node);
+    });
+    return effectiveNodes;
   }
 
-  Object.defineProperties(SelectionTrackerForUnlink.prototype, (function() {
-    /**
-     * @this {!SelectionTrackerForUnlink}
-     */
-    function finish() {
-      this.context_.setEndingSelection(new editing.ReadOnlySelection(
-         this.anchorNode_, this.anchorOffset_,
-         this.focusNode_, this.focusOffset_,
-         this.selection_.direction));
-    }
-
-    /**
-     * @this {!SelectionTrackerForUnlink}
-     * @param {!editing.ReadOnlySelection} anchorElement
-     */
-    function relocateIfNeeded(anchorElement) {
-      if (this.anchorNode_ === anchorElement) {
-        this.anchorNode_ = this.anchorNode_.parentNode;
-        this.anchorOffset_ += editing.nodes.nodeIndex(anchorElement);
-      }
-
-      if (this.focusNode_ === anchorElement) {
-        this.focusNode_ = this.focusNode_.parentNode;
-        this.focusOffset_ += editing.nodes.nodeIndex(anchorElement);
-      }
-    };
-
-    return {
-      anchorNode_: {writable: true},
-      finish: {value: finish},
-      relocateIfNeeded: {value: relocateIfNeeded},
-    };
-  })());
+  function lastOf(array) {
+    return array.length ? array[array.length - 1] : null;
+  }
 
  /**
   * @param {!EditingContext} context
   * @param {!Node} parentNode
   * @param {?Node} stopNode
   */
-  function moveChildNodesBeforeParentNode(context, parentNode, stopNode) {
-     var child = parentNode.firstChild;
+  function unwrapElement(context, parent) {
+     var child = parent.firstChild;
+     var ancestor = parent.parentNode;
      while (child) {
        var nextSibling = child.nextSibling;
-       context.insertBefore(parentNode.parentNode, child, parentNode);
+       context.insertBefore(ancestor, child, parent);
        child = nextSibling;
      }
-  }
-
-  /**
-   * @param {!EditingContext} context
-   * @return {boolean}
-   */
-  function unlinkForCaret(context) {
-    /** @const */ var selection = editing.nodes.normalizeSelection(
-        context, context.startingSelection);
-    var anchorElement = selection.focusNode;
-    while (anchorElement && anchorElement.nodeName != 'A') {
-      anchorElement = anchorElement.parentNode;
-    }
-    if (!anchorElement || !editing.nodes.isEditable(anchorElement)) {
-      context.setEndingSelection(selection);
-      return true;
-    }
-    var nodeAtCaret = selection.focusNode.childNodes[selection.focusOffset];
-    moveChildNodesBeforeParentNode(context, anchorElement, null);
-    var containerNode = nodeAtCaret ? nodeAtCaret.parentNode :
-                                      selection.focusNode.parentNode;
-    var offset = nodeAtCaret ? editing.nodes.nodeIndex(nodeAtCaret) :
-                               selection.focusOffset;
-    context.removeChild(anchorElement.parentNode, anchorElement);
-    context.setEndingSelection(new editing.ReadOnlySelection(
-        containerNode, offset, containerNode, offset,
-        editing.SelectionDirection.ANCHOR_IS_START));
-    return true;
+     context.removeChild(ancestor, parent);
   }
 
   /**
@@ -103,60 +65,43 @@ editing.defineCommand('Unlink', (function() {
    * @return {boolean}
    */
   function unlinkCommand(context, userInterface, value) {
-    if (context.startingSelection.isEmpty) {
+    /** @const */ var selection = editing.nodes.normalizeSelection(
+        context, context.startingSelection);
+    var effectiveNodes = computeEffectiveNodes(selection);
+    if (!effectiveNodes.length) {
       context.setEndingSelection(context.startingSelection);
       return true;
     }
 
-    /** @const */ var selection = editing.nodes.normalizeSelection(
-        context, context.startingSelection);
-    var selectedNodes = editing.nodes.computeSelectedNodes(selection);
-    if (selection.isCaret || !selectedNodes.length)
-      return unlinkForCaret(context);
-
     // We'll remove nested anchor elements event if nested anchor elements
     // aren't valid HTML5.
     var anchorElements = [];
-    var anchorElement = null;
-    var selectionTracker = new SelectionTrackerForUnlink(context, selection);
-    selectedNodes.forEach(function(node) {
-      while (anchorElement) {
-        if (editing.nodes.isDescendantOf(node, anchorElement)) {
-          if (anchorElement != node.parentNode)
-            return;
-          context.insertBefore(anchorElement.parentNode, node, anchorElement);
-          return;
-        }
-        context.removeChild(anchorElement.parentNode, anchorElement);
+    var selectionTracker = new editing.SelectionTracker(context, selection);
+    effectiveNodes.forEach(function(currentNode) {
+      var lastAnchorElement = lastOf(anchorElements);
+      if (lastAnchorElement &&
+          lastAnchorElement === currentNode.previousSibling) {
+        selectionTracker.willUnwrapElement(lastAnchorElement);
+        unwrapElement(context, lastAnchorElement);
         anchorElements.pop();
-        if (anchorElements.length)
-          anchorElement = anchorElements[anchorElements.length - 1];
-        else
-          anchorElement = null;
       }
 
-      anchorElement = node;
-      while (anchorElement && anchorElement.nodeName != 'A') {
-        anchorElement = anchorElement.parentNode;
-      }
-      if (!anchorElement || !editing.nodes.isEditable(anchorElement)) {
-        anchorElement = null;
+      if (!currentNode.hasChildNodes()) {
+        if (currentNode.nodeName == 'A') {
+          selectionTracker.willRemoveNode(currentNode);
+          context.removeChild(currentNode.parentNode, currentNode);
+        }
         return;
       }
 
-      selectionTracker.relocateIfNeeded(anchorElement);
-
-      anchorElements.push(anchorElement);
-      if (anchorElement == node)
-        return;
-
-      moveChildNodesBeforeParentNode(context, anchorElement, node.nextSibling);
+      if (currentNode.nodeName == 'A')
+        anchorElements.push(currentNode);
     });
 
     while (anchorElements.length) {
       var anchorElement = anchorElements.pop();
-      moveChildNodesBeforeParentNode(context, anchorElement, null);
-      context.removeChild(anchorElement.parentNode, anchorElement);
+      selectionTracker.willUnwrapElement(anchorElement);
+      unwrapElement(context, anchorElement);
     }
 
     selectionTracker.finish();
