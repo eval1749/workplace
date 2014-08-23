@@ -7,7 +7,7 @@
 // When |url| parameter is empty, |createLink| does nothing and returns
 // false.
 testCase('createLink.NoUrl', function() {
-  if (testing.isIE) {
+  if (testing.browserId == 'ie') {
     // Since IE shows modal dialog box to get URL, we don't run this test case,
     // to avoid manual closing modal dialog box.
     testRunner.skip('IE shows modal dialog box');

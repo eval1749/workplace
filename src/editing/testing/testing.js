@@ -28,17 +28,9 @@ var testing = {};
     Object.defineProperty(testing, name, {value: value});
   }
 
-  /**
-   * @return {boolean}
-   */
-  function isIE() {
-    return testing.browserId == 'ie';
-  }
-
   Object.defineProperties(testing, {
     browserId: {get: function() { return browserId; }},
     define: {value: define},
-    isIE: {get: isIE},
   });
 })();
 
