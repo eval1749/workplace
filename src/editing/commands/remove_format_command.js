@@ -6,17 +6,110 @@
 
 // Sample: http://jsfiddle.net/9nf4fue9/1/
 editing.defineCommand('removeFormat', (function() {
+  // TODO(yosin) We should move |TAG_NAMES_TO_REMOVE| to "content_model.js".
   /** @const */
   var TAG_NAMES_TO_REMOVE = editing.newSet([
         'ABBR', 'ACRONYM', 'B', 'BDI', 'BDO', 'BIG', 'BLINK', 'CITE', 'CODE',
         'DFN', 'EM', 'FONT', 'I', 'INS', 'KBD', 'MARK', 'NOBR', 'Q', 'S',
-        'SAMP', 'SMALL', 'STRIKE', 'STRONG', 'SUB', 'SUP', 'TT', 'U',
+        'SAMP', 'SMALL', 'SPAN', 'STRIKE', 'STRONG', 'SUB', 'SUP', 'TT', 'U',
         'VAR']);
 
-  function shouldRemove(node) {
-    return node && editing.nodes.isElement(node) && node.parentNode &&
-           editing.nodes.isContentEditable(node.parentNode) &&
-           TAG_NAMES_TO_REMOVE.has(node.nodeName);
+  /**
+   * @param {!editing.EditingContext} context
+   * @param {!editing.ReadOnlySelection} selection
+   * @return {!Array.<!Node>}
+   */
+  function prepareForRemoveFormat(context, selection) {
+    if (selection.isEmpty)
+      return [];
+    var selectedNodes = selection.isCaret ?
+        [selection.anchorNode] : editing.nodes.computeSelectedNodes(selection);
+
+    var effectiveNodes = selectedNodes;
+
+    // Adjust first node
+    {
+      var firstNode = selectedNodes[0];
+      var styleElement = null;
+      for (var runner = firstNode; runner; runner = runner.parentNode) {
+        if (!editing.nodes.isPhrasing(runner) ||
+            !editing.nodes.isEditable(runner)) {
+          break;
+        }
+        if (isStyleElement(runner))
+          styleElement = runner;
+      }
+      if (styleElement && styleElement !== firstNode) {
+        if (firstNode.previousSibling) {
+          var newTree = context.splitTree(styleElement, firstNode);
+          styleElement = newTree
+        }
+        effectiveNodes = [];
+        for (var runner = styleElement; runner != firstNode;
+             runner = editing.nodes.nextNode(runner)) {
+          effectiveNodes.push(runner);
+        }
+        selectedNodes.forEach(function(node) {
+          effectiveNodes.push(node);
+        });
+      }
+    }
+
+    // Adjust last node
+    var lastNode = lastOf(selectedNodes);
+    var styleElement = null;
+    for (var runner = firstNode; runner; runner = runner.parentNode) {
+      if (!editing.nodes.isPhrasing(runner) ||
+          !editing.nodes.isEditable(runner)) {
+        break;
+      }
+      if (isStyleElement(runner))
+        styleElement = runner;
+    }
+    if (!styleElement)
+      return effectiveNodes;
+    var nextNode = editing.nodes.nextNode(lastNode);
+    if (!nextNode || !editing.nodes.isDescendantOf(nextNode, styleElement))
+      return effectiveNodes;
+    var newTree = context.splitTree(styleElement, nextNode);
+    return effectiveNodes;
+  }
+
+  function lastOf(array) {
+    return array.length ? array[array.length - 1] : null;
+  }
+
+  function isStyleElement(node) {
+    if (!editing.nodes.isElement(node))
+      return false;
+    var element = /** @type {!Element} */(node);
+    if (element.hasAttribute('class'))
+      return false;
+    if (TAG_NAMES_TO_REMOVE.has(element.nodeName))
+      return true;
+    if (!editing.nodes.isPhrasing(element))
+      return false;
+    return element.hasAttribute('style');
+  }
+
+ /**
+  * @param {!EditingContext} context
+  * @param {!Node} parent
+  * @param {?Node} stopChild
+  */
+  function unwrapElement(context, parent, stopChild) {
+     console.assert(!stopChild || stopChild.parentNode == parent,
+                    'unwrapElement', parent, stopChild);
+     var child = parent.firstChild;
+     var ancestor = parent.parentNode;
+     while (child != stopChild) {
+       var nextSibling = child.nextSibling;
+       context.insertBefore(ancestor, child, parent);
+       child = nextSibling;
+     }
+     if (parent.firstChild)
+       return;
+     context.removeChild(ancestor, parent);
   }
 
   /**
@@ -26,127 +119,62 @@ editing.defineCommand('removeFormat', (function() {
    * @return {boolean}
    */
   function removeFormatCommand(context, userInterface, value) {
-    if (!context.startingSelection.isRange) {
+    if (context.startingSelection.isEmpty) {
       context.setEndingSelection(context.startingSelection);
       return true;
     }
 
     /** @const */ var selection = editing.nodes.normalizeSelection(
         context, context.startingSelection);
-    var editor = context.editor;
-    var anchorNode = selection.anchorNode;
-    var anchorOffset = selection.anchorOffset;
-    var focusNode = selection.focusNode;
-    var focusOffset = selection.focusOffset;
-    var nodes = editing.nodes.computeSelectedNodes(selection);
-    var firstNode = nodes.length >= 1 ? nodes[0] : null;
-    var lastNode = nodes.length >= 1 ? nodes[nodes.length - 1] : null;
-
-/*
-console.log('\n\nremoveFormatCommand first=' + firstNode + ' last=' + lastNode +
-            ' anchor=' + anchorNode + ' ' + anchorOffset +
-            ' focus=' + focusNode + ' ' + focusOffset);
-*/
-
-    if (firstNode && editing.nodes.isText(firstNode)) {
-      // Collect removal ancestors.
-      var ancestors = [];
-      for (var runner = firstNode.parentNode; shouldRemove(runner);
-           runner = runner.parentNode) {
-        ancestors.push(runner);
-      }
-      if (firstNode.previousSibling && ancestors.length) {
-        // relocate anchor and focus
-        var shouldUpdateAnchor = false;
-        if (anchorNode === firstNode.parentNode) {
-          shouldUpdateAnchor = true;
-          anchorOffset -= editing.nodes.nodeIndex(firstNode);
-        }
-        var shouldUpdateFocus = false;
-        if (focusNode === firstNode.parentNode) {
-          shouldUpdateFocus = true;
-          focusOffset -= editing.nodes.nodeIndex(firstNode);
-        }
-        var root = ancestors[ancestors.length - 1];
-        var newRoot = context.splitTree(root, firstNode);
-        if (shouldUpdateAnchor)
-          anchorNode = firstNode.parentNode;
-        if (shouldUpdateFocus)
-          focusNode = firstNode.parentNode;
-        for (var runner = firstNode.parentNode; runner;
-             runner = runner.parentNode) {
-          nodes.unshift(runner);
-        }
-/*
-console.log('removeFormatCommand',
-            'anchor=' + anchorNode + ' ' + anchorOffset,
-            'focus=' + focusNode + ' ' + focusOffset);
-*/
-//console.log('removeFormatCommand first newRoot=' + newRoot);
-        context.insertAfter(root.parentNode, newRoot, root);
-      } else {
-        while (ancestors.length) {
-          nodes.unshift(ancestors[0]);
-          ancestors.shift();
-        }
-      }
+    var selectionTracker = new editing.SelectionTracker(context, selection);
+    var effectiveNodes = prepareForRemoveFormat(context, selection);
+    if (!effectiveNodes.length) {
+      context.setEndingSelection(context.startingSelection);
+      return true;
     }
 
-    if (lastNode && lastNode != firstNode && lastNode.nextSibling) {
-      var root = null;
-      for (var runner = lastNode.parentNode; shouldRemove(runner);
-           runner = runner.parentNode) {
-        root = runner;
+    var styleElements = [];
+    var pendingContents = [];
+    effectiveNodes.forEach(function(currentNode) {
+      var styleElement = lastOf(styleElements);
+      if (styleElement && styleElement == currentNode.previousSibling) {
+        selectionTracker.willUnwrapElement(styleElement, null);
+        unwrapElement(context, styleElement, null);
+        styleElements.pop();
       }
-//console.log('removeFormatCommand last root=' + root);
-      if (root) {
-        var newRoot = context.splitTree(root, lastNode.nextSibling);
-//console.log('removeFormatCommand splitLast new=' + newRoot);
-        context.insertAfter(root.parentNode, newRoot, root);
-      }
-    }
 
-    nodes.forEach(function(node) {
-      if (!editing.nodes.isElement(node) || !editing.nodes.isEditable(node)) {
-        // TODO(yosin) Insert SPAN with "style" attribute to remove styles
-        // if needed, e.g. <span class="bold">foo</span> =>
-        // <span class="bold" style="font-weight:normal">foo</span>
-        //console.log('removeFormatCommand', 'skip ' + node);
-        return;
-      }
-      if (TAG_NAMES_TO_REMOVE.has(node.nodeName)) {
-//console.log('removeFormatCommand', 'removeTag ' + node, editing.nodes.isContentEditable(node.parentNode));
-        var parent = node.parentNode;
-        if (!editing.nodes.isContentEditable(parent))
-          return;
-        if (node === anchorNode) {
-          anchorNode = parent;
-          anchorOffset += editing.nodes.nodeIndex(node);
+      if (!currentNode.hasChildNodes()) {
+        if (isStyleElement(currentNode)) {
+          selectionTracker.willRemoveNode(currentNode);
+          context.removeChild(currentNode.parentNode, currentNode);
         }
-        if (node === focusNode) {
-          focusNode = parent;
-          focusOffset += editing.nodes.nodeIndex(node);
-        }
-        context.insertChildrenBefore(node, node);
-        context.removeChild(parent, node);
         return;
       }
 
-//console.log('removeFormatCommand', 'removeStyle' + node);
+      if (isStyleElement(currentNode))
+        styleElements.push(currentNode);
+    });
+
+    var lastNode = lastOf(effectiveNodes);
+    while (styleElements.length) {
+      var styleElement = styleElements.pop();
+      var stopChild = lastNode.parent == styleElement ? lastNode.nextSibling :
+                                                        null;
+      selectionTracker.willUnwrapElement(styleElement, stopChild);
+      unwrapElement(context, styleElement, stopChild);
+    }
+
+    selectionTracker.finish();
+    return true;
+  }
+  /*
       context.setStyle(node, 'backgroundColor', '');
       context.setStyle(node, 'color', '');
       context.setStyle(node, 'fontFamily', '');
       context.setStyle(node, 'fontSize', '');
       context.setStyle(node, 'fontWeight', '');
       context.setStyle(node, 'textDecoration', '');
-    });
-
-//console.log('removeFormatCommand anchor=' + anchorNode + ' ' + anchorOffset + ' focusNode=' + focusNode + ' ' + focusOffset);
-    context.setEndingSelection(new editing.ReadOnlySelection(
-       anchorNode, anchorOffset, focusNode, focusOffset,
-       selection.direction));
-    return true;
-  }
+  */
 
   return removeFormatCommand;
 })());

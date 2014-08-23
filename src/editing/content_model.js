@@ -70,10 +70,11 @@ editing.define('contentModel', (function() {
   defineContentModel('a', [FLOW, PHRASING, PALPABLE, INTERACTIVE], PHRASING,
                      TRANSPARENT);
   defineContentModel('br wbr', [FLOW, PHRASING, PALPABLE], PHRASING, []);
+  var NON_HTML5_PHRASING_TAGS = 'acronym big blink font kbd nobr strike tt';
   defineContentModel(
-    'em strong small s cite q dfn abbr ruby data time code var samp kbd sub' +
-    'sup i b u mark bdi bdo span', [FLOW, PHRASING, PALPABLE], PHRASING,
-    PHRASING);
+    'abbr b bdi bdo cite code data dfn em i ins kbd mark q ruby s samp small' +
+    ' span strong sub sup time u var ' + NON_HTML5_PHRASING_TAGS,
+    [FLOW, PHRASING, PALPABLE], PHRASING, PHRASING);
 
   // Grouping content
   defineContentModel('p', [FLOW, PALPABLE], FLOW, PHRASING);
