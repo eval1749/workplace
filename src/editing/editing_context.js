@@ -339,6 +339,7 @@ editing.define('EditingContext', (function() {
       lastNode = newNode;
     }
     var newNode = this.splitNode(treeNode, lastNode);
+    this.insertAfter(treeNode.parentNode, newNode, treeNode);
     return newNode;
   }
 

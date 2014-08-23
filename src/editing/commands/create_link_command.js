@@ -81,8 +81,7 @@ editing.defineCommand('CreateLink', (function() {
       context.insertAfter(editable, anchorTree, interactive);
     } else if (selection.focusOffset) {
       var followingTree = context.splitTree(interactive, caretNode);
-      context.insertAfter(editable, anchorTree, interactive);
-      context.insertAfter(editable, followingTree, anchorTree);
+      context.insertBefore(editable, anchorTree, followingTree);
     } else {
       context.insertBefore(editable, anchorTree, interactive);
     }
