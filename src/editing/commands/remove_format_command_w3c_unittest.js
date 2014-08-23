@@ -189,25 +189,25 @@ testCaseFor('removeFormat', 'w3c.16r', {
 });
 
 testCaseFor('removeFormat', 'w3c.17', {
-  after: '<div contenteditable>foo<span style="font-weight:bold">b</span>^a|<span style="font-weight:bold">r</span>baz</div>',
+  after: '<div contenteditable>foo<span style="font-weight: bold">b</span>^a|<span style="font-weight: bold">r</span>baz</div>',
   before: '<div contenteditable>foo<span style="font-weight: bold">b^a|r</span>baz</div>',
   sampleId: 17
 });
 
 testCaseFor('removeFormat', 'w3c.17r', {
-  after: '<div contenteditable>foo<span style="font-weight:bold">b</span>|a^<span style="font-weight:bold">r</span>baz</div>',
+  after: '<div contenteditable>foo<span style="font-weight: bold">b</span>|a^<span style="font-weight: bold">r</span>baz</div>',
   before: '<div contenteditable>foo<span style="font-weight: bold">b|a^r</span>baz</div>',
   sampleId: '17r'
 });
 
 testCaseFor('removeFormat', 'w3c.18', {
-  after: '<div contenteditable>foo<span style="font-weight:bold">b</span>^a|<span style="font-weight:bold">r</span>baz</div>',
+  after: '<div contenteditable>foo<span style="font-weight: bold">b</span>^a|<span style="font-weight: bold">r</span>baz</div>',
   before: '<div contenteditable>foo<span style="font-weight: bold">b^a|r</span>baz</div>',
   sampleId: 18
 });
 
 testCaseFor('removeFormat', 'w3c.18r', {
-  after: '<div contenteditable>foo<span style="font-weight:bold">b</span>|a^<span style="font-weight:bold">r</span>baz</div>',
+  after: '<div contenteditable>foo<span style="font-weight: bold">b</span>|a^<span style="font-weight: bold">r</span>baz</div>',
   before: '<div contenteditable>foo<span style="font-weight: bold">b|a^r</span>baz</div>',
   sampleId: '18r'
 });
@@ -237,74 +237,74 @@ testCaseFor('removeFormat', 'w3c.20r', {
 });
 
 testCaseFor('removeFormat', 'w3c.21', {
-  after: '<div contenteditable>foo<span style="font-variant:small-caps">b</span>^a|<span style="font-variant:small-caps">r</span>baz</div>',
+  after: '<div contenteditable>foo<span style="font-variant: small-caps">b</span>^a|<span style="font-variant: small-caps">r</span>baz</div>',
   before: '<div contenteditable>foo<span style="font-variant: small-caps">b^a|r</span>baz</div>',
   sampleId: 21
 });
 
 testCaseFor('removeFormat', 'w3c.21r', {
-  after: '<div contenteditable>foo<span style="font-variant:small-caps">b</span>|a^<span style="font-variant:small-caps">r</span>baz</div>',
+  after: '<div contenteditable>foo<span style="font-variant: small-caps">b</span>|a^<span style="font-variant: small-caps">r</span>baz</div>',
   before: '<div contenteditable>foo<span style="font-variant: small-caps">b|a^r</span>baz</div>',
   sampleId: '21r'
 });
 
 testCaseFor('removeFormat', 'w3c.22', {
-  after: '<div contenteditable>foo<span style="font-variant:small-caps">b</span>^a|<span style="font-variant:small-caps">r</span>baz</div>',
+  after: '<div contenteditable>foo<span style="font-variant: small-caps">b</span>^a|<span style="font-variant: small-caps">r</span>baz</div>',
   before: '<div contenteditable>foo<span style="font-variant: small-caps">b^a|r</span>baz</div>',
   sampleId: 22
 });
 
 testCaseFor('removeFormat', 'w3c.22r', {
-  after: '<div contenteditable>foo<span style="font-variant:small-caps">b</span>|a^<span style="font-variant:small-caps">r</span>baz</div>',
+  after: '<div contenteditable>foo<span style="font-variant: small-caps">b</span>|a^<span style="font-variant: small-caps">r</span>baz</div>',
   before: '<div contenteditable>foo<span style="font-variant: small-caps">b|a^r</span>baz</div>',
   sampleId: '22r'
 });
 
 testCaseFor('removeFormat', 'w3c.23', {
   after: '<div contenteditable>^foobarbaz|</div>',
-  before: '<div contenteditable>^foo<b id=foo>bar</b>baz|</div>',
+  before: '<div contenteditable>^foo<b id="foo">bar</b>baz|</div>',
   sampleId: 23
 });
 
 testCaseFor('removeFormat', 'w3c.23r', {
   after: '<div contenteditable>|foobarbaz^</div>',
-  before: '<div contenteditable>|foo<b id=foo>bar</b>baz^</div>',
+  before: '<div contenteditable>|foo<b id="foo">bar</b>baz^</div>',
   sampleId: '23r'
 });
 
 testCaseFor('removeFormat', 'w3c.24', {
   after: '<div contenteditable>^foobarbaz|</div>',
-  before: '<div contenteditable>^foo<b id=foo>bar</b>baz|</div>',
+  before: '<div contenteditable>^foo<b id="foo">bar</b>baz|</div>',
   sampleId: 24
 });
 
 testCaseFor('removeFormat', 'w3c.24r', {
   after: '<div contenteditable>|foobarbaz^</div>',
-  before: '<div contenteditable>|foo<b id=foo>bar</b>baz^</div>',
+  before: '<div contenteditable>|foo<b id="foo">bar</b>baz^</div>',
   sampleId: '24r'
 });
 
 testCaseFor('removeFormat', 'w3c.25', {
   after: '<div contenteditable>foo<b id="foo">b</b>^a|<b>r</b>baz</div>',
-  before: '<div contenteditable>foo<b id=foo>b^a|r</b>baz</div>',
+  before: '<div contenteditable>foo<b id="foo">b^a|r</b>baz</div>',
   sampleId: 25
 });
 
 testCaseFor('removeFormat', 'w3c.25r', {
   after: '<div contenteditable>foo<b id="foo">b</b>|a^<b>r</b>baz</div>',
-  before: '<div contenteditable>foo<b id=foo>b|a^r</b>baz</div>',
+  before: '<div contenteditable>foo<b id="foo">b|a^r</b>baz</div>',
   sampleId: '25r'
 });
 
 testCaseFor('removeFormat', 'w3c.26', {
   after: '<div contenteditable>foo<b id="foo">b</b>^a|<b>r</b>baz</div>',
-  before: '<div contenteditable>foo<b id=foo>b^a|r</b>baz</div>',
+  before: '<div contenteditable>foo<b id="foo">b^a|r</b>baz</div>',
   sampleId: 26
 });
 
 testCaseFor('removeFormat', 'w3c.26r', {
   after: '<div contenteditable>foo<b id="foo">b</b>|a^<b>r</b>baz</div>',
-  before: '<div contenteditable>foo<b id=foo>b|a^r</b>baz</div>',
+  before: '<div contenteditable>foo<b id="foo">b|a^r</b>baz</div>',
   sampleId: '26r'
 });
 
@@ -334,25 +334,25 @@ testCaseFor('removeFormat', 'w3c.28r', {
 
 testCaseFor('removeFormat', 'w3c.29', {
   after: '<div contenteditable>^foo<a href="foo">bar</a>baz|</div>',
-  before: '<div contenteditable>^foo<a href=foo>bar</a>baz|</div>',
+  before: '<div contenteditable>^foo<a href="foo">bar</a>baz|</div>',
   sampleId: 29
 });
 
 testCaseFor('removeFormat', 'w3c.29r', {
   after: '<div contenteditable>|foo<a href="foo">bar</a>baz^</div>',
-  before: '<div contenteditable>|foo<a href=foo>bar</a>baz^</div>',
+  before: '<div contenteditable>|foo<a href="foo">bar</a>baz^</div>',
   sampleId: '29r'
 });
 
 testCaseFor('removeFormat', 'w3c.30', {
   after: '<div contenteditable>foo<a href="foo">b^a|r</a>baz</div>',
-  before: '<div contenteditable>foo<a href=foo>b^a|r</a>baz</div>',
+  before: '<div contenteditable>foo<a href="foo">b^a|r</a>baz</div>',
   sampleId: 30
 });
 
 testCaseFor('removeFormat', 'w3c.30r', {
   after: '<div contenteditable>foo<a href="foo">b|a^r</a>baz</div>',
-  before: '<div contenteditable>foo<a href=foo>b|a^r</a>baz</div>',
+  before: '<div contenteditable>foo<a href="foo">b|a^r</a>baz</div>',
   sampleId: '30r'
 });
 
@@ -454,49 +454,49 @@ testCaseFor('removeFormat', 'w3c.38r', {
 
 testCaseFor('removeFormat', 'w3c.39', {
   after: '<div contenteditable>^foobarbaz|</div>',
-  before: '<div contenteditable>^foo<bdi dir=rtl>bar</bdi>baz|</div>',
+  before: '<div contenteditable>^foo<bdi dir="rtl">bar</bdi>baz|</div>',
   sampleId: 39
 });
 
 testCaseFor('removeFormat', 'w3c.39r', {
   after: '<div contenteditable>|foobarbaz^</div>',
-  before: '<div contenteditable>|foo<bdi dir=rtl>bar</bdi>baz^</div>',
+  before: '<div contenteditable>|foo<bdi dir="rtl">bar</bdi>baz^</div>',
   sampleId: '39r'
 });
 
 testCaseFor('removeFormat', 'w3c.40', {
   after: '<div contenteditable>foo<bdi dir="rtl">b</bdi>^a|<bdi dir="rtl">r</bdi>baz</div>',
-  before: '<div contenteditable>foo<bdi dir=rtl>b^a|r</bdi>baz</div>',
+  before: '<div contenteditable>foo<bdi dir="rtl">b^a|r</bdi>baz</div>',
   sampleId: 40
 });
 
 testCaseFor('removeFormat', 'w3c.40r', {
   after: '<div contenteditable>foo<bdi dir="rtl">b</bdi>|a^<bdi dir="rtl">r</bdi>baz</div>',
-  before: '<div contenteditable>foo<bdi dir=rtl>b|a^r</bdi>baz</div>',
+  before: '<div contenteditable>foo<bdi dir="rtl">b|a^r</bdi>baz</div>',
   sampleId: '40r'
 });
 
 testCaseFor('removeFormat', 'w3c.41', {
   after: '<div contenteditable>^foobarbaz|</div>',
-  before: '<div contenteditable>^foo<bdo dir=rtl>bar</bdo>baz|</div>',
+  before: '<div contenteditable>^foo<bdo dir="rtl">bar</bdo>baz|</div>',
   sampleId: 41
 });
 
 testCaseFor('removeFormat', 'w3c.41r', {
   after: '<div contenteditable>|foobarbaz^</div>',
-  before: '<div contenteditable>|foo<bdo dir=rtl>bar</bdo>baz^</div>',
+  before: '<div contenteditable>|foo<bdo dir="rtl">bar</bdo>baz^</div>',
   sampleId: '41r'
 });
 
 testCaseFor('removeFormat', 'w3c.42', {
   after: '<div contenteditable>foo<bdo dir="rtl">b</bdo>^a|<bdo dir="rtl">r</bdo>baz</div>',
-  before: '<div contenteditable>foo<bdo dir=rtl>b^a|r</bdo>baz</div>',
+  before: '<div contenteditable>foo<bdo dir="rtl">b^a|r</bdo>baz</div>',
   sampleId: 42
 });
 
 testCaseFor('removeFormat', 'w3c.42r', {
   after: '<div contenteditable>foo<bdo dir="rtl">b</bdo>|a^<bdo dir="rtl">r</bdo>baz</div>',
-  before: '<div contenteditable>foo<bdo dir=rtl>b|a^r</bdo>baz</div>',
+  before: '<div contenteditable>foo<bdo dir="rtl">b|a^r</bdo>baz</div>',
   sampleId: '42r'
 });
 
@@ -718,49 +718,49 @@ testCaseFor('removeFormat', 'w3c.60r', {
 
 testCaseFor('removeFormat', 'w3c.61', {
   after: '<div contenteditable>^foobarbaz|</div>',
-  before: '<div contenteditable>^foo<font color=blue>bar</font>baz|</div>',
+  before: '<div contenteditable>^foo<font color="blue">bar</font>baz|</div>',
   sampleId: 61
 });
 
 testCaseFor('removeFormat', 'w3c.61r', {
   after: '<div contenteditable>|foobarbaz^</div>',
-  before: '<div contenteditable>|foo<font color=blue>bar</font>baz^</div>',
+  before: '<div contenteditable>|foo<font color="blue">bar</font>baz^</div>',
   sampleId: '61r'
 });
 
 testCaseFor('removeFormat', 'w3c.62', {
   after: '<div contenteditable>^foobarbaz|</div>',
-  before: '<div contenteditable>^foo<font color=blue>bar</font>baz|</div>',
+  before: '<div contenteditable>^foo<font color="blue">bar</font>baz|</div>',
   sampleId: 62
 });
 
 testCaseFor('removeFormat', 'w3c.62r', {
   after: '<div contenteditable>|foobarbaz^</div>',
-  before: '<div contenteditable>|foo<font color=blue>bar</font>baz^</div>',
+  before: '<div contenteditable>|foo<font color="blue">bar</font>baz^</div>',
   sampleId: '62r'
 });
 
 testCaseFor('removeFormat', 'w3c.63', {
   after: '<div contenteditable>foo<font color="blue">b</font>^a|<font color="blue">r</font>baz</div>',
-  before: '<div contenteditable>foo<font color=blue>b^a|r</font>baz</div>',
+  before: '<div contenteditable>foo<font color="blue">b^a|r</font>baz</div>',
   sampleId: 63
 });
 
 testCaseFor('removeFormat', 'w3c.63r', {
   after: '<div contenteditable>foo<font color="blue">b</font>|a^<font color="blue">r</font>baz</div>',
-  before: '<div contenteditable>foo<font color=blue>b|a^r</font>baz</div>',
+  before: '<div contenteditable>foo<font color="blue">b|a^r</font>baz</div>',
   sampleId: '63r'
 });
 
 testCaseFor('removeFormat', 'w3c.64', {
   after: '<div contenteditable>foo<font color="blue">b</font>^a|<font color="blue">r</font>baz</div>',
-  before: '<div contenteditable>foo<font color=blue>b^a|r</font>baz</div>',
+  before: '<div contenteditable>foo<font color="blue">b^a|r</font>baz</div>',
   sampleId: 64
 });
 
 testCaseFor('removeFormat', 'w3c.64r', {
   after: '<div contenteditable>foo<font color="blue">b</font>|a^<font color="blue">r</font>baz</div>',
-  before: '<div contenteditable>foo<font color=blue>b|a^r</font>baz</div>',
+  before: '<div contenteditable>foo<font color="blue">b|a^r</font>baz</div>',
   sampleId: '64r'
 });
 
@@ -1366,13 +1366,13 @@ testCaseFor('removeFormat', 'w3c.114r', {
 
 testCaseFor('removeFormat', 'w3c.115', {
   after: '<div contenteditable>^foo<img src="abc">bar|</div>',
-  before: '<div contenteditable>^foo<img src=abc>bar|</div>',
+  before: '<div contenteditable>^foo<img src="abc">bar|</div>',
   sampleId: 115
 });
 
 testCaseFor('removeFormat', 'w3c.115r', {
   after: '<div contenteditable>|foo<img src="abc">bar^</div>',
-  before: '<div contenteditable>|foo<img src=abc>bar^</div>',
+  before: '<div contenteditable>|foo<img src="abc">bar^</div>',
   sampleId: '115r'
 });
 
@@ -1390,25 +1390,25 @@ testCaseFor('removeFormat', 'w3c.116r', {
 
 testCaseFor('removeFormat', 'w3c.117', {
   after: '<div contenteditable>^foo<video src="abc"></video>bar|</div>',
-  before: '<div contenteditable>^foo<video src=abc></video>bar|</div>',
+  before: '<div contenteditable>^foo<video src="abc"></video>bar|</div>',
   sampleId: 117
 });
 
 testCaseFor('removeFormat', 'w3c.117r', {
   after: '<div contenteditable>|foo<video src="abc"></video>bar^</div>',
-  before: '<div contenteditable>|foo<video src=abc></video>bar^</div>',
+  before: '<div contenteditable>|foo<video src="abc"></video>bar^</div>',
   sampleId: '117r'
 });
 
 testCaseFor('removeFormat', 'w3c.118', {
-  after: '<div contenteditable>^foo<svg><circle fill="blue" r="20" cx="20" cy="20"></circle></svg>bar|</div>',
-  before: '<div contenteditable>^foo<svg><circle fill=blue r=20 cx=20 cy=20 /></svg>bar|</div>',
+  after: '<div contenteditable>^foo<svg><circle cx="20" cy="20" fill="blue" r="20"></circle></svg>bar|</div>',
+  before: '<div contenteditable>^foo<svg><circlecx="20" cy="20" fill="blue" r="20"></circel></svg>bar|</div>',
   sampleId: 118
 });
 
 testCaseFor('removeFormat', 'w3c.118r', {
-  after: '<div contenteditable>|foo<svg><circle fill="blue" r="20" cx="20" cy="20"></circle></svg>bar^</div>',
-  before: '<div contenteditable>|foo<svg><circle fill=blue r=20 cx=20 cy=20 /></svg>bar^</div>',
+  after: '<div contenteditable>|foo<svg><circle cx="20" cy="20" fill="blue" r="20"></circle></svg>bar^</div>',
+  before: '<div contenteditable>|foo<svg><circle cx="20" cy="20" fill="blue" r="20"></circle></svg>bar^</div>',
   sampleId: '118r'
 });
 
@@ -1437,74 +1437,74 @@ testCaseFor('removeFormat', 'w3c.120r', {
 });
 
 testCaseFor('removeFormat', 'w3c.121', {
-  after: '<div contenteditable>^foo<nonexistentelement style="display:block">bar</nonexistentelement>baz|</div>',
+  after: '<div contenteditable>^foo<nonexistentelement style="display: block">bar</nonexistentelement>baz|</div>',
   before: '<div contenteditable>^foo<nonexistentelement style="display: block">bar</nonexistentelement>baz|</div>',
   sampleId: 121
 });
 
 testCaseFor('removeFormat', 'w3c.121r', {
-  after: '<div contenteditable>|foo<nonexistentelement style="display:block">bar</nonexistentelement>baz^</div>',
+  after: '<div contenteditable>|foo<nonexistentelement style="display: block">bar</nonexistentelement>baz^</div>',
   before: '<div contenteditable>|foo<nonexistentelement style="display: block">bar</nonexistentelement>baz^</div>',
   sampleId: '121r'
 });
 
 testCaseFor('removeFormat', 'w3c.122', {
-  after: '<div contenteditable>foo<nonexistentelement style="display:block">b^a|r</nonexistentelement>baz</div>',
+  after: '<div contenteditable>foo<nonexistentelement style="display: block">b^a|r</nonexistentelement>baz</div>',
   before: '<div contenteditable>foo<nonexistentelement style="display: block">b^a|r</nonexistentelement>baz</div>',
   sampleId: 122
 });
 
 testCaseFor('removeFormat', 'w3c.122r', {
-  after: '<div contenteditable>foo<nonexistentelement style="display:block">b|a^r</nonexistentelement>baz</div>',
+  after: '<div contenteditable>foo<nonexistentelement style="display: block">b|a^r</nonexistentelement>baz</div>',
   before: '<div contenteditable>foo<nonexistentelement style="display: block">b|a^r</nonexistentelement>baz</div>',
   sampleId: '122r'
 });
 
 testCaseFor('removeFormat', 'w3c.123', {
   after: '<div contenteditable>^foobarbaz|</div>',
-  before: '<div contenteditable>^foo<span id=foo>bar</span>baz|</div>',
+  before: '<div contenteditable>^foo<span id="foo">bar</span>baz|</div>',
   sampleId: 123
 });
 
 testCaseFor('removeFormat', 'w3c.123r', {
   after: '<div contenteditable>|foobarbaz^</div>',
-  before: '<div contenteditable>|foo<span id=foo>bar</span>baz^</div>',
+  before: '<div contenteditable>|foo<span id="foo">bar</span>baz^</div>',
   sampleId: '123r'
 });
 
 testCaseFor('removeFormat', 'w3c.124', {
   after: '<div contenteditable>foo<span id="foo">b</span>^a|<span>r</span>baz</div>',
-  before: '<div contenteditable>foo<span id=foo>b^a|r</span>baz</div>',
+  before: '<div contenteditable>foo<span id="foo">b^a|r</span>baz</div>',
   sampleId: 124
 });
 
 testCaseFor('removeFormat', 'w3c.124r', {
   after: '<div contenteditable>foo<span id="foo">b</span>|a^<span>r</span>baz</div>',
-  before: '<div contenteditable>foo<span id=foo>b|a^r</span>baz</div>',
+  before: '<div contenteditable>foo<span id="foo">b|a^r</span>baz</div>',
   sampleId: '124r'
 });
 
 testCaseFor('removeFormat', 'w3c.125', {
   after: '<div contenteditable>^foobarbaz|</div>',
-  before: '<div contenteditable>^foo<span class=foo>bar</span>baz|</div>',
+  before: '<div contenteditable>^foo<span class="foo">bar</span>baz|</div>',
   sampleId: 125
 });
 
 testCaseFor('removeFormat', 'w3c.125r', {
   after: '<div contenteditable>|foobarbaz^</div>',
-  before: '<div contenteditable>|foo<span class=foo>bar</span>baz^</div>',
+  before: '<div contenteditable>|foo<span class="foo">bar</span>baz^</div>',
   sampleId: '125r'
 });
 
 testCaseFor('removeFormat', 'w3c.126', {
   after: '<div contenteditable>foo<span class="foo">b</span>^a|<span class="foo">r</span>baz</div>',
-  before: '<div contenteditable>foo<span class=foo>b^a|r</span>baz</div>',
+  before: '<div contenteditable>foo<span class="foo">b^a|r</span>baz</div>',
   sampleId: 126
 });
 
 testCaseFor('removeFormat', 'w3c.126r', {
   after: '<div contenteditable>foo<span class="foo">b</span>|a^<span class="foo">r</span>baz</div>',
-  before: '<div contenteditable>foo<span class=foo>b|a^r</span>baz</div>',
+  before: '<div contenteditable>foo<span class="foo">b|a^r</span>baz</div>',
   sampleId: '126r'
 });
 
@@ -1533,73 +1533,73 @@ testCaseFor('removeFormat', 'w3c.128r', {
 });
 
 testCaseFor('removeFormat', 'w3c.129', {
-  after: '<div contenteditable>foo<b style="font-weight:normal">b</b>^a|<b style="font-weight:normal">r</b>baz</div>',
+  after: '<div contenteditable>foo<b style="font-weight: normal">b</b>^a|<b style="font-weight: normal">r</b>baz</div>',
   before: '<div contenteditable>foo<b style="font-weight: normal">b^a|r</b>baz</div>',
   sampleId: 129
 });
 
 testCaseFor('removeFormat', 'w3c.129r', {
-  after: '<div contenteditable>foo<b style="font-weight:normal">b</b>|a^<b style="font-weight:normal">r</b>baz</div>',
+  after: '<div contenteditable>foo<b style="font-weight: normal">b</b>|a^<b style="font-weight: normal">r</b>baz</div>',
   before: '<div contenteditable>foo<b style="font-weight: normal">b|a^r</b>baz</div>',
   sampleId: '129r'
 });
 
 testCaseFor('removeFormat', 'w3c.130', {
-  after: '<div contenteditable>foo<b style="font-weight:normal">b</b>^a|<b style="font-weight:normal">r</b>baz</div>',
+  after: '<div contenteditable>foo<b style="font-weight: normal">b</b>^a|<b style="font-weight: normal">r</b>baz</div>',
   before: '<div contenteditable>foo<b style="font-weight: normal">b^a|r</b>baz</div>',
   sampleId: 130
 });
 
 testCaseFor('removeFormat', 'w3c.130r', {
-  after: '<div contenteditable>foo<b style="font-weight:normal">b</b>|a^<b style="font-weight:normal">r</b>baz</div>',
+  after: '<div contenteditable>foo<b style="font-weight: normal">b</b>|a^<b style="font-weight: normal">r</b>baz</div>',
   before: '<div contenteditable>foo<b style="font-weight: normal">b|a^r</b>baz</div>',
   sampleId: '130r'
 });
 
 testCaseFor('removeFormat', 'w3c.131', {
-  after: '<div contenteditable><p style="background-color:rgb(0, 255, 255)">foo^bar|baz</p></div>',
+  after: '<div contenteditable><p style="background-color: rgb(0, 255, 255)">foo^bar|baz</p></div>',
   before: '<div contenteditable><p style="background-color: aqua">foo^bar|baz</p></div>',
   sampleId: 131
 });
 
 testCaseFor('removeFormat', 'w3c.131r', {
-  after: '<div contenteditable><p style="background-color:rgb(0, 255, 255)">foo|bar^baz</p></div>',
+  after: '<div contenteditable><p style="background-color: rgb(0, 255, 255)">foo|bar^baz</p></div>',
   before: '<div contenteditable><p style="background-color: aqua">foo|bar^baz</p></div>',
   sampleId: '131r'
 });
 
 testCaseFor('removeFormat', 'w3c.132', {
-  after: '<div contenteditable><p><span style="background-color:rgb(0, 255, 255)">foo</span>^bar|<span style="background-color:rgb(0, 255, 255)">baz</span></p></div>',
+  after: '<div contenteditable><p><span style="background-color: rgb(0, 255, 255)">foo</span>^bar|<span style="background-color: rgb(0, 255, 255)">baz</span></p></div>',
   before: '<div contenteditable><p><span style="background-color: aqua">foo^bar|baz</span></p></div>',
   sampleId: 132
 });
 
 testCaseFor('removeFormat', 'w3c.132r', {
-  after: '<div contenteditable><p><span style="background-color:rgb(0, 255, 255)">foo</span>|bar^<span style="background-color:rgb(0, 255, 255)">baz</span></p></div>',
+  after: '<div contenteditable><p><span style="background-color: rgb(0, 255, 255)">foo</span>|bar^<span style="background-color: rgb(0, 255, 255)">baz</span></p></div>',
   before: '<div contenteditable><p><span style="background-color: aqua">foo|bar^baz</span></p></div>',
   sampleId: '132r'
 });
 
 testCaseFor('removeFormat', 'w3c.133', {
-  after: '<div contenteditable><p><span style="background-color:rgb(0, 255, 255)">foo</span>^bar|<span style="background-color:rgb(0, 255, 255)">baz</span></p></div>',
+  after: '<div contenteditable><p><span style="background-color: rgb(0, 255, 255)">foo</span>^bar|<span style="background-color: rgb(0, 255, 255)">baz</span></p></div>',
   before: '<div contenteditable><p><span style="background-color: aqua">foo^bar|baz</span></p></div>',
   sampleId: 133
 });
 
 testCaseFor('removeFormat', 'w3c.133r', {
-  after: '<div contenteditable><p><span style="background-color:rgb(0, 255, 255)">foo</span>|bar^<span style="background-color:rgb(0, 255, 255)">baz</span></p></div>',
+  after: '<div contenteditable><p><span style="background-color: rgb(0, 255, 255)">foo</span>|bar^<span style="background-color: rgb(0, 255, 255)">baz</span></p></div>',
   before: '<div contenteditable><p><span style="background-color: aqua">foo|bar^baz</span></p></div>',
   sampleId: '133r'
 });
 
 testCaseFor('removeFormat', 'w3c.134', {
-  after: '<div contenteditable><p><span style="font-weight:bold">foo</span>^bar|<span style="font-weight:bold">baz</span></p></div>',
+  after: '<div contenteditable><p><span style="font-weight: bold">foo</span>^bar|<span style="font-weight: bold">baz</span></p></div>',
   before: '<div contenteditable><p style="font-weight: bold">foo^bar|baz</p></div>',
   sampleId: 134
 });
 
 testCaseFor('removeFormat', 'w3c.134r', {
-  after: '<div contenteditable><p><span style="font-weight:bold">foo</span>|bar^<span style="font-weight:bold">baz</span></p></div>',
+  after: '<div contenteditable><p><span style="font-weight: bold">foo</span>|bar^<span style="font-weight: bold">baz</span></p></div>',
   before: '<div contenteditable><p style="font-weight: bold">foo|bar^baz</p></div>',
   sampleId: '134r'
 });
@@ -1617,13 +1617,13 @@ testCaseFor('removeFormat', 'w3c.135r', {
 });
 
 testCaseFor('removeFormat', 'w3c.136', {
-  after: '<div contenteditable><p><span style="font-weight:bold">foo</span>^bar|<span style="font-weight:bold">baz</span></p></div>',
+  after: '<div contenteditable><p><span style="font-weight: bold">foo</span>^bar|<span style="font-weight: bold">baz</span></p></div>',
   before: '<div contenteditable><b><p style="font-weight: bold">foo^bar|baz</p></b></div>',
   sampleId: 136
 });
 
 testCaseFor('removeFormat', 'w3c.136r', {
-  after: '<div contenteditable><p><span style="font-weight:bold">foo</span>|bar^<span style="font-weight:bold">baz</span></p></div>',
+  after: '<div contenteditable><p><span style="font-weight: bold">foo</span>|bar^<span style="font-weight: bold">baz</span></p></div>',
   before: '<div contenteditable><b><p style="font-weight: bold">foo|bar^baz</p></b></div>',
   sampleId: '136r'
 });
@@ -1641,49 +1641,49 @@ testCaseFor('removeFormat', 'w3c.137r', {
 });
 
 testCaseFor('removeFormat', 'w3c.138', {
-  after: '<div contenteditable><p style="font-variant:small-caps">foo^bar|baz</p></div>',
+  after: '<div contenteditable><p style="font-variant: small-caps">foo^bar|baz</p></div>',
   before: '<div contenteditable><p style="font-variant: small-caps">foo^bar|baz</p></div>',
   sampleId: 138
 });
 
 testCaseFor('removeFormat', 'w3c.138r', {
-  after: '<div contenteditable><p style="font-variant:small-caps">foo|bar^baz</p></div>',
+  after: '<div contenteditable><p style="font-variant: small-caps">foo|bar^baz</p></div>',
   before: '<div contenteditable><p style="font-variant: small-caps">foo|bar^baz</p></div>',
   sampleId: '138r'
 });
 
 testCaseFor('removeFormat', 'w3c.139', {
-  after: '<div contenteditable>^<p style="font-variant:small-caps">foobarbaz</p>|</div>',
+  after: '<div contenteditable>^<p style="font-variant: small-caps">foobarbaz</p>|</div>',
   before: '<div contenteditable>^<p style="font-variant: small-caps">foobarbaz</p>|</div>',
   sampleId: 139
 });
 
 testCaseFor('removeFormat', 'w3c.139r', {
-  after: '<div contenteditable>|<p style="font-variant:small-caps">foobarbaz</p>^</div>',
+  after: '<div contenteditable>|<p style="font-variant: small-caps">foobarbaz</p>^</div>',
   before: '<div contenteditable>|<p style="font-variant: small-caps">foobarbaz</p>^</div>',
   sampleId: '139r'
 });
 
 testCaseFor('removeFormat', 'w3c.140', {
-  after: '<div contenteditable><p style="text-indent:2em">foo^bar|baz</p></div>',
+  after: '<div contenteditable><p style="text-indent: 2em">foo^bar|baz</p></div>',
   before: '<div contenteditable><p style="text-indent: 2em">foo^bar|baz</p></div>',
   sampleId: 140
 });
 
 testCaseFor('removeFormat', 'w3c.140r', {
-  after: '<div contenteditable><p style="text-indent:2em">foo|bar^baz</p></div>',
+  after: '<div contenteditable><p style="text-indent: 2em">foo|bar^baz</p></div>',
   before: '<div contenteditable><p style="text-indent: 2em">foo|bar^baz</p></div>',
   sampleId: '140r'
 });
 
 testCaseFor('removeFormat', 'w3c.141', {
-  after: '<div contenteditable>^<p style="text-indent:2em">foobarbaz</p>|</div>',
+  after: '<div contenteditable>^<p style="text-indent: 2em">foobarbaz</p>|</div>',
   before: '<div contenteditable>^<p style="text-indent: 2em">foobarbaz</p>|</div>',
   sampleId: 141
 });
 
 testCaseFor('removeFormat', 'w3c.141r', {
-  after: '<div contenteditable>|<p style="text-indent:2em">foobarbaz</p>^</div>',
+  after: '<div contenteditable>|<p style="text-indent: 2em">foobarbaz</p>^</div>',
   before: '<div contenteditable>|<p style="text-indent: 2em">foobarbaz</p>^</div>',
   sampleId: '141r'
 });
