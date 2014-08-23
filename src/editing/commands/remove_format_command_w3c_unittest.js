@@ -1402,7 +1402,7 @@ testCaseFor('removeFormat', 'w3c.117r', {
 
 testCaseFor('removeFormat', 'w3c.118', {
   after: '<div contenteditable>^foo<svg><circle cx="20" cy="20" fill="blue" r="20"></circle></svg>bar|</div>',
-  before: '<div contenteditable>^foo<svg><circlecx="20" cy="20" fill="blue" r="20"></circel></svg>bar|</div>',
+  before: '<div contenteditable>^foo<svg><circle cx="20" cy="20" fill="blue" r="20"></circle></svg>bar|</div>',
   sampleId: 118
 });
 
