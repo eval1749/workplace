@@ -6,7 +6,7 @@
 
 // IE11 doesn't work well if focus before anchor.
 
-testCaseFor('Unlink', 'Nothing', {
+testCaseFor('unlink', 'nothing', {
   before: '<p contenteditable>|abcd</p>',
   after:'<p contenteditable>|abcd</p>'
 });
@@ -14,17 +14,17 @@ testCaseFor('Unlink', 'Nothing', {
 //
 // Caret
 //
-testCaseFor('Unlink', 'Caret.Child', {
+testCaseFor('unlink', 'caret.child', {
   before: '<p contenteditable><a href="foo">b|ar</a></p>',
   after:'<p contenteditable>b|ar</p>'
 });
 
-testCaseFor('Unlink', 'Caret.LastChild', {
+testCaseFor('unlink', 'caret.lastchild', {
   before: '<p contenteditable><a href="foo">bar|</a></p>',
   after:'<p contenteditable>bar|</p>'
 });
 
-testCaseFor('Unlink', 'Caret.Descendant', {
+testCaseFor('unlink', 'caret.descendant', {
   before: '<p contenteditable><a href="foo"><b>b|ar</b></a></p>',
   after:'<p contenteditable><b>b|ar</b></p>'
 });
@@ -32,18 +32,18 @@ testCaseFor('Unlink', 'Caret.Descendant', {
 // Remove A element if it has "href" attribute only.
 // FF: <p contenteditable>^bar|</p>
 // IE: <p contenteditable>|<a href="foo">bar</a></p> Doesn't remove A
-testCaseFor('Unlink', 'AnchorElement.HrefOnly', {
+testCaseFor('unlink', 'anchor.hrefonly', {
   before: '<p contenteditable>^<a href="foo">bar</a>|</p>',
   after:'<p contenteditable>^bar|</p>'
 });
 
 // IE removes A element even if it doesn't have "HREF".
-testCaseFor('Unlink', 'AnchorElement.NoHref', {
+testCaseFor('unlink', 'anchor.nohref', {
   before: '<p contenteditable>^<a>bar</a>|</p>',
   after:'<p contenteditable>^bar|</p>'
 });
 
-testCaseFor('Unlink', 'AnchorElement.NoHref.Other', {
+testCaseFor('unlink', 'anchor.nohref.other', {
   before: '<p contenteditable>^<a class="red">bar</a>|</p>',
   after:'<p contenteditable>^bar|</p>'
 });
@@ -51,25 +51,25 @@ testCaseFor('Unlink', 'AnchorElement.NoHref.Other', {
 //
 // Unlink with href
 //
-testCaseFor('Unlink', 'AnchorElement.Href.Class', {
+testCaseFor('unlink', 'anchor.href.class', {
   before: '<p contenteditable>^<a class="class1" href="url1">bar</a>|</p>',
   after:'<p contenteditable>^bar|</p>',
   firefox: '<p contenteditable><span class="class1">bar</span>^</p>',
   ie: '<p contenteditable>^<a class="class1" href="url1">bar</a></p>'
 });
 
-testCaseFor('Unlink', 'AnchorElement.Href.Id', {
+testCaseFor('unlink', 'anchor.href.id', {
   before: '<p contenteditable>^<a href="url1" id="id1">bar</a>|</p>',
   after:'<p contenteditable>^bar|</p>',
   ie: '<p contenteditable>^<a href="url1" id="id1">bar</a></p>'
 });
 
-testCaseFor('Unlink', 'AnchorElement.Href.Name', {
+testCaseFor('unlink', 'anchor.href.Name', {
   before: '<p contenteditable>^<a href="url1" name="id1">bar</a>|</p>',
   after:'<p contenteditable>^bar|</p>',
 });
 
-testCaseFor('Unlink', 'AnchorElement.Href.Style', {
+testCaseFor('unlink', 'anchor.href.style', {
   before: '<p contenteditable>^<a href="url1" style="font-weight: bold">bar</a>|</p>',
   after:'<p contenteditable>^bar|</p>',
   firefox: '<p contenteditable><a href="url1" style="font-weight: bold;">bar</a></p>',
@@ -78,12 +78,12 @@ testCaseFor('Unlink', 'AnchorElement.Href.Style', {
 //
 // Unlink from whole anchor text
 //
-testCaseFor('Unlink', 'AnchorText.Whole.Anchor.Focus', {
+testCaseFor('unlink', 'contents.text.whole.anchor.focus', {
   before: '<p contenteditable><a href="foo">^bar|</a></p>',
   after:'<p contenteditable>^bar|</p>'
 });
 
-testCaseFor('Unlink', 'AnchorText.Whole.Focus.Anchor', {
+testCaseFor('unlink', 'contents.text.whole.focus.anchor', {
   before: '<p contenteditable><a href="foo">|bar^</a></p>',
   after:'<p contenteditable>|bar^</p>'
 });
@@ -91,12 +91,12 @@ testCaseFor('Unlink', 'AnchorText.Whole.Focus.Anchor', {
 //
 // Unlink from partial anchor text
 //
-testCaseFor('Unlink', 'AnchorText.Partial.Anchor.Focus', {
+testCaseFor('unlink', 'contents.text.partial.anchor.focus', {
   before: '<p contenteditable><a href="foo">ab^cd|ef</a></p>',
   after:'<p contenteditable>ab^cd|ef</p>'
 });
 
-testCaseFor('Unlink', 'AnchorText.Partial.Focus.Anchor', {
+testCaseFor('unlink', 'contents.text.partial.focus.anchor', {
   before: '<p contenteditable><a href="foo">ab|cd^ef</a></p>',
   after:'<p contenteditable>ab|cd^ef</p>'
 });
@@ -104,17 +104,17 @@ testCaseFor('Unlink', 'AnchorText.Partial.Focus.Anchor', {
 //
 // Unlink from partial anchor content
 //
-testCaseFor('Unlink', 'AnchorContent.Partial.Anchor.Focus', {
+testCaseFor('unlink', 'contents.partial.anchor.focus', {
   before: '<p contenteditable><a href="foo"><b>ab^cd|ef</b></a></p>',
   after:'<p contenteditable><b>ab^cd|ef</b></p>'
 });
 
-testCaseFor('Unlink', 'AnchorCross.Partial.Anchor.Focus', {
+testCaseFor('unlink', 'contents.nodes.partial.anchor.focus', {
   before: '<p contenteditable><a href="foo"><b>ab^c</b>d|e</a></p>',
   after:'<p contenteditable><b>ab^c</b>d|e</p>'
 });
 
-testCaseFor('Unlink', 'AnchorCross.Partial.Focus.Anchor', {
+testCaseFor('unlink', 'contents.nodes.partial.focus.anchor', {
   before: '<p contenteditable><a href="foo"><b>ab|c</b>d^e</a></p>',
   after:'<p contenteditable><b>ab|c</b>d^e</p>'
 });
@@ -122,22 +122,22 @@ testCaseFor('Unlink', 'AnchorCross.Partial.Focus.Anchor', {
 //
 // Unlink multiple anchor elements
 //
-testCaseFor('Unlink', 'Multiple.Whole.Anchor.Focus', {
+testCaseFor('unlink', 'multiple.whole.anchor.focus', {
   before: '<p contenteditable>^<a href="foo">bar</a><a href="foo2">bar2</a>|</p>',
   after:'<p contenteditable>^barbar2|</p>',
 });
 
-testCaseFor('Unlink', 'Multiple.Whole.Focus.Anchor', {
+testCaseFor('unlink', 'multiple.whole.focus.anchor', {
   before: '<p contenteditable>|<a href="foo">bar</a><a href="foo2">bar2</a>^</p>',
   after:'<p contenteditable>|barbar2^</p>',
 });
 
-testCaseFor('Unlink', 'Multiple.Partial.Anchor.Focus', {
+testCaseFor('unlink', 'multiple.partial.anchor.focus', {
   before: '<p contenteditable><a href="foo">a^bc</a>d<a href="foo2">e|f</a></p>',
   after:'<p contenteditable>a^bcde|f</p>',
 });
 
-testCaseFor('Unlink', 'Multiple.Partial.Focus.Anchor', {
+testCaseFor('unlink', 'multiple.partial.focus.anchor', {
   before: '<p contenteditable><a href="foo">a|bc</a>d<a href="foo2">e^f</a></p>',
   after:'<p contenteditable>a|bcde^f</p>',
   firefox: '<p contenteditable>abcd<a href="foo2">ef</a></p>'
@@ -146,7 +146,7 @@ testCaseFor('Unlink', 'Multiple.Partial.Focus.Anchor', {
 //
 // Nested anchor elements
 //
-testCaseFor('Unlink', 'Multiple.Nested', {
+testCaseFor('unlink', 'multiple.Nested', {
   // TODO(yosi) Since the parser automatically insert "</a>" to avoid nested
   // A elements, we should make nested A elements by script.
   x_before: '<p contenteditable>^<a href="foo">abc<a>def</a></a>|</p>',
