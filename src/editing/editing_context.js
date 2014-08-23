@@ -299,6 +299,7 @@ editing.define('EditingContext', (function() {
    */
   function splitNode(parent, child) {
     var newParent = parent.cloneNode(false);
+    newParent.removeAttribute('id');
     var sibling = child;
     while (sibling) {
       console.assert(sibling.parentNode === parent);
@@ -306,6 +307,7 @@ editing.define('EditingContext', (function() {
       this.appendChild(newParent, sibling);
       sibling = nextSibling;
     }
+    this.insertAfter(parent.parentNode, newParent, parent);
     return newParent;
   }
 
@@ -334,13 +336,9 @@ editing.define('EditingContext', (function() {
     var lastNode = refNode;
     for (var runner = refNode.parentNode; runner !== treeNode;
          runner = runner.parentNode) {
-      var newNode = this.splitNode(runner, lastNode);
-      this.insertAfter(runner.parentNode, newNode, runner);
-      lastNode = newNode;
+      lastNode = this.splitNode(runner, lastNode);
     }
-    var newNode = this.splitNode(treeNode, lastNode);
-    this.insertAfter(treeNode.parentNode, newNode, treeNode);
-    return newNode;
+    return this.splitNode(treeNode, lastNode);
   }
 
   Object.defineProperties(EditingContext.prototype, {

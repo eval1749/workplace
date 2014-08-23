@@ -164,9 +164,8 @@ testCaseWithSample('nodes.isWhitespaceNode', '', function(context, selection) {
   expectTrue(function () { return editing.nodes.isWhitespaceNode(textC); });
 });
 
-
 //
-// constructor splitText
+// normalizeSelection
 //
 testCaseWithSample('nodes.normalizeSelection.splitTextCaret',
   '<p contenteditable>ab|cd</p>', function(context, selectionIn) {
@@ -216,6 +215,36 @@ testCaseWithSample('nodes.normalizeSelection.splitTextFocusAnchor',
     expectEq('P', function() { return selection.focusNode.nodeName; });
     expectEq(1, function() { return selection.focusOffset; });
   });
+
+//
+// splitNode
+//
+testCaseWithSample('nodes.splitNode.1',
+    '<p contenteditable><a>one|<b>two</b>three</a></p>',
+    function(context, selectionIn) {
+      var oldTree = context.document.querySelector('a');
+      var refNode = oldTree.childNodes[1];
+      var newTree = context.splitNode(oldTree, refNode);
+      expectEq('<a>one</a>',
+               function() { return testing.serialzieNode(oldTree); });
+      expectEq('<a><b>two</b>three</a>',
+              function() { return testing.serialzieNode(newTree); });
+      expectEq(newTree, function() { return oldTree.nextSibling; });
+    });
+
+// We don't copy "id" attribute.
+testCaseWithSample('nodes.splitNode.2',
+    '<p contenteditable><a id="foo">one|<b>two</b>three</a></p>',
+    function(context, selectionIn) {
+      var oldTree = context.document.querySelector('a');
+      var refNode = oldTree.childNodes[1];
+      var newTree = context.splitNode(oldTree, refNode);
+      expectEq('<a id="foo">one</a>',
+               function() { return testing.serialzieNode(oldTree); });
+      expectEq('<a><b>two</b>three</a>',
+              function() { return testing.serialzieNode(newTree); });
+      expectEq(newTree, function() { return oldTree.nextSibling; });
+    });
 
 //
 // splitTree
