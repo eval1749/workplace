@@ -5,6 +5,7 @@
 'use strict';
 
 testing.define('TEST_EXPECTATIONS', (function() {
+  var DO_NOT_REMOVE_CLASS = 'We do not remove element with "class" attribute.';
   var IE_BACKWARD_SELECTION = 'IE does not work well for backward seleciton.';
   var IE_IGNORES_A_ATTRS = 'IE compatibility.' +
       ' Replace A element even if it has "name" attribute';
@@ -21,6 +22,10 @@ testing.define('TEST_EXPECTATIONS', (function() {
     'createLink.w3c.46r': {expected: 'fail', reason: IE_IGNORES_A_ATTRS},
     'createLink.w3c.47': {expected: 'fail', reason: IE_IGNORES_A_ATTRS},
     'createLink.w3c.47r': {expected: 'fail', reason: IE_IGNORES_A_ATTRS},
+
+    // remove format
+    'removeFormat.w3c.125': {expected: 'fail', reason: DO_NOT_REMOVE_CLASS},
+    'removeFormat.w3c.125r': {expected: 'fail', reason: DO_NOT_REMOVE_CLASS},
 
     // unlink command
     'unlink.w3c.24': {expected: 'fail', reason: IE_IGNORES_A_ATTRS},
