@@ -283,12 +283,9 @@ editing.define('EditingContext', (function() {
    */
   function setStyle(element, propertyName, newValue) {
     console.assert(editing.nodes.isElement(element));
-    var style = element.style;
-    var oldValue = style[propertyName];
-    style[propertyName] = newValue;
-    this.operations_.push({operation: 'setStyle', element: element,
-                             propertyName: propertyName, newValue: newValue,
-                             oldValue: oldValue});
+    var operation = new editing.SetStyle(element, propertyName, newValue);
+    this.operations_.push(operation);
+    operation.execute();
   }
 
   /**

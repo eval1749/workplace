@@ -242,13 +242,13 @@ editing.define('ReplaceChild', (function() {
 // SetAttribute
 //
 editing.define('SetAttribute', (function() {
-  function SetAttribute(element, attrName, attrValue) {
-    if (attrValue === null)
+  function SetAttribute(element, attrName, newValue) {
+    if (newValue === null)
       throw new Error('You can not use null for attribute ' + attrName);
     editing.Operation.call(this, 'setAttribute');
     this.element_ = element;
     this.attrName_ = attrName;
-    this.newValue_ = attrValue;
+    this.newValue_ = newValue;
     this.oldValue_ = element.getAttribute(attrName);
     Object.seal(this);
   }
@@ -281,6 +281,47 @@ editing.define('SetAttribute', (function() {
   });
 
   return SetAttribute;
+})());
+
+//////////////////////////////////////////////////////////////////////
+//
+// SetStyle
+//
+editing.define('SetStyle', (function() {
+  function SetStyle(element, propertyName, newValue) {
+    editing.Operation.call(this, 'setAttribute');
+    this.element_ = element;
+    this.propertyName_ = propertyName;
+    this.newValue_ = newValue;
+    this.oldValue_ = element.style[propertyName];
+    Object.seal(this);
+  }
+
+  /**
+   * @this {!SetStyle}
+   */
+  function redo() {
+    this.element_.style[this.propertyName_] = this.newValue_;
+  }
+
+  /**
+   * @this {!SetStyle}
+   */
+  function undo() {
+    this.element_.style[this.propertyName_] = this.oldValue_;
+  }
+
+  SetStyle.prototype = Object.create(editing.Operation.prototype, {
+    constructor: SetStyle,
+    element_: {writable: true},
+    newValue_: {writable: true},
+    oldValue_: {writable: true},
+    propertyName_: {writable: true},
+    redo: {value: redo},
+    undo: {value: undo}
+  });
+
+  return SetStyle;
 })());
 
 //////////////////////////////////////////////////////////////////////
