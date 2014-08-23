@@ -65,59 +65,67 @@ editing.define('SelectionTracker', (function() {
     Object.seal(this);
   }
 
-  /**
-   * @this {!TrackablePosition}
-   * @return {!NodeAndOffset}
-   */
-  function convertToNodeAndOffset() {
-    var node = this.node_;
-    switch (this.type_) {
-      case TrackingType.AFTER_NODE:
-        return new NodeAndOffset(node.parentNode,
-                                 editing.nodes.nodeIndex(node) + 1);
-      case TrackingType.AFTER_ALL_CHILDREN:
-        return new NodeAndOffset(node.parentNode,
-                                 editing.nodes.maxOffset(node));
-      case TrackingType.BEFORE_ALL_CHILDREN:
-        return new NodeAndOffset(node, 0);
-      case TrackingType.NODE:
-        return new NodeAndOffset(node.parentNode,
-                                 editing.nodes.nodeIndex(node));
-      default:
-        throw new Error('Bad TrackablePosition.type ' + this.type_);
+  Object.defineProperties(TrackablePosition.prototype, (function() {
+    /**
+     * @this {!TrackablePosition}
+     * @return {!NodeAndOffset}
+     */
+    function convertToNodeAndOffset() {
+      var node = this.node_;
+      switch (this.type_) {
+        case TrackingType.AFTER_NODE:
+          return new NodeAndOffset(node.parentNode,
+                                   editing.nodes.nodeIndex(node) + 1);
+        case TrackingType.AFTER_ALL_CHILDREN:
+          return new NodeAndOffset(node.parentNode,
+                                   editing.nodes.maxOffset(node));
+        case TrackingType.BEFORE_ALL_CHILDREN:
+          return new NodeAndOffset(node, 0);
+        case TrackingType.NODE:
+          return new NodeAndOffset(node.parentNode,
+                                   editing.nodes.nodeIndex(node));
+        default:
+          throw new Error('Bad TrackablePosition.type ' + this.type_);
+      }
     }
-  }
 
-  function willRemoveNodeTrackablePosition(node, startOrEnd) {
-    if (this.node_ !== node)
-      return;
-    switch (this.type_) {
-      case TrackingType.AFTER_NODE:
-        this.node_ = editing.nodes.previousNode(this.node_);
-        break;
-      case TrackingType.AFTER_ALL_CHILDREN:
-        this.type_ = TrackingType.NODE;
-        this.node_ = editing.nodes.nextNodeSkippingChildren(this.node_);
-        break;
-      case TrackingType.BEFORE_ALL_CHILDREN:
-        this.type_ = TrackingType.AFTER_NODE;
-        this.node_ = editing.nodes.previousNode(this.node_);
-        break;
-      case TrackingType.NODE:
-        this.type_ = TrackingType.AFTER_NODE;
-        this.node_ = editing.nodes.previousNode(this.node_);
-        break;
-      default:
-        throw new Error('Bad TrackablePosition.type ' + this.type_);
+    /**
+     * @this {!TrackablePosition}
+     * @param {!Node} node
+     */
+    function willRemoveNode(node) {
+      if (this.node_ !== node &&
+          !editing.nodes.isDescendantOf(this.node_, node)) {
+        return;
+      }
+      switch (this.type_) {
+        case TrackingType.AFTER_NODE:
+          this.node_ = editing.nodes.previousNode(this.node_);
+          break;
+        case TrackingType.AFTER_ALL_CHILDREN:
+          this.type_ = TrackingType.NODE;
+          this.node_ = editing.nodes.nextNodeSkippingChildren(this.node_);
+          break;
+        case TrackingType.BEFORE_ALL_CHILDREN:
+          this.type_ = TrackingType.AFTER_NODE;
+          this.node_ = editing.nodes.previousNode(this.node_);
+          break;
+        case TrackingType.NODE:
+          this.type_ = TrackingType.AFTER_NODE;
+          this.node_ = editing.nodes.previousNode(this.node_);
+          break;
+        default:
+          throw new Error('Bad TrackablePosition.type ' + this.type_);
+      }
     }
-  }
 
-  Object.defineProperties(TrackablePosition.prototype, {
-    convertToNodeAndOffset: {value: convertToNodeAndOffset},
-    node_: {writable: true},
-    type_: {writable: true},
-    willRemoveNode: {value: willRemoveNodeTrackablePosition}
-  });
+    return {
+      convertToNodeAndOffset: {value: convertToNodeAndOffset},
+      node_: {writable: true},
+      type_: {writable: true},
+      willRemoveNode: {value: willRemoveNode}
+    }
+  })());
 
   /**
    * @constructor
@@ -161,8 +169,8 @@ editing.define('SelectionTracker', (function() {
    * @param {!Node} node
    */
   function willRemoveNode(node) {
-    this.start_.willRemoveNode(node, StartOrEnd.START);
-    this.end_.willRemoveNode(node, StartOrEnd.END);
+    this.start_.willRemoveNode(node);
+    this.end_.willRemoveNode(node);
   }
 
   Object.defineProperties(SelectionTracker.prototype, {

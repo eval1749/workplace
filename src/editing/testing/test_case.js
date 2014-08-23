@@ -39,14 +39,9 @@ testing.define('serialzieNode', (function() {
         if (!selection)
           return text;
         if (selection.anchorNode === node && selection.focusNode === node) {
+          var start = selection.startOffset;
+          var end = selection.endOffset;
           var anchorIsStart = selection.anchorOffset < selection.focusOffset;
-          var start = anchorIsStart ? selection.anchorOffset :
-                                      selection.focusOffset;
-          var end = anchorIsStart ? selection.focusOffset :
-                                    selection.anchorOffset;
-          console.assert(start <= text.length);
-          console.assert(end <= text.length);
-          console.assert(start <= end);
           var startMarker = anchorIsStart ? '^' : '|';
           var endMarker = anchorIsStart ? '|' : '^';
           if (start == end)

@@ -69,31 +69,34 @@ editing.define('nodes', (function() {
   /**
    * @this {!editing.ReadOnlySelection} selection
    * @return {!Array.<!Node>}
+   *
    * Computes effective nodes for inline formatting commands. |selection|
    * should be normalized.
    */
   function computeEffectiveNodes(selection) {
     if (isText(selection.anchorNode) || isText(selection.focusNode))
       throw new Error('Selection should be normalized.');
-    var nodes = computeSelectedNodes(selection);
-    if (!nodes.length)
-      return nodes;
-    var firstNode = nodes[0];
-    for (var ancestor = firstNode.parentNode; ancestor;
+    var selectedNodes = computeSelectedNodes(selection);
+    if (!selectedNodes.length)
+      return selectedNodes;
+    var nodeSet = editing.newSet(selectedNodes);
+    // Add ancestors of start node of selected nodes if all descendant nodes
+    // in selected range, e.g. <a>^foo<b>bar</b>|</a>.
+    // Note: selection doesn't need to end beyond end tag.
+    var startNode = selectedNodes[0];
+    for (var ancestor = startNode.parentNode; ancestor;
          ancestor = ancestor.parentNode) {
       if (!isEditable(ancestor))
         break;
-      if (ancestor.firstChild !== firstNode)
+      if (ancestor.firstChild !== startNode)
         break;
-      // TODO(yosin) We should use more efficient way to check |ancestor| is
-      // in selection.
-      var lastNode = lastWithIn(ancestor);
-      if (nodes.findIndex(function(x) { return x == lastNode; }) < 0)
+      if (!nodeSet.has(lastWithIn(ancestor)))
         break;
-      nodes.unshift(ancestor);
-      firstNode = ancestor;
+      selectedNodes.unshift(ancestor);
+      nodeSet.add(ancestor);
+      startNode = ancestor;
     }
-    return nodes;
+    return selectedNodes;
   }
 
   /**

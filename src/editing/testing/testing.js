@@ -7,9 +7,6 @@
 
 var testing = {};
 (function() {
-  // TODO(yosin) Once ES6 Map is ready, we should use it for |commandTable|.
-  var commandTable = {};
-
   /**
    * @param {string} name
    * @param {*} value

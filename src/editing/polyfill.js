@@ -4,7 +4,6 @@
 
 'use strict';
 
-
 // IE11 incompatibilities:
 // - document.implementation.createHTMLDocument(opt_title), opt_title is
 //   required parameter.
@@ -12,7 +11,8 @@
 // - |window.getComputedStyle| throws an exception for Node.TEXT_NODE, Chrome
 //   returns null.
 // - IE11 puts ";" for end of "style" attribute.
-
+// - IE11 Map supports only: clear, delete, forEach, get, has, set, size.
+// - IE11 Set supports only: add, clear, delete, frEach, has, size.
 
 if (!Array.prototype.find) {
   Object.defineProperty(Array.prototype, 'find', {

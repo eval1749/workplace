@@ -7,8 +7,8 @@
 var editing = {};
 
 (function() {
-  // TODO(yosin) Once ES6 Map is ready, we should use it for |commandTable|.
-  var commandTable = {};
+  /** @type {!Map.<string, function>} */
+  var commandTable = new Map();
 
   /**
    * @param {string} name
@@ -24,7 +24,7 @@ var editing = {};
    */
   function defineCommand(name, commandFunction) {
     var canonicalName = name.toLowerCase();
-    commandTable[canonicalName] = commandFunction;
+    commandTable.set(canonicalName, commandFunction);
     if (canonicalName == 'backcolor')
       defineCommand('hilitecolor', commandFunction);
   }
@@ -44,7 +44,7 @@ var editing = {};
    * @return {?function}
    */
   function lookupCommand(name) {
-    return commandTable[name.toLowerCase()] || null;
+    return commandTable.get(name.toLowerCase()) || null;
   }
 
   /**
