@@ -14,11 +14,11 @@ editing.define('SelectionTracker', (function() {
   /** @enum {string} */
   var TrackingType = {
     // <b>foo|</b> node is "foo".
-    AFTER_NODE: 'AFTER',
     // <b>foo</b>| node is "b"
-    AFTER_ALL_CHILDREN: 'AFTER_ALL_CHILDREN',
-    // <b>|foo</b> node is "b"
+    AFTER_NODE: 'AFTER_NODE',
+    // <b>|</b> node is "b"
     BEFORE_ALL_CHILDREN: 'BEFORE_ALL_CHILDREN',
+    // <b>|foo</b> node is "b"
     // |<b>foo</b> node is "b"
     NODE: 'NODE'
   };
@@ -49,11 +49,14 @@ editing.define('SelectionTracker', (function() {
    */
   function TrackablePosition(node, offset, startOrEnd) {
     console.assert(editing.nodes.isElement(node), 'node=' + node);
+    console.assert(offset >= 0, node, offset);
+    var maxOffset = editing.nodes.maxOffset(node);
+    console.assert(offset <= maxOffset, node, offset);
     if (!node.hasChildNodes()) {
       this.type_ = TrackingType.BEFORE_ALL_CHILDREN;
       this.node_ = node;
-    } else if (editing.nodes.maxOffset(node) == node) {
-      this.type_ = TrackingType.AFTER_ALL_CHILDREN;
+    } else if (maxOffset == offset) {
+      this.type_ = TrackingType.AFTER_NODE;
       this.node_ = node.lastChild;
     } else if (offset && startOrEnd == StartOrEnd.END) {
       this.type_ = TrackingType.AFTER_NODE;
@@ -62,6 +65,7 @@ editing.define('SelectionTracker', (function() {
       this.type_ = TrackingType.NODE;
       this.node_ = node.childNodes[offset];
     }
+    console.assert(this.node_, this, node, offset, startOrEnd, maxOffset, maxOffset == offset);
     Object.seal(this);
   }
 
@@ -76,9 +80,6 @@ editing.define('SelectionTracker', (function() {
         case TrackingType.AFTER_NODE:
           return new NodeAndOffset(node.parentNode,
                                    editing.nodes.nodeIndex(node) + 1);
-        case TrackingType.AFTER_ALL_CHILDREN:
-          return new NodeAndOffset(node.parentNode,
-                                   editing.nodes.maxOffset(node));
         case TrackingType.BEFORE_ALL_CHILDREN:
           return new NodeAndOffset(node, 0);
         case TrackingType.NODE:
@@ -98,32 +99,51 @@ editing.define('SelectionTracker', (function() {
           !editing.nodes.isDescendantOf(this.node_, node)) {
         return;
       }
-      switch (this.type_) {
+      var oldNode = this.node_;
+      var oldType = this.type_;
+      this.type_ = TrackingType.AFTER_NODE;
+      this.node_ = editing.nodes.previousNode(oldNode);
+      console.assert(this.node_, this, oldNode, oldType, node);
+    }
+
+    /**
+     * @this {!TrackablePosition}
+     * @param {!Node} element
+     */
+    function willUnwrapElement(element) {
+      if (this.node_ !== element)
+        return;
+      var oldNode = this.node_;
+      var oldType = this.type_;
+      switch (oldType) {
         case TrackingType.AFTER_NODE:
-          this.node_ = editing.nodes.previousNode(this.node_);
-          break;
-        case TrackingType.AFTER_ALL_CHILDREN:
           this.type_ = TrackingType.NODE;
-          this.node_ = editing.nodes.nextNodeSkippingChildren(this.node_);
+          this.node_ = editing.nodes.nextNodeSkippingChildren(oldNode);
+          if (!this.node_) {
+            this.type_ = TrackingType.AFTER_NODE;
+            this.node_ = oldNode.lastChild;
+          }
           break;
         case TrackingType.BEFORE_ALL_CHILDREN:
-          this.type_ = TrackingType.AFTER_NODE;
-          this.node_ = editing.nodes.previousNode(this.node_);
+          throw new Error('UnwrapElement should not call for element without' +
+                          ' children.');
           break;
         case TrackingType.NODE:
-          this.type_ = TrackingType.AFTER_NODE;
-          this.node_ = editing.nodes.previousNode(this.node_);
+          this.type_ = TrackingType.NODE;
+          this.node_ = oldNode.firstChild;
           break;
         default:
           throw new Error('Bad TrackablePosition.type ' + this.type_);
       }
+      console.assert(this.node_, this, oldNode, oldType, element.outerHTML);
     }
 
     return {
       convertToNodeAndOffset: {value: convertToNodeAndOffset},
       node_: {writable: true},
       type_: {writable: true},
-      willRemoveNode: {value: willRemoveNode}
+      willRemoveNode: {value: willRemoveNode},
+      willUnwrapElement: {value: willUnwrapElement}
     }
   })());
 
@@ -173,13 +193,29 @@ editing.define('SelectionTracker', (function() {
     this.end_.willRemoveNode(node);
   }
 
+  /**
+   * @this {!SelectionTracker}
+   * @param {!Element} element
+   *
+   * This function is called before moving all children of |element| to
+   * before |element|, we called "unwrap". |element| must have at least one
+   * child.
+   *
+   * See "unlink" command for example of usage.
+   */
+  function willUnwrapElement(element) {
+    this.start_.willUnwrapElement(element);
+    this.end_.willUnwrapElement(element);
+  }
+
   Object.defineProperties(SelectionTracker.prototype, {
     constructor: {value: SelectionTracker},
     context_: {writable: true},
     end_:{writable: true},
     finish: {value: finish},
     start_: {writable: true},
-    willRemoveNode: {value: willRemoveNode}
+    willRemoveNode: {value: willRemoveNode},
+    willUnwrapElement: {value: willUnwrapElement}
   });
 
   return SelectionTracker;
