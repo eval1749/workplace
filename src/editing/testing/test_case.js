@@ -297,9 +297,11 @@ function testCaseFor(commandName, testCaseId, data) {
         });
         if (sampleResult == actualResult2) {
           testRunner.record('compatible');
+          testRunner.record('compatible_html');
           return;
         }
         if (stripMarker(sampleResult) == stripMarker(actualResult2)) {
+          testRunner.record('compatible_html');
           testRunner.record('incompatible_selection', {
             format: 'html',
             before: pretty(data.before),

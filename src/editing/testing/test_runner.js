@@ -112,7 +112,8 @@ Object.defineProperties(TestRunner.prototype, (function() {
     if (!moreResult)
       return result;
     Object.keys(moreResult).forEach(function(name) {
-      result[name] = moreResult[name];
+      var key = name == 'current' ? testing.browserId : name;
+      result[key] = moreResult[name];
     });
     return result;
   }

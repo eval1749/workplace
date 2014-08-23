@@ -4,9 +4,22 @@
 
 'use strict';
 
-
 var testing = {};
 (function() {
+  /**
+   * @return {string}
+   */
+  /** @const @type {string} */ var browserId = (function() {
+      var userAgent = window.navigator.userAgent;
+      if (userAgent.indexOf('Chrome') > 0)
+        return 'chrome';
+      if (userAgent.indexOf('Trident') > 0)
+        return 'ie';
+      if (userAgent.indexOf('Firefox') > 0)
+        return 'firefox';
+      return 'unknown';
+  })();
+
   /**
    * @param {string} name
    * @param {*} value
@@ -19,10 +32,11 @@ var testing = {};
    * @return {boolean}
    */
   function isIE() {
-    return window.navigator.userAgent.indexOf('Trident/') > 0;
+    return testing.browserId == 'ie';
   }
 
   Object.defineProperties(testing, {
+    browserId: {get: function() { return browserId; }},
     define: {value: define},
     isIE: {get: isIE},
   });
