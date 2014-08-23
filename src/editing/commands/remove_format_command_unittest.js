@@ -4,32 +4,32 @@
 
 'use strict';
 
-testCaseFor('RemoveFormat', 'Element.All', {
+testCaseFor('removeFormat', 'element.all', {
   before: '<p contenteditable>^<b>abcd</b>|</p>',
   after:'<p contenteditable>^abcd|</p>'
 });
 
-testCaseFor('RemoveFormat', 'Element.Partial', {
+testCaseFor('removeFormat', 'element.partial', {
   before: '<p contenteditable>^<b>abcd|<i>efg</i></b></p>',
   after:'<p contenteditable>^abcd|<b><i>efg</i></b></p>'
 });
 
-testCaseFor('RemoveFormat', 'Contents.All', {
+testCaseFor('removeFormat', 'contents.all', {
   before: '<p contenteditable><b>^abcd|</b></p>',
   after:'<p contenteditable>^abcd|</p>'
 });
 
-testCaseFor('RemoveFormat', 'Contents.Partial', {
+testCaseFor('removeFormat', 'contents.partial', {
   before: '<p contenteditable><i><b>ab^cd|</b></i></p>',
   after:'<p contenteditable><i><b>ab</b></i>^cd|</p>'
 });
 
-testCaseFor('RemoveFormat', 'Contents.Partial2', {
-  before: '<b contenteditable><i>ab^cd|</b></b>',
+testCaseFor('removeFormat', 'contents.partial2', {
+  before: '<b contenteditable><i>ab^cd|</i></b>',
   after:'<b contenteditable><i>ab</i>^cd|</b>'
 });
 
-testCaseFor('RemoveFormat', 'Class', {
+testCaseFor('removeFormat', 'class', {
   before: '<p contenteditable><style>.bold{font-weight:bold}</style>^<span class="bold">abcd</span>|</p>',
   after:'<p contenteditable><style>.bold{font-weight:bold}</style>^<span class="bold">abcd</span>|</p>',
   notes: 'class="bold" does not affect removeFormat'
