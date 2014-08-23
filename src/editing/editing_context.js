@@ -341,6 +341,26 @@ editing.define('EditingContext', (function() {
     return this.splitNode(treeNode, lastNode);
   }
 
+  /**
+   * @this {!EditingContext}
+   * @param {!Node} parent
+   * @param {?Node} stopChild
+   */
+   function unwrapElement(parent, stopChild) {
+      console.assert(!stopChild || stopChild.parentNode == parent,
+                     'unwrapElement', parent, stopChild);
+      var child = parent.firstChild;
+      var ancestor = parent.parentNode;
+      while (child != stopChild) {
+        var nextSibling = child.nextSibling;
+        this.insertBefore(ancestor, child, parent);
+        child = nextSibling;
+      }
+      if (parent.firstChild)
+        return;
+      this.removeChild(ancestor, parent);
+   }
+
   Object.defineProperties(EditingContext.prototype, {
     appendChild: {value: appendChild},
     constructor: {value: EditingContext},
@@ -376,7 +396,8 @@ editing.define('EditingContext', (function() {
     // Selection before executing editing command. This |ReadOnlySelection| is
     // put into undo stack for undo operation. See also |endingSelection|
     startingSelection: {get: function() { return this.startingSelection_; }},
-    startingSelection_: {writable: true}
+    startingSelection_: {writable: true},
+    unwrapElement: {value: unwrapElement}
   });
   return EditingContext;
 })());
