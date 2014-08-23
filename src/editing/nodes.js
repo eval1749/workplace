@@ -308,6 +308,7 @@ editing.define('nodes', (function() {
   function nodeIndex(node) {
     var index = 0;
     var parentNode = node.parentNode;
+    console.assert(parentNode, node);
     for (var child = parentNode.firstChild; child; child = child.nextSibling) {
       if (child === node)
         return index;
