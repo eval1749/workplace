@@ -42,6 +42,11 @@ editing.define('Operation', (function() {
 // AppendChild
 //
 editing.define('AppendChild', (function() {
+  /**
+   * @constructor
+   * @param {!Node} parentNode
+   * @param {!Node} newChild
+   */
   function AppendChild(parentNode, newChild) {
     console.assert(!newChild.parentNode);
     editing.Operation.call(this, 'appendChild');
@@ -80,6 +85,12 @@ editing.define('AppendChild', (function() {
 // InsertBefore
 //
 editing.define('InsertBefore', (function() {
+  /**
+   * @constructor
+   * @param {!Node} parentNode
+   * @param {!Node} newChild
+   * @param {?Node} refChild
+   */
   function InsertBefore(parentNode, newChild, refChild) {
     console.assert(!newChild.parentNode);
     console.assert(parentNode === refChild.parentNode);
@@ -121,7 +132,14 @@ editing.define('InsertBefore', (function() {
 // RemoveAttribute
 //
 editing.define('RemoveAttribute', (function() {
-  function RemoveAttribute(element, attrName, attrValue) {
+  /**
+   * @constructor
+   * @implements {Operation}
+   * @final
+   * @param {!Element} element
+   * @param {string} attrName
+   */
+  function RemoveAttribute(element, attrName) {
     editing.Operation.call(this, 'removeAttribute');
     this.element_ = element;
     this.attrName_ = attrName;

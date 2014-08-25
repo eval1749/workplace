@@ -5,8 +5,11 @@
 'use strict';
 
 editing.define('Editor', (function() {
+  var DEBUG = true;
+
   /**
    * @constructor
+   * @final
    * @param {!Document} document
    */
   function Editor(document) {
@@ -22,8 +25,26 @@ editing.define('Editor', (function() {
   /**
    * @this {!Editor}
    * @param {string} name
-   * @param {!ReadOnlySelection}
-   *    offset, we don't need to use |selection| parameter.
+   * @param {!ReadOnlySelection} selection
+   * @return {!EditingContext}
+   */
+  Editor.prototype.createContext = function(name, selection) {};
+
+  /**
+   * @type {?ReadOnlySelection}
+   */
+  Editor.prototype.selection_;
+
+  /**
+   * @this {!Editor}
+   * @param {!ReadOnlySelection} selection
+   */
+  Editor.prototype.setDomSelection = function(selection) {};
+
+  /**
+   * @this {!Editor}
+   * @param {string} name
+   * @param {!ReadOnlySelection} selection
    * @return {!EditingContext}
    */
   function createContext(name, selection) {
@@ -56,20 +77,24 @@ editing.define('Editor', (function() {
         "') this time, because it is called recursively in" +
         " document.execCommand('" + this.currentContext_.name + "')");
     }
+    if (!this.selection_)
+      throw new Error('Editor must have a selection.');
     var context = this.createContext(name, this.selection_);
     this.currentContext_ = context;
     var succeeded = false;
     var returnValue;
-// TODO(yosin) Once we finish debugging, we should move calling
-// |commandFunction| into try-finally block.
-returnValue = commandFunction(context, userInterface, value);
-this.currentContext_ = null;
-this.setDomSelection(context.endingSelection);
-this.undoStack_.push({commandName: name,
-                      endingSelection: context.endingSelection,
-                      operations: context.operations,
-                      startingSelection: context.startingSelection});
-return returnValue;
+    if (DEBUG) {
+      // TODO(yosin) Once we finish debugging, we should move calling
+      // |commandFunction| into try-finally block.
+      returnValue = commandFunction(context, userInterface, value);
+      this.currentContext_ = null;
+      this.setDomSelection(context.endingSelection);
+      this.undoStack_.push({commandName: name,
+                            endingSelection: context.endingSelection,
+                            operations: context.operations,
+                            startingSelection: context.startingSelection});
+      return returnValue;
+    }
     try {
       returnValue = commandFunction(context, userInterface, value);
       succeeded = true;
@@ -86,7 +111,7 @@ return returnValue;
       this.setDomSelection(context.endingSelection);
       this.undoStack_.push({commandName: name,
                             endingSelection: context.endingSelection,
-                            instructions: context.instructions,
+                            operations: context.operations,
                             startingSelection: context.startingSelection});
       return returnValue;
     }
@@ -133,7 +158,7 @@ return returnValue;
 
   /**
    * @this {!Editor}
-   * @param {!editing.ReadOnlySelection}
+   * @param {!ReadOnlySelection} selection
    */
   function setDomSelection(selection) {
     console.assert(selection instanceof editing.ReadOnlySelection, selection);

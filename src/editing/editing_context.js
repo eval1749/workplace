@@ -12,9 +12,11 @@ editing.define('EditingContext', (function() {
   }
 
   /**
+   * @constructor
+   * @final
    * @param {!Editor} editor
    * @param {string} name A name for this context for error message.
-   * @param {!editing.ReadOnlySelection} selection
+   * @param {!ReadOnlySelection} selection
    */
   function EditingContext(editor, name, selection) {
     console.assert(editor instanceof editing.Editor);
@@ -31,6 +33,87 @@ editing.define('EditingContext', (function() {
     this.startingSelection_ = selection
     Object.seal(this);
   }
+
+  /** @type {!Document} */
+  EditingContext.prototype.document;
+
+  /** @type {!Editor} */
+  EditingContext.prototype.editor_;
+
+  /** @type {!Array.<!Operation>} */
+  EditingContext.prototype.operations_;
+
+  /**
+   * @this {!EditingContext}
+   * @param {!Node} parentNode
+   * @param {!Node} newChild
+   */
+  EditingContext.prototype.appendChild = function(parentNode, newChild) {};
+
+  /**
+   * @this {!EditingContext}
+   * @param {!Node} node
+   * @return {boolean}
+   */
+  EditingContext.prototype.inDocument = function(node) {};
+
+  /**
+   * @this {!EditingContext}
+   * @param {!Node} parentNode
+   * @param {!Node} newChild
+   * @param {!Node} refChild
+   */
+  EditingContext.prototype.insertAfter = function(
+      parentNode, newChild, refChild) {};
+
+  /**
+   * @this {!EditingContext}
+   * @param {!Node} parentNode
+   * @param {!Node} newChild
+   * @param {?Node} refChild
+   */
+  EditingContext.prototype.insertBefore = function(
+      parentNode, newChild, refChild) {};
+
+  /**
+   * @this {!EditingContext}
+   * @param {!Node} parentNode
+   * @param {!Node} oldChild
+   */
+  EditingContext.prototype.removeChild = function(parentNode, oldChild) {};
+
+  /**
+   * @this {!EditingContext}
+   * @param {!Node} parentNode
+   * @param {!Node} newChild
+   * @param {!Node} oldChild
+   */
+  EditingContext.prototype.replaceChild = function(
+      parentNode, newChild, oldChild) {};
+
+  /**
+   * @this {!EditingContext}
+   * @param {!Node} parent
+   * @param {!Node} child
+   * @return {!Node}
+   */
+  EditingContext.prototype.splitNode = function(parent, child) {};
+
+  /**
+   * @this {!EditingContext}
+   * @param {!Text} node
+   * @param {number} offset
+   * @return {!Text}
+   */
+  EditingContext.prototype.splitText = function(node, offset) {};
+
+  /**
+    * @this {!EditingContext}
+    * @param {!Node} refNode
+    * @return {!Node}
+   */
+  EditingContext.prototype.splitTree = function(treeNode, refNode) {};
+
 
   /**
    * @this {!EditingContext}
@@ -75,11 +158,11 @@ editing.define('EditingContext', (function() {
 
   /**
    * @this {!EditingContext}
-   * @return {!editing.ReadOnlySelection}
+   * @return {!ReadOnlySelection}
    */
   function endingSelection() {
-    console.assert(this.endingSelection_,
-                   'You should set ending selection at end of command.');
+    if (!this.endingSelection_)
+      throw new Error('You should set ending selection at end of command.');
     return this.endingSelection_;
   }
 
@@ -165,6 +248,8 @@ editing.define('EditingContext', (function() {
    */
   function insertChildrenBefore(oldParent, refNode) {
     var newParent = refNode.parentNode;
+    if (!newParent)
+      throw new Error('refNode ' + refNode + ' must have a parent.');
     var child = oldParent.firstChild;
     while (child) {
       var nextSibling = child.nextSibling;
@@ -182,7 +267,6 @@ editing.define('EditingContext', (function() {
     ASSERT_EDITING_IN_PROGRESS(this);
     console.assert(typeof(name) == 'string',
         'Attribute name must be string rather than ' + name);
-    var attrNode = element.getAttriubteNode(element);
     var operation = new editing.RemoveAttribute(element, name);
     this.operations_.push(operation);
     operation.execute();
@@ -240,7 +324,7 @@ editing.define('EditingContext', (function() {
 
   /**
    * @this {!EditingContext}
-   * @param {!editing.ReadOnlySelection} selection
+   * @param {!ReadOnlySelection} selection
    */
   function setEndingSelection(selection) {
     if (this.endingSelection_)
@@ -276,7 +360,7 @@ editing.define('EditingContext', (function() {
   }
 
   /**
-   * @this {!Editor}
+   * @this {!EditingContext}
    * @param {!Element} element
    * @param {string} propertyName
    * @param {string} newValue
@@ -298,6 +382,8 @@ editing.define('EditingContext', (function() {
    * to its sibling nodes.
    */
   function splitNode(parent, child) {
+    if (!parent.parentNode)
+      throw new Error('Parent ' + parent + ' must have a parent.');
     var newParent = parent.cloneNode(false);
     newParent.removeAttribute('id');
     var sibling = child;
@@ -315,17 +401,18 @@ editing.define('EditingContext', (function() {
    * @this {!EditingContext}
    * @param {!Text} node
    * @param {number} offset
-   * @return {!Node}
+   * @return {!Text}
    */
   function splitText(node, offset) {
     ASSERT_EDITING_IN_PROGRESS(this);
-    var newNode = node.splitText(offset);
+    var newNode = /** @type {!Text} */(node.splitText(offset));
     this.operations_.push(new editing.SplitText(node, newNode));
     return newNode;
   }
 
   /**
    * @this {!EditingContext}
+   * @param {!Node} treeNode
    * @param {!Node} refNode
    * @return {!Node}
    */
@@ -334,7 +421,7 @@ editing.define('EditingContext', (function() {
                   'refNode', refNode,
                   'must be descendant of treeNdoe', treeNode);
     var lastNode = refNode;
-    for (var runner = refNode.parentNode; runner !== treeNode;
+    for (var runner = refNode.parentNode; runner && runner !== treeNode;
          runner = runner.parentNode) {
       lastNode = this.splitNode(runner, lastNode);
     }
@@ -351,6 +438,8 @@ editing.define('EditingContext', (function() {
                      'unwrapElement', parent, stopChild);
       var child = parent.firstChild;
       var ancestor = parent.parentNode;
+      if (!ancestor)
+        throw new Error('Parent ' + parent + ' must have a parent.');
       while (child != stopChild) {
         var nextSibling = child.nextSibling;
         this.insertBefore(ancestor, child, parent);

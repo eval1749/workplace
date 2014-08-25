@@ -5,14 +5,21 @@
 'use strict';
 
 editing.define('nodes', (function() {
-  /* @const */ var INTERACTIVE = editing.CONTENT_CATEGORY.INTERACTIVE;
-  /* @const */ var PHRASING = editing.CONTENT_CATEGORY.PHRASING;
+  /** @const */ var INTERACTIVE = editing.CONTENT_CATEGORY.INTERACTIVE;
+  /** @const */ var PHRASING = editing.CONTENT_CATEGORY.PHRASING;
 
-  // NextNodes iterator
+  /**
+   * @constructor
+   * @final
+   * @param {?Node} startNode
+   */
   function NextNodes(startNode) {
     this.currentNode_ = startNode;
     Object.seal(this);
   }
+
+  /** @type {!function(): {done: boolean, value: !Node}} */
+  NextNodes.prototype.next;
 
   Object.defineProperty(NextNodes.prototype, 'next', {
     value: function() {
@@ -67,7 +74,7 @@ editing.define('nodes', (function() {
   }
 
   /**
-   * @this {!editing.ReadOnlySelection} selection
+   * @this {!ReadOnlySelection} selection
    * @return {!Array.<!Node>}
    *
    * Computes effective nodes for inline formatting commands. |selection|
@@ -100,7 +107,7 @@ editing.define('nodes', (function() {
   }
 
   /**
-   * @param {!editing.ReadONlySelection} selection
+   * @param {!ReadOnlySelection} selection
    * @return {!Array.<!Node>}
    *
    * Note: When selection range has no node, e.g. <p><a>foo^</a>|</p>; enclosing
@@ -110,14 +117,14 @@ editing.define('nodes', (function() {
     if (selection.isEmpty)
       return [];
 
-    var startContainer = selection.startContainer;
+    var startContainer = /** @type {!Node} */(selection.startContainer);
     var startOffset = selection.startOffset;
     if (isText(startContainer)) {
       startContainer = startContainer.parentNode;
       startOffset = 0;
     }
 
-    var endContainer = selection.endContainer;
+    var endContainer = /** @type {!Node} */(selection.endContainer);
     var endOffset = selection.endOffset;
     if (isText(endContainer)) {
       endContainer = endContainer.parentNode;
@@ -233,8 +240,9 @@ editing.define('nodes', (function() {
     if (isWhitespaceNode(node))
       return false;
     if (node.nodeType != Node.ELEMENT_NODE)
-      return isVisibleNode(node.parentNode);
-    var style = window.getComputedStyle(node);
+      return Boolean(node.parentNode && isVisibleNode(node.parentNode));
+    var element = /** @type {!Element} */(node);
+    var style = window.getComputedStyle(element);
     if (style)
       return style.display != 'none';
     if (!node.parentNode)
@@ -270,8 +278,14 @@ editing.define('nodes', (function() {
                                         node.childNodes.length;
   }
 
-  // nextNode(<a><b>foo|</b><a>bar) = bar
+  /**
+   * @param {?Node} current
+   * @return {?Node}
+   * nextNode(<a><b>foo|</b><a>bar) = bar
+   */
   function nextNode(current) {
+    if (!current)
+      return null;
     if (current.firstChild)
       return current.firstChild;
     if (current.nextSibling)
@@ -280,13 +294,17 @@ editing.define('nodes', (function() {
   }
 
   /**
-   * @param {!Node} node
+   * @param {?Node} node
    * @return {!NextNodes}
    */
   function nextNodes(node) {
     return new NextNodes(node);
   }
 
+  /**
+   * @param {!Node} current
+   * @return {?Node}
+   */
   function nextAncestorOrSibling(current) {
     console.assert(!current.nextSibling);
     for (var parent = current.parentNode; parent; parent = parent.parentNode) {
@@ -296,7 +314,13 @@ editing.define('nodes', (function() {
     return null;
   }
 
+  /**
+   * @param {?Node} current
+   * @return {?Node}
+   */
   function nextNodeSkippingChildren(current) {
+    if (!current)
+      return null;
     if (current.nextSibling)
       return current.nextSibling;
     return nextAncestorOrSibling(current);
@@ -320,7 +344,7 @@ editing.define('nodes', (function() {
 
   /**
    * @param {!EditingContext} context
-   * @param {!editing.ReadOnlySelection} selection
+   * @param {!ReadOnlySelection} selection
    */
   function normalizeSelection(context, selection) {
     if (selection.isEmpty)
@@ -332,12 +356,15 @@ editing.define('nodes', (function() {
     var focusOffset = selection.focusOffset;
 
     /**
-     * @param {!Node} node
+     * @param {?Node} node
      * @param {number} offset
      */
     function splitIfNeeded(node, offset) {
+      if (!node)
+        return;
       if (!editing.nodes.isText(node) || !offset)
         return;
+      var textNode = /** @type {!Text} */(node);
       var text = node.nodeValue;
       if (text.length == offset)
         return;
@@ -345,18 +372,24 @@ editing.define('nodes', (function() {
         throw new Error('Offset ' + offset + ' must be grater than zero and ' +
                         'less than ' + text.length + ' for ' + node);
       }
-      var newNode = context.splitText(node, offset);
+      var newTextNode = context.splitText(textNode, offset);
       if (anchorNode === node && anchorOffset >= offset) {
-        anchorNode = newNode;
+        anchorNode = newTextNode;
         anchorOffset -= offset;
       }
       if (focusNode === node && focusOffset >= offset) {
-        focusNode = newNode;
+        focusNode = newTextNode;
         focusOffset -= offset;
       }
     }
 
+    /**
+     * @param {?Node} node
+     * @param {number} offset
+     */
     function useContainerIfPossible(node, offset) {
+      if (!node)
+        return;
       if (!editing.nodes.isText(node))
         return;
       var container = node.parentNode;
@@ -398,6 +431,10 @@ editing.define('nodes', (function() {
     return previous;
   }
 
+  /**
+   * @param {!Node} current
+   * @return {?Node}
+   */
   function previousNodeSkippingChildren(current) {
     if (current.previousSibling)
       return current.previousSibling;

@@ -57,14 +57,14 @@ editing.define('contentModel', (function() {
     });
   }
 
-  /* @const */ var EMBEDDED = editing.CONTENT_CATEGORY.EMBEDDED;
-  /* @const */ var FLOW = editing.CONTENT_CATEGORY.FLOW;
-  /* @const */ var HEADING = editing.CONTENT_CATEGORY.HEADING;
-  /* @const */ var INTERACTIVE = editing.CONTENT_CATEGORY.INTERACTIVE;
-  /* @const */ var PALPABLE = editing.CONTENT_CATEGORY.PALPABLE;
-  /* @const */ var PHRASING = editing.CONTENT_CATEGORY.PHRASING;
-  /* @const */ var SECTIONING_ROOT = editing.CONTENT_CATEGORY.SECTIONING_ROOT;
-  /* @const */ var TRANSPARENT = editing.CONTENT_CATEGORY.TRANSPARENT;
+  /** @const */ var EMBEDDED = editing.CONTENT_CATEGORY.EMBEDDED;
+  /** @const */ var FLOW = editing.CONTENT_CATEGORY.FLOW;
+  /** @const */ var HEADING = editing.CONTENT_CATEGORY.HEADING;
+  /** @const */ var INTERACTIVE = editing.CONTENT_CATEGORY.INTERACTIVE;
+  /** @const */ var PALPABLE = editing.CONTENT_CATEGORY.PALPABLE;
+  /** @const */ var PHRASING = editing.CONTENT_CATEGORY.PHRASING;
+  /** @const */ var SECTIONING_ROOT = editing.CONTENT_CATEGORY.SECTIONING_ROOT;
+  /** @const */ var TRANSPARENT = editing.CONTENT_CATEGORY.TRANSPARENT;
 
   // Text-level elements
   defineContentModel('a', [FLOW, PHRASING, PALPABLE, INTERACTIVE], PHRASING,

@@ -4,10 +4,10 @@
 
 'use strict';
 
-var editing = {};
+window.editing = {};
 
 (function() {
-  /** @type {!Map.<string, function>} */
+  /** @type {!Map.<string, !CommandFunction>} */
   var commandTable = new Map();
 
   /**
@@ -20,7 +20,7 @@ var editing = {};
 
   /**
    * @param {string} name
-   * @param {!function} commandFunction
+   * @param {!CommandFunction} commandFunction
    */
   function defineCommand(name, commandFunction) {
     var canonicalName = name.toLowerCase();
@@ -39,9 +39,31 @@ var editing = {};
     return document.editor_;
   }
 
+  // TODO(yosin) Once, Node.isContentEditable works for nodes without render
+  // object, we dont' need to have |isContentEditablePollyfill|.
+  // http://crbug.com/313082
+  /**
+   * @param {!Node} node
+   * @return {boolean}
+   */
+  function isContentEditable(node) {
+    if (window.document === node.ownerDocument &&
+        node.style.display != 'none') {
+      return node.isContentEditable;
+    }
+    if (node.isContentEditable)
+      return true;
+    if (node.nodeType != Node.ELEMENT_NODE)
+      return false;
+    var contentEditable = node.getAttribute('contenteditable');
+    if (typeof(contentEditable) != 'string')
+      return false;
+    return contentEditable.toLowerCase() != 'false';
+  }
+
   /**
    * @param {string} name
-   * @return {?function}
+   * @return {?CommandFunction}
    */
   function lookupCommand(name) {
     return commandTable.get(name.toLowerCase()) || null;
@@ -66,25 +88,8 @@ var editing = {};
     define: {value: define},
     defineCommand: {value: defineCommand},
     getOrCreateEditor: {value: getOrCreateEditor},
+    isContentEditable: {value: isContentEditable},
     lookupCommand: {value: lookupCommand},
     newSet: {value: newSet}
   });
 })();
-
-// TODO(yosin) Once, Node.isContentEditable works for nodes without render
-// object, we dont' need to have |isContentEditablePollyfill|.
-// http://crbug.com/313082
-editing.define('isContentEditable', function(node) {
-  if (window.document === node.ownerDocument &&
-      node.style.display != 'none') {
-    return node.isContentEditable;
-  }
-  if (node.isContentEditable)
-    return true;
-  if (node.nodeType != Node.ELEMENT_NODE)
-    return false;
-  var contentEditable = node.getAttribute('contenteditable');
-  if (typeof(contentEditable) != 'string')
-    return false;
-  return contentEditable.toLowerCase() != 'false';
-});

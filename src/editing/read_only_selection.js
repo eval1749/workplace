@@ -12,11 +12,13 @@ editing.define('SelectionDirection', {
 
 editing.define('ReadOnlySelection', (function() {
   /**
+   * @constructor
+   * @final
    * @param {!Node} anchorNode
    * @param {number} anchorOffset
    * @param {!Node} focusNode
    * @param {number} focusOffset
-   * @param {editing.SelectionDirection} direction
+   * @param {SelectionDirection} direction
    */
   function ReadOnlySelection(anchorNode, anchorOffset, focusNode, focusOffset,
                              direction) {
@@ -28,9 +30,27 @@ editing.define('ReadOnlySelection', (function() {
     Object.seal(this);
   }
 
+  /** @type {?Node} */
+  ReadOnlySelection.prototype.anchorNode;
+
+  /** @type {number} */
+  ReadOnlySelection.prototype.anchorOffset;
+
+  /** @type {?Node} */
+  ReadOnlySelection.prototype.focusNode;
+
+  /** @type {number} */
+  ReadOnlySelection.prototype.focusOffset;
+
+  /** @type {boolean} */
+  ReadOnlySelection.prototype.isCaret;
+
+  /** @type {boolean} */
+  ReadOnlySelection.prototype.isEmpty;
+
   /**
    * @this {!ReadOnlySelection}
-   * @return {!Node}
+   * @return {?Node}
    */
   function endContainer() {
     console.assert(this.anchorNode_);
@@ -54,7 +74,7 @@ editing.define('ReadOnlySelection', (function() {
    */
   function isCaret() {
     if (this.isEmpty)
-      return;
+      return false;
     return this.anchorNode_ === this.focusNode_ &&
            this.anchorOffset_ == this.focusOffset_;
   }
@@ -77,7 +97,7 @@ editing.define('ReadOnlySelection', (function() {
 
   /**
    * @this {!ReadOnlySelection}
-   * @return {!Node}
+   * @return {?Node}
    */
   function startContainer() {
     console.assert(this.anchorNode_);
