@@ -26,7 +26,7 @@ class FixThem {
   static int updateCount;
   static int verbose = 0;
 
-  static Regex reTargetFile = new Regex("[.](cpp|cs|h|inc|java|lisp)$");
+  static Regex reTargetFile = new Regex("[.](cc|cpp|cs|h|inc|java|js|lisp)$");
 
  private
   static bool IsTargetFileName(String path) {
