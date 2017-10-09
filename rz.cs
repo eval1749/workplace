@@ -22,6 +22,7 @@ private static bool ShouldRemove(FileInfo file) {
     case ".JPG":
     case ".jpeg":
     case ".png":
+    case ".PNG":
     case ".tif":
       return false;
     default:
