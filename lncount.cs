@@ -22,7 +22,7 @@ static int fileCount;
 static int totalLineCount;
 static int verbose = 0;
 
-static Regex reTargetFile = new Regex("[.](cpp|cs|h|inc|java|lisp)$");
+static Regex reTargetFile = new Regex("[.](cpp|cs|h|inc|java|lisp|c|cc)$");
 
 private static bool IsTargetFileName(String path) {
     return reTargetFile.IsMatch(path);
