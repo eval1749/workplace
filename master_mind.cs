@@ -38,7 +38,7 @@ class MasterMind {
 
    private CodeWord(int ival) { sval_ = ComputeStr(ival); }
 
-   private CodeWord(String sval) { sval_ = sval; }
+   public CodeWord(String sval) { sval_ = sval; }
 
    private static String ComputeStr(int ival) {
       int x = ival;
@@ -97,118 +97,89 @@ class MasterMind {
   }
 
   private class KnuthCodeBreaker {
-   private HashSet<CodeWord> guessSet_ = new HashSet<CodeWord>();
    private HashSet<CodeWord> possibleSet_ = new HashSet<CodeWord>();
 
    public KnuthCodeBreaker() {
       var n = Power(kNumberOfColors, kNumberOfPins);
-      for (int i = 0; i < n; ++i) {
-        var codeWord = CodeWord.Get(i);
-        guessSet_.Add(codeWord);
-        possibleSet_.Add(codeWord);
-      }
+      for (int i = 0; i < n; ++i)
+        possibleSet_.Add(CodeWord.Get(i));
     }
 
-   private int CountPossibles(CodeWord guess, Response response) {
+   private int CountSameResponses(CodeWord guess, Response response) {
       var n = 0;
       foreach (var x in possibleSet_) {
         var response2 = x.Test(guess);
-        if (response2.IsSame(response)) {
+        if (response2.IsSame(response))
           ++n;
-        }
       }
       return n;
     }
 
-   private int CountRemoves(CodeWord guess, int maxScore = 0) {
-      int threshold = possibleSet_.Count - maxScore;
-      int maxPossibles = 0;
+    private int ComputeScore(CodeWord guess) {
+      int max_sames = 0;
       foreach (var candidate in possibleSet_) {
         var response = candidate.Test(guess);
-        var n = CountPossibles(guess, response);
-        if (n > threshold)
-          return 0;
-        maxPossibles = Math.Max(maxPossibles, n);
+        var num_sames = CountSameResponses(guess, response);
+        max_sames = Math.Max(max_sames, num_sames);
       }
-      return possibleSet_.Count - maxPossibles;
+      return possibleSet_.Count - max_sames;
     }
 
   public CodeWord Guess(bool verbose = false) {
       if (possibleSet_.Count <= 2) {
         foreach (var possible in possibleSet_) { return possible; }
-
         throw new Exception("Can't happen!");
       }
 
       var startAt = Environment.TickCount;
 
       CodeWord guess = null;
-      var maxScore = 0;
-
-      foreach (var candidate in guessSet_) {
-        var score = CountRemoves(candidate, maxScore);
+      var max_score = 0;
+      var nth = 0;
+      foreach (var candidate in possibleSet_) {
+        ++nth;
+        var score = ComputeScore(candidate);
         var endAt = Environment.TickCount;
-
-        if (maxScore == score) {
-          if (possibleSet_.Contains(candidate)) {
-            Console.WriteLine("Guess {1}: {0} in possibleSet", candidate,
-                              endAt - startAt);
-            guess = candidate;
-          }
-
-        } else if (maxScore < score) {
-          if (verbose) {
-            Console.WriteLine("Guess {2}: found {0} removes {1}", candidate,
-                              score, endAt - startAt);
-          }
-
-          guess = candidate;
-          maxScore = score;
+        var elapsed = endAt - startAt;
+        if (elapsed > 1000) {
+          Console.WriteLine("Guess[{0}]: Time out {1}ms", nth, elapsed);
+          break;
         }
+        if (score <= max_score)
+          continue;
+        if (verbose) {
+          Console.WriteLine("Guess[{0}]: found {1} removes {2} in {3}ms",
+                            nth, candidate, score, endAt - startAt);
+        }
+        max_score = score;
+        guess = candidate;
       }
 
-      if (guess == null) {
+      if (guess == null)
         throw new Exception("Can't happen!");
-      }
 
       if (verbose) {
         var endAt = Environment.TickCount;
-        Console.WriteLine("Guess: {0} {1} in {2}ms", guess, maxScore,
-                          endAt - startAt);
+        Console.WriteLine("Guess: {0} removes={1} in {2}ms",
+                          guess, max_score, endAt - startAt);
       }
 
       return guess;
     }
 
-    // The first guesses are 90 patterns, aabbb, aacc, ..., ffdd, ffee.
-    // Elapsed time for list all guesses is 280sec on E6600 2.4GHz with
-    // optimized C#.
    public void ListGuess() {
-      var maxScore = 0;
       var startAt = Environment.TickCount;
-      foreach (var guess in guessSet_) {
-        var score = CountRemoves(guess);
+      foreach (var guess in possibleSet_) {
+        var score = ComputeScore(guess);
         var endAt = Environment.TickCount;
-        maxScore = Math.Max(maxScore, score);
-        Console.WriteLine("{0} {1} remove {2} in {3}ms",
-                          maxScore == score ? "May" : "Not", guess, score,
-                          endAt - startAt);
+        Console.WriteLine("{0} removes {1} in {2}ms",
+                          guess, score, endAt - startAt);
       }
     }
 
     public void Play(CodeMaker codeMaker) {
-      // Guess: aabb 1040 in 10515ms
-      CodeWord guess = null;
-
-      foreach (var x in guessSet_) {
-        if (x.ToString().Equals("aabb")) {
-          guess = x;
-          break;
-        }
-      }
-
+      CodeWord guess = new CodeWord("abcd");
       var nth = 0;
-
       for (;;) {
         ++nth;
         var response = codeMaker.Ask(guess);
@@ -228,66 +199,42 @@ class MasterMind {
     }
 
     public Result Update(CodeWord guess, Response response) {
-      if (response.Black == kNumberOfPins) {
+      if (response.Black == kNumberOfPins)
         return Result.Got;
-      }
 
-      guessSet_.Remove(guess);
-
-      switch (response.Black + response.White) {
-        case 0:
-          UpdateGuess(guess, 0);
-          break;
-
-        case 4:
-          UpdateGuess(guess, 4);
-          break;
-      }
-
-      var set = new HashSet<CodeWord>();
+      var newPossibleSet = new HashSet<CodeWord>();
       foreach (var x in possibleSet_) {
         var response2 = x.Test(guess);
-        if (response2.IsSame(response)) {
-          set.Add(x);
-        }
+        if (response2.IsSame(response))
+          newPossibleSet.Add(x);
       }
 
-      Console.Write("Update: possibilities = {0} ", set.Count);
-      {
-        var count = 0;
-        var del = '{';
-        foreach (var x in set) {
-          if (count > 20) {
-            Console.Write(" ...");
-            break;
-          }
-          ++count
-          Console.Write("{0}{1}", del, x);
-          del = ' ';
-        }
-        Console.WriteLine("}");
-      }
+      newPossibleSet.Remove(guess);
 
-      if (set.Count == 0)
+      Console.Write("Update: possibilities = {0} => {1} ",
+                    possibleSet_.Count, newPossibleSet.Count);
+      PrintSet(newPossibleSet);
+
+      if (newPossibleSet.Count == 0)
         return Result.Fail;
-
-      if (set.Count == possibleSet_.Count)
-        return Result.Fail;
-
-      possibleSet_ = set;
-      possibleSet_.Remove(guess);
-
+      possibleSet_ = newPossibleSet;
       return Result.Continue;
     }
+  }
 
-    private void UpdateGuess(CodeWord guess, int n) {
-      var newCodeSet = new HashSet<CodeWord>();
-      foreach (var x in guessSet_) {
-        if (guess.Test(x).Sum() == n)
-          newCodeSet.Add(x);
+  private static void PrintSet(HashSet<CodeWord> set) {
+    var count = 0;
+    var delimiter = '{';
+    foreach (var x in set) {
+      if (count > 20) {
+        Console.Write(" ...");
+        break;
       }
-      guessSet_ = newCodeSet;
+      ++count;
+      Console.Write("{0}{1}", delimiter, x);
+      delimiter = ' ';
     }
+    Console.WriteLine("}");
   }
 
   private struct Response {
